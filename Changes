@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+0.02 Sat Apr  2 2011 Pavel Shaydo <zwon@cpan.org>
+    * Just added Test::Most dependency
+
 Thu Mar 31 2011 Pavel Shaydo <zwon@cpan.org>
     * First version, released on an unsuspecting world.
 
