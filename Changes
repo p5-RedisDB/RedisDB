@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+0.03 Sat Apr  2 2011 Pavel Shaydo <zwon@cpan.org>
+    * Added pipelining support
+    * Improved documentation
+
 0.02 Sat Apr  2 2011 Pavel Shaydo <zwon@cpan.org>
     * Just added Test::Most dependency
 

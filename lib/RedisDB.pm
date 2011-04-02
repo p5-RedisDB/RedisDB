@@ -2,7 +2,7 @@ package RedisDB;
 
 use warnings;
 use strict;
-our $VERSION = 0.02;
+our $VERSION = 0.03;
 
 use IO::Socket::INET;
 use Socket qw(MSG_DONTWAIT);
@@ -26,7 +26,7 @@ RedisDB - Module to access redis database
 B<This is alfa version, use on your own risk, interface is subject to change>
 
 This module provides interface to access redis database. It transparently
-handles disconnects and forks.
+handles disconnects and forks. It supports pipelining mode.
 
 =head1 METHODS
 
@@ -60,6 +60,7 @@ sub new {
     bless $self, $class;
     $self->{port} ||= 6379;
     $self->{host} ||= 'localhost';
+    $self->{_replies} = [];
     $self->connect unless $self->{lazy};
     return $self;
 }
@@ -67,15 +68,28 @@ sub new {
 =head2 $self->execute($command, @arguments)
 
 send command to the server and return server reply. It throws exception if
-server returns error.
+server returns error. It may be more convenient to use instead of this method
+wrapper named after the redis command. E.g.:
+
+    $redis->execute('set', key => 'value');
+    # is the same as
+    $redis->set(key => 'value');
+
+See "SUPPORTED REDIS COMMANDS" section for the full list of defined aliases.
+
+Note, that you can't use I<execute> if you send some commands in pipelining
+mode and not yet got all the replies.
 
 =cut
 
 sub execute {
     my $self = shift;
+    die "You can't use RedisDB::execute while in pipelining mode."
+      if $self->{_commands_in_flight}
+          or @{ $self->{_replies} };
     $_[0] = uc $_[0];
     $self->send_command(@_);
-    my ( $type, $value ) = $self->recv_reply;
+    my ( $type, $value ) = $self->get_reply;
     croak $value if $type eq '-';
     return $value;
 }
@@ -99,11 +113,50 @@ sub connect {
     return 1;
 }
 
+# parse data from the receive buffer without blocking
+sub _recv_data_nb {
+    my $self = shift;
+
+    while (1) {
+        my $ret = $self->{_socket}->recv( my $buf, 4096, MSG_DONTWAIT );
+        unless ( defined $ret ) {
+
+            # socket is connected, no data in recv buffer
+            last if $! == EAGAIN or $! == EWOULDBLOCK;
+            next if $! == EINTR;
+
+            # die on any other error
+            die "Error reading from server: $!";
+        }
+        elsif ( $buf ne '' ) {
+
+            # received some data
+            $self->{_buffer} .= $buf;
+        }
+        else {
+
+            # server closed connection. Check if some data was lost.
+            1 while $self->{_buffer} and $self->_parse_reply;
+
+            # if there's some replies lost
+            die "Server closed connection. Some data was lost."
+              if $self->{_commands_in_flight};
+
+            # clean disconnect, try to reconnect
+            $self->{warnings} and warn "Disconnected, trying to reconnect";
+            $self->connect;
+            last;
+        }
+    }
+
+    return;
+}
+
 =head2 $self->send_command($command, @arguments)
 
 send command to the server. Returns true if command was successfully sent, or
 dies if error occured. Note, that it doesn't return server reply, you should
-retrieve reply using I<recv_reply> method.
+retrieve reply using I<get_reply> method.
 
 =cut
 
@@ -116,30 +169,7 @@ sub send_command {
     # Here we reading received data and storing it in the _buffer,
     # but the main purpose is to check if connection is still alive
     # and reconnect if not
-    while (1) {
-        my $ret = $self->{_socket}->recv( my $buf, 4096, MSG_DONTWAIT );
-        unless ( defined $ret ) {
-
-            # socket is connected, no data in recv buffer
-            last if $! == EAGAIN or $! == EWOULDBLOCK;
-            next if $! == EINTR;
-
-            # not handling this error
-            die "Error reading from server: $!";
-        }
-        elsif ( $buf ne '' ) {
-
-            # received some data
-            $self->{_buffer} .= $buf;
-        }
-        else {
-
-            # disconnected, try to reconnect
-            $self->{warnings} and warn "Disconnected, trying to reconnect";
-            $self->connect;
-            last;
-        }
-    }
+    $self->_recv_data_nb;
 
     $self->{debug} and warn "Sending request";
     defined $self->{_socket}->send($request) or die "Can't send request to server: $!";
@@ -147,7 +177,22 @@ sub send_command {
     return 1;
 }
 
-=head2 $self->recv_reply
+=head2 $self->reply_ready
+
+This method may be used in pipelining mode to check if there are
+some replies already received from server. Returns number of replies
+available for reading.
+
+=cut
+
+sub reply_ready {
+    my $self = shift;
+
+    $self->_recv_data_nb;
+    return @{ $self->{_replies} } ? 1 : 0;
+}
+
+=head2 $self->get_reply
 
 receive reply from the server. Method returns two elements array. First element
 is the character depending on type of reply: "+" one line reply, "-" error, ":"
@@ -157,12 +202,16 @@ multi-bulk.
 
 =cut
 
-sub recv_reply {
+sub get_reply {
     my $self = shift;
+
+    if ( @{ $self->{_replies} } ) {
+        return @{ shift @{ $self->{_replies} } };
+    }
+
     die "We are not waiting for reply" unless $self->{_commands_in_flight};
     die "You can't read reply in child process" unless $self->{_pid} == $$;
-    my @reply;
-    while ( not @reply = $self->_parse_reply ) {
+    while ( not $self->_parse_reply ) {
         my $ret = $self->{_socket}->recv( my $buffer, 4096 );
         $self->{debug} and warn "Received: $buffer";
         unless ( defined $ret ) {
@@ -180,9 +229,7 @@ sub recv_reply {
             die "Server unexpectedly closed connection before sending full reply";
         }
     }
-    $self->{debug} and warn "Reply: $reply[0], $reply[1]";
-    $self->{_commands_in_flight}--;
-    return @reply;
+    return @{ shift @{ $self->{_replies} } };
 }
 
 my @commands = qw(
@@ -205,24 +252,25 @@ my @commands = qw(
 
 =head1 SUPPORTED REDIS COMMANDS
 
-Usually, instead of using I<send_command> and I<recv_reply> methods, you can just use functions corresponding to redis commands:
-append	auth	bgrewriteaof	bgsave	blpop	brpoplpush	config_get
-config_set	config_resetstat	dbsize	debug_object	debug_segfault
-decr	decrby	del	echo	exists	expire	expireat	flushall
-flushdb	get	getbit	getrange	getset	hdel	hexists	hget	hgetall
-hincrby	hkeys	hlen	hmget	hmset	hset	hsetnx	hvals	incr	incrby
-info	keys	lastsave	lindex	linsert	llen	lpop	lpush	lpushx
-lrange	lrem	lset	ltrim	mget	move	mset	msetnx	persist	ping
-publish	quit	randomkey	rename	renamenx	rpop	rpoplpush
-rpush	rpushx	sadd	save	scard	sdiff	sdiffstore	select	set
-setbit	setex	setnx	setrange	shutdown	sinter	sinterstore
-sismember	slaveof	smembers	smove	sort	spop	srandmember
-srem	strlen	sunion	sunionstore	sync	ttl	type	zadd	zcard
-zcount	zincrby	zinterstore	zrange	zrangebyscore	zrank	zremrangebyrank
-zremrangebyscore	zrevrange	zrevrangebyscore	zrevrank
-zscore	zunionstore
+Usually, instead of using I<execute> method, you can just use methods with names
+matching names of the redis commands. The following methods are defined as wrappers around execute:
+append,	auth,	bgrewriteaof,	bgsave,	blpop,	brpoplpush,	config_get,
+config_set,	config_resetstat,	dbsize,	debug_object,	debug_segfault,
+decr,	decrby,	del,	echo,	exists,	expire,	expireat,	flushall,
+flushdb,	get,	getbit,	getrange,	getset,	hdel,	hexists,	hget,	hgetall,
+hincrby,	hkeys,	hlen,	hmget,	hmset,	hset,	hsetnx,	hvals,	incr,	incrby,
+info,	keys,	lastsave,	lindex,	linsert,	llen,	lpop,	lpush,	lpushx,
+lrange,	lrem,	lset,	ltrim,	mget,	move,	mset,	msetnx,	persist,	ping,
+publish,	quit,	randomkey,	rename,	renamenx,	rpop,	rpoplpush,
+rpush,	rpushx,	sadd,	save,	scard,	sdiff,	sdiffstore,	select,	set,
+setbit,	setex,	setnx,	setrange,	shutdown,	sinter,	sinterstore,
+sismember,	slaveof,	smembers,	smove,	sort,	spop,	srandmember,
+srem,	strlen,	sunion,	sunionstore,	sync,	ttl,	type,	zadd,	zcard,
+zcount,	zincrby,	zinterstore,	zrange,	zrangebyscore,	zrank,	zremrangebyrank,
+zremrangebyscore,	zrevrange,	zrevrangebyscore,	zrevrank,
+zscore,	zunionstore
 
-See description of these commands in redis documentation at L<http://redis.io/commands>.
+See description of all commands in redis documentation at L<http://redis.io/commands>.
 
 =cut
 
@@ -235,6 +283,28 @@ for my $command (@commands) {
         return $self->execute( $uccom, @_ );
     };
 }
+
+=head1 HANDLING OF SERVER DISCONNECTS
+
+Redis server may close connection if it was idle for some time, also connection
+may be closed in case redis-server was restarted. RedisDB restores connection
+to the server but only if no data was lost as result of disconnect. E.g. if
+client was idle for some time and redis server closed connection, it will be
+transparently restored on sending next command. If you send a command and
+server closed connection without sending complete reply, connection will not be
+restored and module will throw exception.
+
+=head1 PIPELINING SUPPORT
+
+You can send commands in pipelining mode. In this case you sending multiple
+commands to the server without waiting for replies.  You can use
+I<send_command> method to send multiple commands to the server. I<reply_ready>
+function may be used to check if some replies are already received. And
+I<get_reply> function may be used to fetch received reply. Note, that you can't
+use execute method (or wrappers around it, like I<get> or <set>) while in
+pipeline mode, you must receive replies on all pipelined commands first.
+
+=cut
 
 # build_redis_request($command, @arguments)
 #
@@ -393,9 +463,10 @@ sub _read_line {
 sub _reply_completed {
     my $self = shift;
     $self->{_parse_state} = undef;
-    my $rep = $self->{_parse_reply};
+    push @{ $self->{_replies} }, $self->{_parse_reply};
+    $self->{_commands_in_flight}--;
     $self->{_parse_reply} = undef;
-    return @$rep;
+    return 1;
 }
 
 1;
@@ -406,6 +477,18 @@ __END__
 
 L<Redis>, L<Redis::hiredis>, L<AnyEvent::Redis>
 
+=head1 WHY ANOTHER ONE
+
+I was in need of a client for redis database. L<AnyEvent::Redis> didn't suite
+me as it requires event loop, and it didn't fit into existing code. Problem
+with L<Redis> is that it doesn't (at the time I write this) reconnect to the
+server if connection was closed after timeout or as result or server restart,
+and it doesn't support pipelining. After analizing what I need to change in
+L<Redis> in order to get all I want (see TODO), I decided that it will be
+simplier to write new module from scratch. This also solves the problem of
+backward compatibility. Pedro Melo, maintainer of L<Redis> have plans to
+implement some of these features too.
+
 =head1 TODO
 
 =over 4
@@ -413,10 +496,6 @@ L<Redis>, L<Redis::hiredis>, L<AnyEvent::Redis>
 =item *
 
 Test all commands
-
-=item *
-
-Better pipelining support
 
 =item *
 

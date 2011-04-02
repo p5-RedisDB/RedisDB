@@ -55,29 +55,35 @@ sub request_encoding {
 
 sub one_line_reply {
     $redis->{_buffer} = "+";
-    eq_or_diff( [ $redis->_parse_reply ], [], "+" );
+    ok( !$redis->_parse_reply, "+" );
     $redis->{_buffer} .= "OK";
-    eq_or_diff( [ $redis->_parse_reply ], [], "OK" );
+    ok( !$redis->_parse_reply, "OK" );
     $redis->{_buffer} .= "\015";
-    eq_or_diff( [ $redis->_parse_reply ], [], "\\015" );
+    ok( !$redis->_parse_reply, "\\015" );
     $redis->{_buffer} .= "\012+And here we have something long\015\012-OK\015";
-    eq_or_diff( [ $redis->_parse_reply ], [ '+', 'OK' ], "got first OK" );
-    eq_or_diff( [ $redis->_parse_reply ], [ '+', 'And here we have something long' ] );
-    eq_or_diff( [ $redis->_parse_reply ], [], "-OK\\015" );
+    ok( $redis->_parse_reply, "Got reply" );
+    eq_or_diff( shift @{$redis->{_replies}}, [ '+', 'OK' ], "got first OK" );
+    ok( $redis->_parse_reply, "Got reply" );
+    eq_or_diff( shift @{$redis->{_replies}}, [ '+', 'And here we have something long' ] );
+    ok( !$redis->_parse_reply, "-OK\\015" );
     $redis->{_buffer} .= "OK\015\012";
-    eq_or_diff( [ $redis->_parse_reply ], [ '-', "OK\015OK" ], "got error reply with \\r in it" );
+    ok( $redis->_parse_reply, "Got reply" );
+    eq_or_diff( shift @{$redis->{_replies}}, [ '-', "OK\015OK" ], "got error reply with \\r in it" );
 }
 
 sub integer_reply {
     $redis->{_buffer} = ":";
-    eq_or_diff( [ $redis->_parse_reply ], [], ":" );
+    ok( !$redis->_parse_reply, ":" );
     $redis->{_buffer} .= "12";
-    eq_or_diff( [ $redis->_parse_reply ], [], "'12'" );
+    ok( !$redis->_parse_reply, "'12'" );
     $redis->{_buffer} .= "34\015\012";
-    eq_or_diff( [ $redis->_parse_reply ], [':', 1234], "got 1234");
+    ok( $redis->_parse_reply, "Got reply" );
+    eq_or_diff( shift @{$redis->{_replies}}, [ ':', 1234 ], "got 1234" );
     $redis->{_buffer} .= ":0\015\012:-123\015\012";
-    eq_or_diff( [ $redis->_parse_reply ], [':', 0], "got zero");
-    eq_or_diff( [ $redis->_parse_reply ], [':', -123], "got -120");
+    ok( $redis->_parse_reply, "Got reply" );
+    eq_or_diff( shift @{$redis->{_replies}}, [ ':', 0 ],    "got zero" );
+    ok( $redis->_parse_reply, "Got reply" );
+    eq_or_diff( shift @{$redis->{_replies}}, [ ':', -123 ], "got -120" );
     my $redis2 = RedisDB->new();
     $redis2->{_buffer} = ":123a\015\012";
     dies_ok { $redis2->_parse_reply } "Dies on invalid integer reply";
@@ -85,24 +91,34 @@ sub integer_reply {
 
 sub bulk_reply {
     $redis->{_buffer} = '$';
-    eq_or_diff( [ $redis->_parse_reply ], [], '$' );
+    ok( !$redis->_parse_reply, '$' );
     $redis->{_buffer} .= "6\015\012foobar";
-    eq_or_diff( [ $redis->_parse_reply ], [], '6\\r\\nfoobar' );
+    ok( !$redis->_parse_reply, '6\\r\\nfoobar' );
     $redis->{_buffer} .= "\015\012\$-1\015\012\$0\015\012\015\012";
-    eq_or_diff( [ $redis->_parse_reply ], ['$', 'foobar'], 'got foobar' );
-    is_deeply( [ $redis->_parse_reply ], ['$', undef], 'got undef' );
-    eq_or_diff( [ $redis->_parse_reply ], ['$', ''], 'got empty string' );
+    ok( $redis->_parse_reply, "Got reply" );
+    eq_or_diff( shift @{$redis->{_replies}}, [ '$', 'foobar' ], 'got foobar' );
+    ok( $redis->_parse_reply, "Got reply" );
+    is_deeply( shift @{$redis->{_replies}}, [ '$', undef ], 'got undef' );
+    ok( $redis->_parse_reply, "Got reply" );
+    eq_or_diff( shift @{$redis->{_replies}}, [ '$', '' ], 'got empty string' );
 }
 
 sub multi_bulk_reply {
     $redis->{_buffer} = "*4\015\012\$3\015\012foo\015\012\$";
-    eq_or_diff( [ $redis->_parse_reply ], [], '*4$3foo$' );
+    ok( !$redis->_parse_reply, '*4$3foo$' );
     $redis->{_buffer} .= "-1\015\012\$0\015\012\015\012\$5\015\012Hello";
-    eq_or_diff( [ $redis->_parse_reply ], [], '*4$3foo$-1$0$5Hello' );
+    ok( !$redis->_parse_reply, '*4$3foo$-1$0$5Hello' );
     $redis->{_buffer} .= "\015\012";
-    is_deeply( [ $redis->_parse_reply ], [ '*', ['foo', undef, '', 'Hello']], 'got correct reply foo/undef//Hello' );
+    ok( $redis->_parse_reply, "Got reply" );
+    is_deeply(
+        shift @{$redis->{_replies}},
+        [ '*', [ 'foo', undef, '', 'Hello' ] ],
+        'got correct reply foo/undef//Hello'
+    );
     $redis->{_buffer} .= "*0\015\012*-1\015\012";
-    eq_or_diff( [ $redis->_parse_reply ], [ '*', [] ], '*0 is empty list' );
-    is_deeply( [ $redis->_parse_reply ], [ '*', undef ], '*1 is undef' );
+    ok( $redis->_parse_reply, "Got reply" );
+    eq_or_diff( shift @{$redis->{_replies}}, [ '*', [] ], '*0 is empty list' );
+    ok( $redis->_parse_reply, "Got reply" );
+    is_deeply( shift @{$redis->{_replies}}, [ '*', undef ], '*1 is undef' );
 }
 
