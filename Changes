@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+0.04 Sun Apr  3 2011 Pavel Shaydo <zwon@cpan.org>
+    * Fix test failures if there's no redis-server
+
 0.03 Sat Apr  2 2011 Pavel Shaydo <zwon@cpan.org>
     * Added pipelining support
     * Improved documentation

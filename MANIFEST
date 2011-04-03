@@ -18,8 +18,8 @@ META.yml
 README
 t/00-load.t
 t/basic_redis.t
+t/disconnect.t
 t/manifest.t
 t/pod.t
 t/protocol.t
-t/redis_disconnect.t
 t/RedisServer.pm
