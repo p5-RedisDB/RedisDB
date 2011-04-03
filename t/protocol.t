@@ -5,7 +5,7 @@ use utf8;
 
 subtest "Request encoding" => \&request_encoding;
 
-my $redis = RedisDB->new;
+my $redis = RedisDB->new(lazy => 1);
 
 subtest "One line reply" => \&one_line_reply;
 
@@ -84,7 +84,7 @@ sub integer_reply {
     eq_or_diff( shift @{$redis->{_replies}}, [ ':', 0 ],    "got zero" );
     ok( $redis->_parse_reply, "Got reply" );
     eq_or_diff( shift @{$redis->{_replies}}, [ ':', -123 ], "got -120" );
-    my $redis2 = RedisDB->new();
+    my $redis2 = RedisDB->new(lazy => 1);
     $redis2->{_buffer} = ":123a\015\012";
     dies_ok { $redis2->_parse_reply } "Dies on invalid integer reply";
 }
