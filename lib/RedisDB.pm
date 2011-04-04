@@ -164,7 +164,6 @@ sub send_command {
     my $self    = shift;
     my $request = _build_redis_request(@_);
     $self->connect unless $self->{_socket} and $self->{_pid} == $$;
-    local $SIG{PIPE} = 'IGNORE';
 
     # Here we reading received data and storing it in the _buffer,
     # but the main purpose is to check if connection is still alive
@@ -323,9 +322,8 @@ sub _build_redis_request {
 
 # $self->_parse_reply
 #
-# This method expect some data in the $self->{_buffer}. If buffer contains
-# full request, then method returns array with reply type as first element
-# and the data as the rest of array
+# checks if buffer contains full reply. Returns 1 if it is,
+# and pushes reply into @{$self->{_replies}}
 my ( $READ_LINE, $READ_NUMBER, $READ_BULK_LEN, $READ_BULK, $READ_MBLK_LEN, $WAIT_BUCKS ) = 1 .. 6;
 
 sub _parse_reply {
@@ -336,7 +334,7 @@ sub _parse_reply {
     unless ( $self->{_parse_state} ) {
         my $type = substr( $self->{_buffer}, 0, 1, '' );
         $self->{_parse_reply} = [$type];
-        if ( $type =~ /[+-]/ ) {
+        if ( $type eq '+' or $type eq '-' ) {
             $self->{_parse_state} = $READ_LINE;
         }
         elsif ( $type eq ':' ) {
