@@ -2,7 +2,7 @@ package RedisDB;
 
 use warnings;
 use strict;
-our $VERSION = 0.04;
+our $VERSION = 0.05;
 
 use IO::Socket::INET;
 use Socket qw(MSG_DONTWAIT);

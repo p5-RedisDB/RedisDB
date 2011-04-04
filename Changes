@@ -1,5 +1,11 @@
 Revision history for RedisDB
 
+0.05 Mon Apr  4 2011 Pavel Shaydo <zwon@cpan.org>
+    * Fix dependencies for testing
+    * run disconnect test even if redis is not available
+    * make connect private method
+    * minor documentation fixes
+
 0.04 Sun Apr  3 2011 Pavel Shaydo <zwon@cpan.org>
     * Fix test failures if there's no redis-server
 
