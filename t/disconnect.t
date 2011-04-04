@@ -1,15 +1,28 @@
 use Test::Most;
-use lib 't';
-use RedisServer;
 use RedisDB;
+use IO::Socket::INET;
 
-my $srv = RedisServer->start;
+my $srv = IO::Socket::INET->new(Proto => 'tcp', Listen => 1);
 
-plan( skip_all => "Can't start redis-server" ) unless $srv;
+if(fork == 0) {
+    $SIG{ALRM} = sub { exit 0 };
+    alarm 10;
+    my @replies = ("+PONG\015\012", "+OK\015\012", "+OK");
+    while (@replies) {
+        my $cli = $srv->accept;
+        $cli->recv(my $buf, 1024);
+        $cli->send(shift(@replies), 0);
+        close $cli;
+    }
+    exit 0;
+}
+
+plan( skip_all => "Can't start server" ) unless $srv;
 plan("no_plan");
-my $redis = RedisDB->new( host => $srv->{host}, port => $srv->{port} );
-lives_ok { $redis->set( 'key', 'value' ) } "Set key value";
-$srv->restart;
-sleep 2;
-my $val = $redis->get('key');
-is $val, 'value', 'yeah! got the value';
+my $redis = RedisDB->new( host => 'localhost', port => $srv->sockport);
+my $ret;
+lives_ok { $ret = $redis->ping } "Ping";
+is $ret, 'PONG', "pong";
+lives_ok { $ret = $redis->set('key', 'value') } "Connection restored";
+is $ret, 'OK', "key is set";
+dies_ok { $redis->get('key') } "Died on unclean disconnect";
