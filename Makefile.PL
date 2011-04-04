@@ -7,6 +7,7 @@ license  'perl';
 
 build_requires 'Test::More';
 build_requires 'Test::Most' => 0.22;
+build_requires 'Test::use::ok';
 
 auto_install;
 
