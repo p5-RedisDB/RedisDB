@@ -1,4 +1,4 @@
-use Test::Most;
+use Test::Most 0.22;
 use lib 't';
 use RedisServer;
 use RedisDB;

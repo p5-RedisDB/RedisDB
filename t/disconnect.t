@@ -1,4 +1,4 @@
-use Test::Most;
+use Test::Most 0.22;
 use RedisDB;
 use IO::Socket::INET;
 
