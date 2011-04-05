@@ -288,6 +288,8 @@ transparently restored on sending next command. If you send a command and
 server closed connection without sending complete reply, connection will not be
 restored and module will throw exception.
 
+=cut
+
 =head1 PIPELINING SUPPORT
 
 You can send commands in pipelining mode. In this case you sending multiple
@@ -492,10 +494,6 @@ Test all commands
 
 =item *
 
-User defined error callback
-
-=item *
-
 Handle cases when client is not interested in replies
 
 =item *
@@ -505,10 +503,6 @@ Transactions support (MULTI, EXEC, DISCARD, WATCH, UNWATCH)
 =item *
 
 Subscriptions support (PSUBSCRIBE, PUNSUBSCRIBE, SUBSCRIBE, UNSUBSCRIBE)
-
-=item *
-
-MONITOR support
 
 =back
 
