@@ -89,9 +89,7 @@ sub execute {
           or @{ $self->{_replies} };
     $_[0] = uc $_[0];
     $self->send_command(@_);
-    my ( $type, $value ) = $self->get_reply;
-    croak $value if $type eq '-';
-    return $value;
+    return $self->get_reply;
 }
 
 # establish connection to the server.
@@ -188,42 +186,39 @@ sub reply_ready {
 
 =head2 $self->get_reply
 
-receive reply from the server. Method returns two elements array. First element
-is the character depending on type of reply: "+" one line reply, "-" error, ":"
-integer reply, "$" bulk reply, "*" multi-bulk reply. Second element is reply
-itself, which is scalar for all replies, except that it is array reference for
-multi-bulk.
+receive reply from the server. Method croaks if server returns error reply.
 
 =cut
 
 sub get_reply {
     my $self = shift;
 
-    if ( @{ $self->{_replies} } ) {
-        return @{ shift @{ $self->{_replies} } };
-    }
+    unless ( @{ $self->{_replies} } ) {
+        die "We are not waiting for reply" unless $self->{_commands_in_flight};
+        die "You can't read reply in child process" unless $self->{_pid} == $$;
+        while ( not $self->_parse_reply ) {
+            my $ret = $self->{_socket}->recv( my $buffer, 4096 );
+            $self->{debug} and warn "Received: $buffer";
+            unless ( defined $ret ) {
+                next if $! == EINTR;
+                die "Error reading reply from server: $!";
+            }
+            if ( $buffer ne '' ) {
 
-    die "We are not waiting for reply" unless $self->{_commands_in_flight};
-    die "You can't read reply in child process" unless $self->{_pid} == $$;
-    while ( not $self->_parse_reply ) {
-        my $ret = $self->{_socket}->recv( my $buffer, 4096 );
-        $self->{debug} and warn "Received: $buffer";
-        unless ( defined $ret ) {
-            next if $! == EINTR;
-            die "Error reading reply from server: $!";
-        }
-        if ( $buffer ne '' ) {
+                # received some data
+                $self->{_buffer} .= $buffer;
+            }
+            else {
 
-            # received some data
-            $self->{_buffer} .= $buffer;
-        }
-        else {
-
-            # disconnected
-            die "Server unexpectedly closed connection before sending full reply";
+                # disconnected
+                die "Server unexpectedly closed connection before sending full reply";
+            }
         }
     }
-    return @{ shift @{ $self->{_replies} } };
+
+    my $res = shift @{ $self->{_replies} };
+    croak $res->[1] if $res->[0] eq '-';
+    return $res->[1];
 }
 
 my @commands = qw(
