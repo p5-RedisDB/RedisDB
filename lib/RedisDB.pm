@@ -357,8 +357,20 @@ sub _parse_reply {
         elsif ( $self->{_parse_state} == $READ_NUMBER ) {
             if ( defined( my $line = $self->_read_line ) ) {
                 die "Received invalid integer reply :$line" unless $line =~ /^-?[0-9]+$/;
-                $self->{_parse_reply}[1] = $line;
-                return $self->_reply_completed;
+                if ($self->{_parse_reply}[0] eq ':') {
+                    $self->{_parse_reply}[1] = $line;
+                    return $self->_reply_completed;
+                }
+                else {
+                    push @{ $self->{_parse_reply}[1] }, $line;
+                    if ( --$self->{_parse_mblk_len} ) {
+                        $self->{_parse_state} = $WAIT_BUCKS;
+                        $repeat = 1;
+                    }
+                    else {
+                        return $self->_reply_completed;
+                    }
+                }
             }
         }
         elsif ( $self->{_parse_state} == $READ_BULK_LEN ) {
@@ -427,9 +439,16 @@ sub _parse_reply {
             }
         }
         elsif ( $self->{_parse_state} == $WAIT_BUCKS ) {
-            die "Invalid multi-bulk reply. Expected '\$'"
-              unless substr( $self->{_buffer}, 0, 1, '' ) eq '$';
-            $self->{_parse_state} = $READ_BULK_LEN;
+            my $char = substr( $self->{_buffer}, 0, 1, '' );
+            if ($char eq '$') {
+                $self->{_parse_state} = $READ_BULK_LEN;
+            }
+            elsif ($char eq ':') {
+                $self->{_parse_state} = $READ_NUMBER;
+            }
+            else {
+                die "Invalid multi-bulk reply. Expected '\$' or ':' but got $char"; # $self->{_buffer}";
+            }
             $repeat = 1;
         }
     }
