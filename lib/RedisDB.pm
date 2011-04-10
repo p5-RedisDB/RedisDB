@@ -156,7 +156,7 @@ retrieve reply using I<get_reply> method.
 =cut
 
 sub send_command {
-    my $self    = shift;
+    my $self = shift;
     if ( $self->{_subscription_loop} ) {
         croak "only (UN)(P)SUBSCRIBE and QUITE allowed in subscription loop"
           unless $_[0] =~ /^(p?(un)?subscribe|quit)$/i;
@@ -200,7 +200,9 @@ sub get_reply {
     my $self = shift;
 
     unless ( @{ $self->{_replies} } ) {
-        die "We are not waiting for reply" unless $self->{_commands_in_flight} or $self->{_subscription_loop};
+        die "We are not waiting for reply"
+          unless $self->{_commands_in_flight}
+              or $self->{_subscription_loop};
         die "You can't read reply in child process" unless $self->{_pid} == $$;
         while ( not $self->_parse_reply ) {
             my $ret = $self->{_socket}->recv( my $buffer, 4096 );
@@ -585,7 +587,7 @@ sub _parse_reply {
         elsif ( $self->{_parse_state} == $READ_NUMBER ) {
             if ( defined( my $line = $self->_read_line ) ) {
                 die "Received invalid integer reply :$line" unless $line =~ /^-?[0-9]+$/;
-                if ($self->{_parse_reply}[0] eq ':') {
+                if ( $self->{_parse_reply}[0] eq ':' ) {
                     $self->{_parse_reply}[1] = $line;
                     return $self->_reply_completed;
                 }
@@ -668,14 +670,15 @@ sub _parse_reply {
         }
         elsif ( $self->{_parse_state} == $WAIT_BUCKS ) {
             my $char = substr( $self->{_buffer}, 0, 1, '' );
-            if ($char eq '$') {
+            if ( $char eq '$' ) {
                 $self->{_parse_state} = $READ_BULK_LEN;
             }
-            elsif ($char eq ':') {
+            elsif ( $char eq ':' ) {
                 $self->{_parse_state} = $READ_NUMBER;
             }
             else {
-                die "Invalid multi-bulk reply. Expected '\$' or ':' but got $char"; # $self->{_buffer}";
+                die "Invalid multi-bulk reply. Expected '\$' or ':' but got $char"
+                  ;    # $self->{_buffer}";
             }
             $repeat = 1;
         }
