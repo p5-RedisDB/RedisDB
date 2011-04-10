@@ -84,9 +84,10 @@ mode and haven't yet got all replies.
 
 sub execute {
     my $self = shift;
-    die "You can't use RedisDB::execute while in pipelining mode."
+    croak "You can't use RedisDB::execute while in pipelining mode."
       if $self->{_commands_in_flight}
           or @{ $self->{_replies} };
+    croak "This function is not available in subscription mode." if $self->{_subscription_loop};
     $_[0] = uc $_[0];
     $self->send_command(@_);
     return $self->get_reply;
@@ -103,6 +104,7 @@ sub _connect {
         Proto    => 'tcp'
     ) or die "Can't connect to redis server $self->{host}:$self->{port}: $!";
     $self->{_commands_in_flight} = 0;
+    $self->{_subscription_loop}  = 0;
     return 1;
 }
 
@@ -155,6 +157,10 @@ retrieve reply using I<get_reply> method.
 
 sub send_command {
     my $self    = shift;
+    if ( $self->{_subscription_loop} ) {
+        croak "only (UN)(P)SUBSCRIBE and QUITE allowed in subscription loop"
+          unless $_[0] =~ /^(p?(un)?subscribe|quit)$/i;
+    }
     my $request = _build_redis_request(@_);
     $self->_connect unless $self->{_socket} and $self->{_pid} == $$;
 
@@ -194,7 +200,7 @@ sub get_reply {
     my $self = shift;
 
     unless ( @{ $self->{_replies} } ) {
-        die "We are not waiting for reply" unless $self->{_commands_in_flight};
+        die "We are not waiting for reply" unless $self->{_commands_in_flight} or $self->{_subscription_loop};
         die "You can't read reply in child process" unless $self->{_pid} == $$;
         while ( not $self->_parse_reply ) {
             my $ret = $self->{_socket}->recv( my $buffer, 4096 );
@@ -296,6 +302,228 @@ use I<execute> method (or wrappers around it, like I<get> or I<set>) while in
 pipeline mode, you must receive replies on all pipelined commands first.
 
 =cut
+
+=head1 SUBSCRIPTIONS SUPPORT
+
+RedisDB supports subscriptions to redis channels. In subscription mode you can
+subscribe to some channels and receive all messages sent to these channels.
+Every time RedisDB receives message for the channel it invokes callback
+provided by user. User can specify different callbacks for different channels.
+When in subscription mode you can subscribe to additional channels, or
+unsubscribe from channels you subscribed to, but you can't use any other redis
+commands like set, get, etc. Here's example of running in subscription mode:
+
+    my $message_cb = sub {
+        my ($redis, $channel, $pattern, $message) = @_;
+        print "$channel: $message\n";
+    };
+    
+    my $control_cb = sub {
+        my ($redis, $channel, $pattern, $message) = @_;
+        if ($channel eq 'control.quit') {
+            $redis->unsubscribe;
+            $redis->punsubscribe;
+        }
+        elsif ($channel eq 'control.subscribe') {
+            $redis->subscribe($message);
+        }
+    };
+    
+    subscription_loop(
+        subscribe => [ 'news',  ],
+        psubscribe => [ 'control.*' => $control_cb ],
+        default_callback => $message_cb,
+    );
+
+subscription_loop will subscribe you to news channel and control.* channels. It
+will call specified callbacks every time new message received.  You can
+subscribe to additional channels sending their names to control.subscribe
+channel. You can unsubscribe from all channels by sending message to
+control.quit channel. Every callback receives four arguments: RedisDB object,
+channel for which message was received, pattern if you subscribed to this
+channel using I<psubscribe> method, and message itself.
+
+You can publish messages into channels using I<publish> method. This method
+should be called when you in normal mode, and can't be used while you're in
+subscription mode.
+
+Following methods can be used in subscribtion mode:
+
+=cut
+
+=head2 $self->subscription_loop(%parameters)
+
+Enter into subscription mode. Function subscribes you to specified channels,
+waits for messages, and invokes callbacks for every received message. Function
+returns after you unsubscribed from all channels. It accepts following parameters:
+
+=over 4
+
+=item default_callback
+
+reference to the default callback. This callback is invoked for the message if you
+didn't specify other callback for the channel this message comes from.
+
+=item subscribe
+
+array reference. Contains list of channels you want to subscribe. Channel name
+may be optionally followed by reference to callback function for this channel.
+E.g.:
+
+    [ 'news', 'messages', 'errors' => \&error_cb, 'other' ]
+
+channels "news", "messages", and "other" will use default callback, but for
+"errors" channel error_cb function will be used.
+
+=item psubscribe
+
+same as subscribe, but you specify patterns for channels' names.
+
+=back
+
+All parameters are optional, but you must subscribe at least to one channel. Also
+if default_callback is not specified, you have to explicitely specify callback
+for every channel you're going to subscribe.
+
+=cut
+
+sub subscription_loop {
+    my ( $self, %args ) = @_;
+    croak "Already in subscription loop" if $self->{_subscribtion_loop};
+    croak "You can't start subscription loop while in pipelining mode."
+      if $self->{_commands_in_flight}
+          or @{ $self->{_replies} };
+    $self->{_subscribed}        = {};
+    $self->{_psubscribed}       = {};
+    $self->{_subscription_cb}   = $args{default_callback};
+    $self->{_subscription_loop} = 1;
+
+    if ( $args{subscribe} ) {
+        while ( my $channel = shift @{ $args{subscribe} } ) {
+            my $cb;
+            $cb = shift @{ $args{subscribe} } if ref $args{subscribe}[0] eq 'CODE';
+            $self->subscribe( $channel, $cb );
+        }
+    }
+    if ( $args{psubscribe} ) {
+        while ( my $channel = shift @{ $args{psubscribe} } ) {
+            my $cb;
+            $cb = shift @{ $args{psubscribe} } if ref $args{psubscribe}[0] eq 'CODE';
+            $self->psubscribe( $channel, $cb );
+        }
+    }
+    croak "You must subscribe at least to one channel"
+      unless ( keys %{ $self->{_subscribed} }, keys %{ $self->{_psubscribed} } );
+
+    while ( my $msg = $self->get_reply ) {
+        die "Expected multi-bulk reply, but got $msg" unless ref $msg;
+        if ( $msg->[0] eq 'message' ) {
+            $self->{_subscribed}{ $msg->[1] }( $self, $msg->[1], undef, $msg->[2] );
+        }
+        elsif ( $msg->[0] eq 'pmessage' ) {
+            $self->{_psubscribed}{ $msg->[1] }( $self, $msg->[2], $msg->[1], $msg->[3] );
+        }
+        elsif ( $msg->[0] eq 'subscribe' or $msg->[0] eq 'psubscribe' ) {
+
+            # ignore
+        }
+        elsif ( $msg->[0] eq 'unsubscribe' ) {
+            delete $self->{_subscribed}{ $msg->[1] };
+
+            # TODO think about it, not exactly correct
+            last unless $msg->[2] or %{ $self->{_psubscribed} };
+        }
+        elsif ( $msg->[0] eq 'punsubscribe' ) {
+            delete $self->{_psubscribed}{ $msg->[1] };
+            last unless $msg->[2] or %{ $self->{_subscribed} };
+        }
+        else {
+            die "Got unknown reply $msg->[0] in subscription mode";
+        }
+    }
+    $self->_connect;
+    return;
+}
+
+=head2 $self->subscribe($channel[, $callback])
+
+Subscribe to additional I<$channel>. If I<$callback> is not specified, default
+callback will be used.
+
+=cut
+
+sub subscribe {
+    my ( $self, $channel, $callback ) = @_;
+    croak "Must be in subscription loop to subscribe" unless $self->{_subscription_loop};
+    croak "Subscribe to what channel?" unless length $channel;
+    $callback ||= $self->{_subscription_cb}
+      or croak "Callback for $channel not specified, neither default callback defined";
+    $self->{_subscribed}{$channel} = $callback;
+    $self->send_command( "SUBSCRIBE", $channel );
+    return;
+}
+
+=head2 $self->psubscribe($pattern[, $callback])
+
+Subscribe to additional channels matching I<$pattern>. If I<$callback> is not specified, default
+callback will be used.
+
+=cut
+
+sub psubscribe {
+    my ( $self, $channel, $callback ) = @_;
+    croak "Must be in subscription loop to subscribe" unless $self->{_subscription_loop};
+    croak "Subscribe to what channel?" unless length $channel;
+    $callback ||= $self->{_subscription_cb}
+      or croak "Callback for $channel not specified, neither default callback defined";
+    $self->{_psubscribed}{$channel} = $callback;
+    $self->send_command( "PSUBSCRIBE", $channel );
+    return;
+}
+
+=head2 $self->unsubscribe([@channels])
+
+Unsubscribe from the listed I<@channels>. If no channels specified, unsubscribe
+from all channels.
+
+=cut
+
+sub unsubscribe {
+    my $self = shift;
+    return $self->send_command( "UNSUBSCRIBE", @_ );
+}
+
+=head2 $self->punsubscribe([@patterns])
+
+Unsubscribe from the listed I<@patterns>. If no patterns specified, unsubscribe
+from all channels to which you subscribed using I<psubscribe>.
+
+=cut
+
+sub punsubscribe {
+    my $self = shift;
+    return $self->send_command( "PUNSUBSCRIBE", @_ );
+}
+
+=head2 $self->subscribed
+
+Return list of channels to which you have subscribed using I<subscribe>
+
+=cut
+
+sub subscribed {
+    return keys %{ shift->{_subscribed} };
+}
+
+=head2 $self->psubscribed
+
+Return list of channels to which you have subscribed using I<psubscribe>
+
+=cut
+
+sub psubscribed {
+    return keys %{ shift->{_psubscribed} };
+}
 
 # build_redis_request($command, @arguments)
 #
