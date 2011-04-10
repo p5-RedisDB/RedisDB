@@ -1,5 +1,10 @@
 Revision history for RedisDB
 
+0.06 Sun Apr 10 2011 Pavel Shaydo <zwon@cpan.org>
+    * get_reply now returns only result value, no type
+    * fixed multi-bulk messages parsing
+    * added Pub/Sub support
+
 0.05 Mon Apr  4 2011 Pavel Shaydo <zwon@cpan.org>
     * Fix dependencies for testing
     * run disconnect test even if redis is not available

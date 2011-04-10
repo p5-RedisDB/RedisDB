@@ -5,6 +5,10 @@ all_from 'lib/RedisDB.pm';
 author   q{Pavel Shaydo <zwon@cpan.org>};
 license  'perl';
 
+homepage 'http://github.com/trinitum/RedisDB';
+repository 'git://github.com/trinitum/RedisDB';
+bugtracker 'http://github.com/trinitum/RedisDB/issues';
+
 build_requires 'Test::More' => 0.96;
 build_requires 'Test::Most' => 0.22;
 build_requires 'Test::use::ok';

@@ -24,3 +24,4 @@ t/manifest.t
 t/pod.t
 t/protocol.t
 t/RedisServer.pm
+t/subscribe.t
