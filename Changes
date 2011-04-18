@@ -1,5 +1,11 @@
 Revision history for RedisDB
 
+0.07 Mon Apr 18 2011 Pavel Shaydo <zwon@cpan.org>
+    * trying to find out the reason disconnect.t fails
+      for certain cpan testers
+    * minor pod fixes
+    * require Test::Differences 0.61
+
 0.06 Sun Apr 10 2011 Pavel Shaydo <zwon@cpan.org>
     * get_reply now returns only result value, no type
     * fixed multi-bulk messages parsing
