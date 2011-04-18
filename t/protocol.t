@@ -98,7 +98,7 @@ sub bulk_reply {
     ok( $redis->_parse_reply, "Got reply" );
     eq_or_diff( shift @{$redis->{_replies}}, [ '$', 'foobar' ], 'got foobar' );
     ok( $redis->_parse_reply, "Got reply" );
-    is_deeply( shift @{$redis->{_replies}}, [ '$', undef ], 'got undef' );
+    eq_or_diff( shift @{$redis->{_replies}}, [ '$', undef ], 'got undef' );
     ok( $redis->_parse_reply, "Got reply" );
     eq_or_diff( shift @{$redis->{_replies}}, [ '$', '' ], 'got empty string' );
 }
@@ -110,7 +110,7 @@ sub multi_bulk_reply {
     ok( !$redis->_parse_reply, '*4$3foo$-1$0$5Hello' );
     $redis->{_buffer} .= "\015\012";
     ok( $redis->_parse_reply, "Got reply" );
-    is_deeply(
+    eq_or_diff(
         shift @{$redis->{_replies}},
         [ '*', [ 'foo', undef, '', 'Hello' ] ],
         'got correct reply foo/undef//Hello'
@@ -119,7 +119,7 @@ sub multi_bulk_reply {
     ok( $redis->_parse_reply, "Got reply" );
     eq_or_diff( shift @{$redis->{_replies}}, [ '*', [] ], '*0 is empty list' );
     ok( $redis->_parse_reply, "Got reply" );
-    is_deeply( shift @{$redis->{_replies}}, [ '*', undef ], '*1 is undef' );
+    eq_or_diff( shift @{$redis->{_replies}}, [ '*', undef ], '*1 is undef' );
 
     # redis docs don't say that this is possible, but that's what I got
     $redis->{_buffer} .= "*3\015\012\$9\015\012subscribe\015\012\$3\015\012foo\015\012:2\015\012";

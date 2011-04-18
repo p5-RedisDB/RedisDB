@@ -19,7 +19,7 @@ $res = $redis->get_reply;
 eq_or_diff $res, 'test value', "Got test string";
 $redis->send_command( 'GET', 'test non-existing string' );
 $res = $redis->get_reply;
-is_deeply $res, undef, "Got undef for non-existing string";
+eq_or_diff $res, undef, "Got undef for non-existing string";
 
 $redis->send_command( 'INCR', 'counter' );
 $res = $redis->get_reply;
