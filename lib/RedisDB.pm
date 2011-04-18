@@ -11,7 +11,7 @@ use Carp;
 
 =head1 NAME
 
-RedisDB - Module to access redis database
+RedisDB - Perl extension to access redis database
 
 =head1 SYNOPSIS
 
@@ -745,17 +745,12 @@ Handle cases when client is not interested in replies
 
 Transactions support (MULTI, EXEC, DISCARD, WATCH, UNWATCH)
 
-=item *
-
-Subscriptions support (PSUBSCRIBE, PUNSUBSCRIBE, SUBSCRIBE, UNSUBSCRIBE)
-
 =back
 
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-redisdb at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=RedisDB>.  I will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
+Please report any bugs or feature requests via GitHub bug tracker at
+L<http://github.com/trinitum/RedisDB/issues>.
 
 =head1 AUTHOR
 
