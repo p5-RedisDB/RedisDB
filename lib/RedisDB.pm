@@ -527,6 +527,50 @@ sub psubscribed {
     return keys %{ shift->{_psubscribed} };
 }
 
+=head1 TRANSACTIONS SUPPORT
+
+Transactions allow you execute a sequence of commands in a single step. In
+order to start transaction you should use method I<multi>.  After you entered
+transaction all commands you issue are queued, but not executed till you call
+I<exec> method. Tipically these commands return string "QUEUED" as result, but
+if there's an error in e.g. number of arguments they may croak. When you
+calling exec all queued commands are executed and exec returns list of results
+for every command in transaction. If any command failed exec will croak. If
+instead of I<exec> you will call I<discard>, all scheduled commands will be
+canceled.
+
+You can set some keys as watched. If any whatched key will be changed by
+another client before you call exec, transaction will be discarded and exec
+will return false value.
+
+=head2 $self->multi
+
+Enter transaction. After this and till I<exec> or I<discard> will be called,
+all commands will be queued but not executed.
+
+=head2 $self->exec
+
+Execute all queued commands and finish transaction. Returns list of results for
+every command. May croak if some command failed.  Also unwatches all keys. If
+some of the watched keys was changed by other client, transaction will be
+canceled and I<exec> will return false.
+
+=head2 $self->discard
+
+Discard all queued commands without executing them and unwatch all keys.
+
+=head2 $self->watch(@keys)
+
+Mark given keys as watched. If key will be changed by other client before
+transaction finished, transaction will be canceled and I<exec> will return
+false.
+
+=head2 $self->unwatch
+
+Unwatch all watched keys.
+
+=cut
+
 # build_redis_request($command, @arguments)
 #
 # Builds unified redis request from given I<$command> and I<@arguments>.
