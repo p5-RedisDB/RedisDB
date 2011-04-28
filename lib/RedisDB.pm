@@ -610,7 +610,8 @@ sub _parse_reply {
             $self->{_parse_state} = $READ_BULK_LEN;
         }
         elsif ( $type eq '*' ) {
-            $self->{_parse_state} = $READ_MBLK_LEN;
+            $self->{_parse_state}      = $READ_MBLK_LEN;
+            $self->{_parse_mblk_level} = 1;
         }
         else {
             die "Got invalid reply: $type$self->{_buffer}";
@@ -618,14 +619,21 @@ sub _parse_reply {
     }
 
     # parse data
-    my $repeat = 1;
+    my $repeat    = 1;
+    my $completed = 0;
     while ($repeat) {
         $repeat = 0;
         return unless length $self->{_buffer} >= 2;
         if ( $self->{_parse_state} == $READ_LINE ) {
             if ( defined( my $line = $self->_read_line ) ) {
-                $self->{_parse_reply}[1] = $line;
-                return $self->_reply_completed;
+                if ( $self->{_parse_reply}[0] eq '+' or $self->{_parse_reply}[0] eq '-' ) {
+                    $self->{_parse_reply}[1] = $line;
+                    return $self->_reply_completed;
+                }
+                else {
+                    $repeat    = $self->_mblk_item($line);
+                    $completed = !$repeat;
+                }
             }
         }
         elsif ( $self->{_parse_state} == $READ_NUMBER ) {
@@ -636,14 +644,8 @@ sub _parse_reply {
                     return $self->_reply_completed;
                 }
                 else {
-                    push @{ $self->{_parse_reply}[1] }, $line;
-                    if ( --$self->{_parse_mblk_len} ) {
-                        $self->{_parse_state} = $WAIT_BUCKS;
-                        $repeat = 1;
-                    }
-                    else {
-                        return $self->_reply_completed;
-                    }
+                    $repeat    = $self->_mblk_item($line);
+                    $completed = !$repeat;
                 }
             }
         }
@@ -660,14 +662,8 @@ sub _parse_reply {
                         return $self->_reply_completed;
                     }
                     else {
-                        push @{ $self->{_parse_reply}[1] }, undef;
-                        if ( --$self->{_parse_mblk_len} ) {
-                            $self->{_parse_state} = $WAIT_BUCKS;
-                            $repeat = 1;
-                        }
-                        else {
-                            return $self->_reply_completed;
-                        }
+                        $repeat    = $self->_mblk_item(undef);
+                        $completed = !$repeat;
                     }
                 }
             }
@@ -681,14 +677,8 @@ sub _parse_reply {
                 return $self->_reply_completed;
             }
             else {
-                push @{ $self->{_parse_reply}[1] }, $bulk;
-                if ( --$self->{_parse_mblk_len} ) {
-                    $self->{_parse_state} = $WAIT_BUCKS;
-                    $repeat = 1;
-                }
-                else {
-                    return $self->_reply_completed;
-                }
+                $repeat    = $self->_mblk_item($bulk);
+                $completed = !$repeat;
             }
         }
         elsif ( $self->{_parse_state} == $READ_MBLK_LEN ) {
@@ -720,6 +710,15 @@ sub _parse_reply {
             elsif ( $char eq ':' ) {
                 $self->{_parse_state} = $READ_NUMBER;
             }
+            elsif ( $char eq '+' ) {
+                $self->{_parse_state} = $READ_LINE;
+            }
+            elsif ( $char eq '*' ) {
+                $self->{_parse_state} = $READ_MBLK_LEN;
+                $self->{_parse_mblk_level}++;
+                $self->{_parse_mblk_store} = [ $self->{_parse_mblk_len}, $self->{_parse_reply} ];
+                $self->{_parse_reply} = ['*'];
+            }
             else {
                 die "Invalid multi-bulk reply. Expected '\$' or ':' but got $char"
                   ;    # $self->{_buffer}";
@@ -727,7 +726,7 @@ sub _parse_reply {
             $repeat = 1;
         }
     }
-    return;
+    return $completed ? $self->_reply_completed : undef;
 }
 
 sub _read_line {
@@ -742,6 +741,31 @@ sub _read_line {
         substr $self->{_buffer}, 0, 2, '';
     }
     return $line;
+}
+
+sub _mblk_item {
+    my ( $self, $value ) = @_;
+
+    push @{ $self->{_parse_reply}[1] }, $value;
+    my $repeat;
+    if ( --$self->{_parse_mblk_len} ) {
+        $self->{_parse_state} = $WAIT_BUCKS;
+        $repeat = 1;
+    }
+    elsif ( --$self->{_parse_mblk_level} ) {
+        $self->{_parse_mblk_len} = shift @{ $self->{_parse_mblk_store} };
+        $self->{_parse_mblk_len}--;
+        my $reply = shift @{ $self->{_parse_mblk_store} };
+        push @{ $reply->[1] }, $self->{_parse_reply}[1];
+        $self->{_parse_reply} = $reply;
+        $self->{_parse_state} = $WAIT_BUCKS;
+        $repeat               = 1;
+    }
+    else {
+        $repeat = 0;
+    }
+
+    return $repeat;
 }
 
 sub _reply_completed {
