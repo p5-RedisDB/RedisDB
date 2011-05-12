@@ -88,8 +88,8 @@ sub execute {
       if $self->{_commands_in_flight}
           or @{ $self->{_replies} };
     croak "This function is not available in subscription mode." if $self->{_subscription_loop};
-    $_[0] = uc $_[0];
-    $self->send_command(@_);
+    my $cmd = uc shift;
+    $self->send_command($cmd, @_);
     return $self->get_reply;
 }
 
@@ -759,7 +759,7 @@ sub _mblk_item {
         push @{ $reply->[1] }, $self->{_parse_reply}[1];
         $self->{_parse_reply} = $reply;
         $self->{_parse_state} = $WAIT_BUCKS;
-        $repeat               = 1;
+        $repeat               = $self->{_parse_mblk_len} > 0;
     }
     else {
         $repeat = 0;

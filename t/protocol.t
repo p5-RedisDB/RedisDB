@@ -147,5 +147,12 @@ sub transaction {
         [ '*', [ qw(OK 5 6 7 8), [qw(this is a list)], 'value' ] ],
         "complex transaction result successfuly parsed"
     );
+    $redis->{_buffer} = "*6\r\n+OK\r\n:1\r\n:2\r\n:3\r\n:4\r\n*4\r\n\$4\r\nthis\r\n\$2\r\nis\r\n\$1\r\na\r\n\$4\r\nlist\r\n";
+    ok( $redis->_parse_reply, 'reply ready' );
+    eq_or_diff(
+        shift @{ $redis->{_replies} },
+        [ '*', [ qw(OK 1 2 3 4), [qw(this is a list)] ] ],
+        "parsed with list in the end too"
+    );
 }
 
