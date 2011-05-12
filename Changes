@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+0.08 Thu May 12 2011 Pavel Shaydo <zwon@cpan.org>
+    * added transactions support
+
 0.07 Mon Apr 18 2011 Pavel Shaydo <zwon@cpan.org>
     * trying to find out the reason disconnect.t fails
       for certain cpan testers

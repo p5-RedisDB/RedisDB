@@ -25,3 +25,4 @@ t/pod.t
 t/protocol.t
 t/RedisServer.pm
 t/subscribe.t
+t/transactions.t
