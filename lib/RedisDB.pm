@@ -135,7 +135,7 @@ sub _recv_data_nb {
 
             # if there's some replies lost
             die "Server closed connection. Some data was lost."
-              if $self->{_commands_in_flight};
+              if $self->{_commands_in_flight} or $self->{_in_multi};
 
             # clean disconnect, try to reconnect
             $self->{warnings} and warn "Disconnected, trying to reconnect";
@@ -241,7 +241,8 @@ my @commands = qw(
   rpush	rpushx	sadd	save	scard	sdiff	sdiffstore	select	set
   setbit	setex	setnx	setrange	shutdown	sinter	sinterstore
   sismember	slaveof	smembers	smove	sort	spop	srandmember
-  srem	strlen	sunion	sunionstore	sync	ttl	type	zadd	zcard
+  srem	strlen	sunion	sunionstore	sync	ttl	type	unwatch watch
+  zadd	zcard
   zcount	zincrby	zinterstore	zrange	zrangebyscore	zrank	zremrangebyrank
   zremrangebyscore	zrevrange	zrevrangebyscore	zrevrank
   zscore	zunionstore
@@ -262,7 +263,7 @@ publish,	quit,	randomkey,	rename,	renamenx,	rpop,	rpoplpush,
 rpush,	rpushx,	sadd,	save,	scard,	sdiff,	sdiffstore,	select,	set,
 setbit,	setex,	setnx,	setrange,	shutdown,	sinter,	sinterstore,
 sismember,	slaveof,	smembers,	smove,	sort,	spop,	srandmember,
-srem,	strlen,	sunion,	sunionstore,	sync,	ttl,	type,	zadd,	zcard,
+srem,	strlen,	sunion,	sunionstore,	sync,	ttl,	type,	unwatch, watch, zadd,	zcard,
 zcount,	zincrby,	zinterstore,	zrange,	zrangebyscore,	zrank,	zremrangebyrank,
 zremrangebyscore,	zrevrange,	zrevrangebyscore,	zrevrank,
 zscore,	zunionstore
@@ -289,7 +290,8 @@ to the server but only if no data was lost as result of disconnect. E.g. if
 client was idle for some time and redis server closed connection, it will be
 transparently restored on sending next command. If you send a command and
 server closed connection without sending complete reply, connection will not be
-restored and module will throw exception.
+restored and module will throw exception. Also module will throw exception if
+connection will be closed in the middle of transaction.
 
 =cut
 
@@ -543,10 +545,22 @@ You can set some keys as watched. If any whatched key will be changed by
 another client before you call exec, transaction will be discarded and exec
 will return false value.
 
+=cut
+
 =head2 $self->multi
 
 Enter transaction. After this and till I<exec> or I<discard> will be called,
 all commands will be queued but not executed.
+
+=cut
+
+sub multi {
+    my $self = shift;
+
+    my $res = $self->execute('MULTI');
+    $self->{_in_multi} = 1;
+    return $res;
+}
 
 =head2 $self->exec
 
@@ -555,21 +569,29 @@ every command. May croak if some command failed.  Also unwatches all keys. If
 some of the watched keys was changed by other client, transaction will be
 canceled and I<exec> will return false.
 
+=cut
+
+sub exec {
+    my $self = shift;
+
+    my $res = $self->execute('EXEC');
+    $self->{_in_multi} = undef;
+    return $res;
+}
+
 =head2 $self->discard
 
 Discard all queued commands without executing them and unwatch all keys.
 
-=head2 $self->watch(@keys)
-
-Mark given keys as watched. If key will be changed by other client before
-transaction finished, transaction will be canceled and I<exec> will return
-false.
-
-=head2 $self->unwatch
-
-Unwatch all watched keys.
-
 =cut
+
+sub discard {
+    my $self = shift;
+
+    my $res = $self->execute('DISCARD');
+    $self->{_in_multi} = undef;
+    return $res;
+}
 
 # build_redis_request($command, @arguments)
 #
@@ -808,10 +830,6 @@ Test all commands
 =item *
 
 Handle cases when client is not interested in replies
-
-=item *
-
-Transactions support (MULTI, EXEC, DISCARD, WATCH, UNWATCH)
 
 =back
 
