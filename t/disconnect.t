@@ -2,6 +2,8 @@ use Test::Most 0.22;
 use RedisDB;
 use IO::Socket::INET;
 
+# Check that module is able to restore connection
+
 my $srv = IO::Socket::INET->new( LocalAddr => '127.0.0.1', Proto => 'tcp', Listen => 1 );
 
 if ( fork == 0 ) {
@@ -29,3 +31,20 @@ undef $ret;
 lives_ok { $ret = $redis->set( 'key', 'value' ) } "Connection restored";
 is $ret, 'OK', "key is set";
 dies_ok { $redis->get('key') } "Died on unclean disconnect";
+
+# Check that IO timeout is working
+
+$srv = IO::Socket::INET->new( LocalAddr => '127.0.0.1', Proto => 'tcp', Listen => 1 );
+
+if ( fork == 0 ) {
+    $SIG{ALRM} = sub { exit 0 };
+    alarm 10;
+    my $cli = $srv->accept;
+    1 while defined $cli->recv( my $buf, 1024 );
+    exit 0;
+}
+
+$redis = RedisDB->new( host => '127.0.0.1', port => $srv->sockport, timeout => 3 );
+lives_ok { $redis->send_command('PING') } "Sent command without problems";
+dies_ok { $redis->get_reply } "Dies on timeout while receiving reply";
+

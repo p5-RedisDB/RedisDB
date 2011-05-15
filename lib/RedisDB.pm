@@ -5,8 +5,9 @@ use strict;
 our $VERSION = 0.08;
 
 use IO::Socket::INET;
-use Socket qw(MSG_DONTWAIT);
+use Socket qw(MSG_DONTWAIT SO_RCVTIMEO SO_SNDTIMEO);
 use POSIX qw(:errno_h);
+use Config;
 use Carp;
 
 =head1 NAME
@@ -43,6 +44,11 @@ domain name of the host running redis server. Default: "localhost"
 =item port
 
 port to connect. Default: 6379
+
+=item timeout
+
+IO timeout. With this option set, if IO operation will take more than specified
+number of seconds module will croak.
 
 =item lazy
 
@@ -101,10 +107,24 @@ sub _connect {
     $self->{_socket} = IO::Socket::INET->new(
         PeerAddr => $self->{host},
         PeerPort => $self->{port},
-        Proto    => 'tcp'
+        Proto    => 'tcp',
+        ( $self->{timeout} ? ( Timeout => $self->{timeout} ) : () ),
     ) or die "Can't connect to redis server $self->{host}:$self->{port}: $!";
+
+    if ( $self->{timeout} ) {
+        my $timeout =
+          $Config{longsize} == 4
+          ? pack( 'LL', $self->{timeout}, 0 )
+          : pack( 'QQ', $self->{timeout} );
+        defined $self->{_socket}->sockopt( SO_RCVTIMEO, $timeout )
+          or die "Can't set receive timeout: $!";
+        defined $self->{_socket}->sockopt( SO_SNDTIMEO, $timeout )
+          or die "Can't set send timeout: $!";
+    }
+
     $self->{_commands_in_flight} = 0;
     $self->{_subscription_loop}  = 0;
+
     return 1;
 }
 
@@ -158,7 +178,7 @@ retrieve reply using I<get_reply> method.
 sub send_command {
     my $self = shift;
     if ( $self->{_subscription_loop} ) {
-        croak "only (UN)(P)SUBSCRIBE and QUITE allowed in subscription loop"
+        croak "only (UN)(P)SUBSCRIBE and QUIT allowed in subscription loop"
           unless $_[0] =~ /^(p?(un)?subscribe|quit)$/i;
     }
     my $request = _build_redis_request(@_);
