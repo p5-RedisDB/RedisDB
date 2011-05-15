@@ -229,13 +229,29 @@ sub get_reply {
     return $res->[1];
 }
 
+=head2 $self->version
+
+Return version of the server client is connected to. Version is returned as floating point
+number represented the same way as the perl versions. E.g. for redis 2.1.12 it will return
+2.001012.
+
+=cut
+
+sub version {
+    my $self = shift;
+    my $info = $self->info;
+    $info->{redis_version} =~ /^([0-9]+)[.]([0-9]+)(?:[.]([0-9]+))?/ or die "Can't parse version string: $info->{redis_version}";
+    $self->{_server_version} = $1 + 0.001 * $2 + ( $3 ? 0.000001 * $3 : 0 );
+    return $self->{_server_version};
+}
+
 my @commands = qw(
   append	auth	bgrewriteaof	bgsave	blpop	brpoplpush	config_get
   config_set	config_resetstat	dbsize	debug_object	debug_segfault
   decr	decrby	del	echo	exists	expire	expireat	flushall
   flushdb	get	getbit	getrange	getset	hdel	hexists	hget	hgetall
   hincrby	hkeys	hlen	hmget	hmset	hset	hsetnx	hvals	incr	incrby
-  info	keys	lastsave	lindex	linsert	llen	lpop	lpush	lpushx
+  keys	lastsave	lindex	linsert	llen	lpop	lpush	lpushx
   lrange	lrem	lset	ltrim	mget	move	mset	msetnx	persist	ping
   publish	quit	randomkey	rename	renamenx	rpop	rpoplpush
   rpush	rpushx	sadd	save	scard	sdiff	sdiffstore	select	set
@@ -257,7 +273,7 @@ config_set,	config_resetstat,	dbsize,	debug_object,	debug_segfault,
 decr,	decrby,	del,	echo,	exists,	expire,	expireat,	flushall,
 flushdb,	get,	getbit,	getrange,	getset,	hdel,	hexists,	hget,	hgetall,
 hincrby,	hkeys,	hlen,	hmget,	hmset,	hset,	hsetnx,	hvals,	incr,	incrby,
-info,	keys,	lastsave,	lindex,	linsert,	llen,	lpop,	lpush,	lpushx,
+keys,	lastsave,	lindex,	linsert,	llen,	lpop,	lpush,	lpushx,
 lrange,	lrem,	lset,	ltrim,	mget,	move,	mset,	msetnx,	persist,	ping,
 publish,	quit,	randomkey,	rename,	renamenx,	rpop,	rpoplpush,
 rpush,	rpushx,	sadd,	save,	scard,	sdiff,	sdiffstore,	select,	set,
@@ -280,6 +296,27 @@ for my $command (@commands) {
         my $self = shift;
         return $self->execute( $uccom, @_ );
     };
+}
+
+=pod
+
+The following commands implement some additional postprocessing of results:
+
+=cut
+
+=head2 $self->info
+
+Return information and statistics about server. Redis returns information in form of
+I<field:value>, I<info> method parses result and returns it as hash reference.
+
+=cut
+
+sub info {
+    my $self = shift;
+
+    my $info = $self->execute('INFO');
+    my %info = map { /^([^:]+):(.*)$/ } split /\r\n/, $info;
+    return \%info;
 }
 
 =head1 HANDLING OF SERVER DISCONNECTS
