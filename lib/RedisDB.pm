@@ -2,7 +2,7 @@ package RedisDB;
 
 use warnings;
 use strict;
-our $VERSION = 0.08;
+our $VERSION = 0.09;
 
 use IO::Socket::INET;
 use Socket qw(MSG_DONTWAIT SO_RCVTIMEO SO_SNDTIMEO);
@@ -23,8 +23,6 @@ RedisDB - Perl extension to access redis database
     my $value = $redis->get($key);
 
 =head1 DESCRIPTION
-
-B<This is alfa version, use on your own risk, interface is subject to change>
 
 This module provides interface to access redis database. It transparently
 handles disconnects and forks. It supports pipelining mode.
