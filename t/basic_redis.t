@@ -43,4 +43,6 @@ $redis->send_command( 'LRANGE', 'test list', 1, 3 );
 $res = $redis->get_reply;
 eq_or_diff $res, [qw(is a list)], 'LRANGE returned correct result';
 
+is $redis->quit, "OK", "QUIT";
+
 $server->stop;
