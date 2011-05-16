@@ -21,9 +21,9 @@ daemonize no
 port $args{port}
 timeout 0
 loglevel notice
-logfile $args{dir}/redis_bom_test.log
+logfile $args{dir}/redis_test.log
 databases 2
-dbfilename dump_bom_test.rdb
+dbfilename dump_test.rdb
 dir $args{dir}
 EOC
         open my $cfg_fd, ">", "$args{dir}/redis.cfg" or die $!;
@@ -42,12 +42,15 @@ sub _start {
     if ( $self->{pid} == 0 ) {
         exec 'redis-server', "$self->{dir}/redis.cfg" or die "Couldn't start redis server: $!";
     }
+    $self->{mypid} = $$;
     sleep 2;
 }
 
 sub stop {
     my $self = shift;
-    if ( $self->{pid} ) {
+
+    # do not kill server from the child process
+    if ( $self->{pid} and $self->{mypid} == $$ ) {
         kill SIGTERM, $self->{pid};
         waitpid $self->{pid}, 0;
         delete $self->{pid};
