@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+0.10 Wed May 18 2011 Pavel Shaydo <zwon@cpan.org>
+    * added BRPOP command support
+    * added test for lists commands
+
 0.09 Mon May 16 2011 Pavel Shaydo <zwon@cpan.org>
     * added info and version methods
     * added IO timeout support

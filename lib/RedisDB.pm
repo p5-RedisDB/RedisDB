@@ -2,7 +2,8 @@ package RedisDB;
 
 use warnings;
 use strict;
-our $VERSION = 0.09;
+our $VERSION = "0.10";
+$VERSION = eval $VERSION;
 
 use IO::Socket::INET;
 use Socket qw(MSG_DONTWAIT SO_RCVTIMEO SO_SNDTIMEO);
