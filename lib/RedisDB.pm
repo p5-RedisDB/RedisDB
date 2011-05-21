@@ -10,6 +10,7 @@ use Socket qw(MSG_DONTWAIT SO_RCVTIMEO SO_SNDTIMEO);
 use POSIX qw(:errno_h);
 use Config;
 use Carp;
+use Try::Tiny;
 
 =head1 NAME
 
@@ -47,7 +48,8 @@ port to connect. Default: 6379
 =item timeout
 
 IO timeout. With this option set, if IO operation will take more than specified
-number of seconds module will croak.
+number of seconds module will croak. Note, that some OSes don't support SO_RCVTIMEO,
+and SO_SNDTIMEO socket options, in this case timeout will not work.
 
 =item lazy
 
@@ -115,10 +117,15 @@ sub _connect {
           $Config{longsize} == 4
           ? pack( 'LL', $self->{timeout}, 0 )
           : pack( 'QQ', $self->{timeout} );
-        defined $self->{_socket}->sockopt( SO_RCVTIMEO, $timeout )
-          or die "Can't set receive timeout: $!";
-        defined $self->{_socket}->sockopt( SO_SNDTIMEO, $timeout )
-          or die "Can't set send timeout: $!";
+        try {
+            defined $self->{_socket}->sockopt( SO_RCVTIMEO, $timeout )
+              or die "Can't set timeout: $!";
+            defined $self->{_socket}->sockopt( SO_SNDTIMEO, $timeout )
+              or die "Can't set send timeout: $!";
+        }
+        catch {
+            warn "$_\n";
+        };
     }
 
     $self->{_commands_in_flight} = 0;
@@ -893,6 +900,11 @@ Handle cases when client is not interested in replies
 
 Please report any bugs or feature requests via GitHub bug tracker at
 L<http://github.com/trinitum/RedisDB/issues>.
+
+Known bugs are:
+
+Timeout support is OS dependent. If OS doesn't support SO_SNDTIMEO and SO_RCVTIMEO
+options timeouts will not work.
 
 =head1 AUTHOR
 
