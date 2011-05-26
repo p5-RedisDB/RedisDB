@@ -14,7 +14,7 @@ if ( fork == 0 ) {
     my $conn = 0;
     $SIG{ALRM} = sub { die "Died on timeout. $conn connections accepted" };
     alarm 10;
-    my @replies = ( "+PONG\015\012", "+OK\015\012", "+OK" );
+    my @replies = ( "1", "2", "+PONG\015\012", "+OK\015\012", "+OK" );
     while (@replies) {
         my $cli = $srv->accept;
         $conn++;
@@ -26,6 +26,27 @@ if ( fork == 0 ) {
 }
 
 plan( skip_all => "Can't start server" ) unless $srv;
+
+# check that we able to connect to server several times
+# workaround for some cpan testers
+
+sub get_str {
+    my $resp;
+    my $cli =
+      IO::Socket::INET->new( Proto => 'tcp', PeerAddr => '127.0.0.1', PeerPort => $srv->sockport );
+    if ($cli) {
+        $cli->send("Hey!");
+        $cli->recv( $resp, 128 );
+    }
+    return $resp;
+}
+
+# first connect
+get_str;
+
+# skip tests if second connect fails
+plan( skip_all => "Server doesn't allow to connect second time" ) unless get_str;
+
 plan("no_plan");
 my $redis = RedisDB->new( host => '127.0.0.1', port => $srv->sockport );
 my $ret;
