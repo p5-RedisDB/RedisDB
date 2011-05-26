@@ -7,6 +7,7 @@ my $server = RedisServer->start;
 plan( skip_all => "Can't start redis-server" ) unless $server;
 plan('no_plan');
 my $redis = RedisDB->new( host => 'localhost', port => $server->{port} );
+diag("Testing against redis-server " . $redis->info->{redis_version});
 $redis->send_command('PING');
 my $res = $redis->get_reply;
 eq_or_diff $res, 'PONG', "Got PONG";
