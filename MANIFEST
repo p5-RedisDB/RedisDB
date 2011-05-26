@@ -21,8 +21,8 @@ t/00-load.t
 t/basic_redis.t
 t/cmd_list.t
 t/cmd_server.t
-t/disconnect.t
 t/manifest.t
+t/network.t
 t/pod.t
 t/protocol.t
 t/RedisServer.pm
