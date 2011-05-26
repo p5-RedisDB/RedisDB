@@ -6,6 +6,7 @@ our $VERSION = "0.10";
 $VERSION = eval $VERSION;
 
 use IO::Socket::INET;
+use IO::Socket::UNIX;
 use Socket qw(MSG_DONTWAIT SO_RCVTIMEO SO_SNDTIMEO);
 use POSIX qw(:errno_h);
 use Config;
@@ -45,6 +46,11 @@ domain name of the host running redis server. Default: "localhost"
 
 port to connect. Default: 6379
 
+=item path
+
+you can connect to redis using UNIX socket. In this case instead of
+I<host> and I<port> you should specify I<path>.
+
 =item timeout
 
 IO timeout. With this option set, if IO operation will take more than specified
@@ -65,6 +71,9 @@ sub new {
     my $class = shift;
     my $self = ref $_[0] ? $_[0] : {@_};
     bless $self, $class;
+    if ( $self->{path} and ( $self->{host} or $self->{port} ) ) {
+        croak "You can't specify \"path\" together with \"host\" and \"port\"";
+    }
     $self->{port} ||= 6379;
     $self->{host} ||= 'localhost';
     $self->{_replies} = [];
@@ -104,13 +113,22 @@ sub execute {
 
 sub _connect {
     my $self = shift;
-    $self->{_pid}    = $$;
-    $self->{_socket} = IO::Socket::INET->new(
-        PeerAddr => $self->{host},
-        PeerPort => $self->{port},
-        Proto    => 'tcp',
-        ( $self->{timeout} ? ( Timeout => $self->{timeout} ) : () ),
-    ) or die "Can't connect to redis server $self->{host}:$self->{port}: $!";
+    $self->{_pid} = $$;
+
+    if ( $self->{path} ) {
+        $self->{_socket} = IO::Socket::UNIX->new(
+            Type => SOCK_STREAM,
+            Peer => $self->{path},
+        ) or die "Can't connect to redis server socket at `$self->{path}': $!";
+    }
+    else {
+        $self->{_socket} = IO::Socket::INET->new(
+            PeerAddr => $self->{host},
+            PeerPort => $self->{port},
+            Proto    => 'tcp',
+            ( $self->{timeout} ? ( Timeout => $self->{timeout} ) : () ),
+        ) or die "Can't connect to redis server $self->{host}:$self->{port}: $!";
+    }
 
     if ( $self->{timeout} ) {
         my $timeout =
