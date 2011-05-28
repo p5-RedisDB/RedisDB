@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+0.11 Sat May 28 2011 Pavel Shaydo <zwon@cpan.org>
+    * Ignore timeout if OS doesn't support it
+    * Added UNIX sockets support
+
 0.10 Wed May 18 2011 Pavel Shaydo <zwon@cpan.org>
     * added BRPOP command support
     * added test for lists commands
