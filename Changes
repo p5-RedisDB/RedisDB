@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+0.12 Sat May 28 2011 Pavel Shaydo <zwon@cpan.org>
+    * Fixed test
+
 0.11 Sat May 28 2011 Pavel Shaydo <zwon@cpan.org>
     * Ignore timeout if OS doesn't support it
     * Added UNIX sockets support
