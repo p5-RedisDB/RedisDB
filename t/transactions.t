@@ -33,3 +33,10 @@ is $redis->multi, "OK", "Entered transaction";
 is $redis->set("key", "another value"), "QUEUED", "QUEUED set";
 is $redis->discard, "OK", "Discarded transaction";
 is $redis->get("key"), "value", "key wasn't changed";
+
+# must not reconnect while in multi
+is $redis->multi, "OK", "Entered transaction";
+is $redis->set("key", "42"), "QUEUED", "QUEUED set";
+$redis->{_socket}->close;
+dies_ok { $redis->set("key2", "43") } "Not reconnecting when in transaction";
+

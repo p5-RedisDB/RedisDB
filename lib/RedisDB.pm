@@ -372,7 +372,8 @@ client was idle for some time and redis server closed connection, it will be
 transparently restored on sending next command. If you send a command and
 server closed connection without sending complete reply, connection will not be
 restored and module will throw exception. Also module will throw exception if
-connection will be closed in the middle of transaction.
+connection will be closed in the middle of transaction or while you're in
+subscription loop.
 
 =cut
 
