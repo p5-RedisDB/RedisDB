@@ -33,6 +33,7 @@ my $ret;
 lives_ok { $ret = $redis->ping } "Ping";
 is $ret, 'PONG', "pong";
 undef $ret;
+sleep 1;
 lives_ok { $ret = $redis->set( 'key', 'value' ) } "Connection restored";
 is $ret, 'OK', "key is set";
 dies_ok { $redis->get('key') } "Died on unclean disconnect";
