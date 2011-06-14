@@ -342,21 +342,21 @@ my @commands = qw(
 
 Usually, instead of using I<execute> method, you can just use methods with names
 matching names of the redis commands. The following methods are defined as wrappers around execute:
-append,	auth,	bgrewriteaof,	bgsave,	blpop,	brpop,          brpoplpush,	config_get,
-config_set,	config_resetstat,	dbsize,	debug_object,	debug_segfault,
-decr,	decrby,	del,	echo,	exists,	expire,	expireat,	flushall,
-flushdb,	get,	getbit,	getrange,	getset,	hdel,	hexists,	hget,	hgetall,
-hincrby,	hkeys,	hlen,	hmget,	hmset,	hset,	hsetnx,	hvals,	incr,	incrby,
-keys,	lastsave,	lindex,	linsert,	llen,	lpop,	lpush,	lpushx,
-lrange,	lrem,	lset,	ltrim,	mget,	move,	mset,	msetnx,	persist,	ping,
-publish,	quit,	randomkey,	rename,	renamenx,	rpop,	rpoplpush,
-rpush,	rpushx,	sadd,	save,	scard,	sdiff,	sdiffstore,	select,	set,
-setbit,	setex,	setnx,	setrange,	shutdown,	sinter,	sinterstore,
-sismember,	slaveof,	smembers,	smove,	sort,	spop,	srandmember,
-srem,	strlen,	sunion,	sunionstore,	sync,	ttl,	type,	unwatch, watch, zadd,	zcard,
-zcount,	zincrby,	zinterstore,	zrange,	zrangebyscore,	zrank,	zremrangebyrank,
-zremrangebyscore,	zrevrange,	zrevrangebyscore,	zrevrank,
-zscore,	zunionstore
+append, auth, bgrewriteaof, bgsave, blpop, brpop, brpoplpush, config_get,
+config_set, config_resetstat, dbsize, debug_object, debug_segfault,
+decr, decrby, del, echo, exists, expire, expireat, flushall,
+flushdb, get, getbit, getrange, getset, hdel, hexists, hget, hgetall,
+hincrby, hkeys, hlen, hmget, hmset, hset, hsetnx, hvals, incr, incrby,
+keys, lastsave, lindex, linsert, llen, lpop, lpush, lpushx,
+lrange, lrem, lset, ltrim, mget, move, mset, msetnx, persist, ping,
+publish, quit, randomkey, rename, renamenx, rpop, rpoplpush,
+rpush, rpushx, sadd, save, scard, sdiff, sdiffstore, select, set,
+setbit, setex, setnx, setrange, shutdown, sinter, sinterstore,
+sismember, slaveof, smembers, smove, sort, spop, srandmember,
+srem, strlen, sunion, sunionstore, sync, ttl, type, unwatch, watch, zadd, zcard,
+zcount, zincrby, zinterstore, zrange, zrangebyscore, zrank, zremrangebyrank,
+zremrangebyscore, zrevrange, zrevrangebyscore, zrevrank,
+zscore, zunionstore
 
 See description of all commands in redis documentation at L<http://redis.io/commands>.
 
