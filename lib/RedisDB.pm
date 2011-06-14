@@ -2,7 +2,7 @@ package RedisDB;
 
 use warnings;
 use strict;
-our $VERSION = "0.13";
+our $VERSION = "0.14";
 $VERSION = eval $VERSION;
 
 use IO::Socket::INET;
