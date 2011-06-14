@@ -105,7 +105,7 @@ sub execute {
           or @{ $self->{_replies} };
     croak "This function is not available in subscription mode." if $self->{_subscription_loop};
     my $cmd = uc shift;
-    $self->send_command($cmd, @_);
+    $self->send_command( $cmd, @_ );
     return $self->get_reply;
 }
 
@@ -171,6 +171,7 @@ sub _recv_data_nb {
 
             # received some data
             $self->{_buffer} .= $buf;
+            1 while $self->{_buffer} and $self->_parse_reply;
         }
         else {
 
@@ -179,7 +180,8 @@ sub _recv_data_nb {
 
             # if there's some replies lost
             die "Server closed connection. Some data was lost."
-              if $self->{_commands_in_flight} or $self->{_in_multi};
+              if $self->{_commands_in_flight}
+                  or $self->{_in_multi};
 
             # clean disconnect, try to reconnect
             $self->{warnings} and warn "Disconnected, trying to reconnect";
@@ -273,6 +275,33 @@ sub get_reply {
     return $res->[1];
 }
 
+=head2 $self->get_all_replies
+
+Wait replies to all sent commands and return them as a list.
+
+=cut
+
+sub get_all_replies {
+    my $self = shift;
+    my $n    = $self->replies_to_fetch;
+    my @res;
+    for ( 1 .. $n ) {
+        push @res, $self->get_reply;
+    }
+    return @res;
+}
+
+=head2 $self->replies_to_fetch
+
+Return number of commands sent to server replies to which wasn't yet retrieved by I<get_reply> or I<get_all_replies>.
+
+=cut
+
+sub replies_to_fetch {
+    my $self = shift;
+    return $self->{_commands_in_flight} + @{ $self->{_replies} };
+}
+
 =head2 $self->version
 
 Return version of the server client is connected to. Version is returned as floating point
@@ -284,7 +313,8 @@ number represented the same way as the perl versions. E.g. for redis 2.1.12 it w
 sub version {
     my $self = shift;
     my $info = $self->info;
-    $info->{redis_version} =~ /^([0-9]+)[.]([0-9]+)(?:[.]([0-9]+))?/ or die "Can't parse version string: $info->{redis_version}";
+    $info->{redis_version} =~ /^([0-9]+)[.]([0-9]+)(?:[.]([0-9]+))?/
+      or die "Can't parse version string: $info->{redis_version}";
     $self->{_server_version} = $1 + 0.001 * $2 + ( $3 ? 0.000001 * $3 : 0 );
     return $self->{_server_version};
 }
