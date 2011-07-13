@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+0.15 Wed Jul 13 2011 Pavel Shaydo <zwon@cpan.org>
+    * made it work on Windows (thanks to Sanko Robinson for suggestions)
+    * improved tests
+
 0.14 Wed Jun 15 2011 Pavel Shaydo <zwon@cpan.org>
     * add get_all_replies method
     * add replies_to_fetch method
