@@ -16,7 +16,7 @@ for ( 1 .. 10 ) {
     }
     my %res;
     for ( 1 .. 20000 ) {
-        $res{ ( $redisdb->get_reply )[1] }++;
+        $res{ $redisdb->get_reply }++;
     }
     die "wrong result" unless $res{'0123456789abcdef'} == 10000;
 }

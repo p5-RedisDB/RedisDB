@@ -1,6 +1,6 @@
 #!/usr/bin/perl 
 
-use strict;
+use 5.010;
 use warnings;
 use Redis;
 use RedisDB;
@@ -9,6 +9,11 @@ use lib qw(t ../t);
 use RedisServer;
 
 use Benchmark qw( cmpthese );
+
+say "Testing against";
+say "RedisDB:        ", RedisDB->VERSION;
+say "Redis:          ", Redis->VERSION;
+say "Redis::hiredis: ", Redis::hiredis->VERSION;
 
 my $srv     = RedisServer->start;
 my $redis   = Redis->new( server => "localhost:$srv->{port}" );
@@ -41,7 +46,7 @@ cmpthese - 5, {
         }
         my %res;
         for ( 1 .. 20000 ) {
-            $res{ ( $redisdb->get_reply )[1] }++;
+            $res{ $redisdb->get_reply }++;
         }
         die "wrong result" unless $res{'0123456789abcdef'} == 10000;
     },
