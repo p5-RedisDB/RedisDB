@@ -152,12 +152,23 @@ sub _connect {
     return 1;
 }
 
+my $SET_NB   = 0;
+my $DONTWAIT = MSG_DONTWAIT;
+
+# Windows don't have MSG_DONTWAIT, so we need to switch socket into non-blocking mode
+if ( $^O eq 'MSWin32' ) {
+    $SET_NB   = 1;
+    $DONTWAIT = 0;
+}
+
 # parse data from the receive buffer without blocking
 sub _recv_data_nb {
     my $self = shift;
 
+    $self->{_socket}->blocking(0) if $SET_NB;
+
     while (1) {
-        my $ret = $self->{_socket}->recv( my $buf, 4096, MSG_DONTWAIT );
+        my $ret = recv( $self->{_socket}, my $buf, 4096, $DONTWAIT );
         unless ( defined $ret ) {
 
             # socket is connected, no data in recv buffer
@@ -189,6 +200,8 @@ sub _recv_data_nb {
             last;
         }
     }
+
+    $self->{_socket}->blocking(1) if $SET_NB;
 
     return;
 }
