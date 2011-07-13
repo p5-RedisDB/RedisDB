@@ -2,7 +2,7 @@ package RedisDB;
 
 use warnings;
 use strict;
-our $VERSION = "0.15";
+our $VERSION = "0.16";
 $VERSION = eval $VERSION;
 
 use IO::Socket::INET;
@@ -153,12 +153,14 @@ sub _connect {
 }
 
 my $SET_NB   = 0;
-my $DONTWAIT = MSG_DONTWAIT;
+my $DONTWAIT = 0;
 
 # Windows don't have MSG_DONTWAIT, so we need to switch socket into non-blocking mode
 if ( $^O eq 'MSWin32' ) {
     $SET_NB   = 1;
-    $DONTWAIT = 0;
+}
+else {
+    $DONTWAIT = MSG_DONTWAIT;
 }
 
 # parse data from the receive buffer without blocking

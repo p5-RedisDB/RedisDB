@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+0.16 Wed Jul 13 2011 Pavel Shaydo <zwon@cpan.org>
+    * probably I shouldn't use MSG_DONTWAIT on Win at all
+
 0.15 Wed Jul 13 2011 Pavel Shaydo <zwon@cpan.org>
     * made it work on Windows (thanks to Sanko Robinson for suggestions)
     * improved tests
