@@ -5,6 +5,7 @@ use strict;
 our $VERSION = "0.17";
 $VERSION = eval $VERSION;
 
+use RedisDB::Error;
 use IO::Socket::INET;
 use IO::Socket::UNIX;
 use Socket qw(MSG_DONTWAIT SO_RCVTIMEO SO_SNDTIMEO);
@@ -101,7 +102,7 @@ mode and haven't yet got all replies.
 sub execute {
     my $self = shift;
     croak "You can't use RedisDB::execute while in pipelining mode."
-      if $self->{_commands_in_flight}
+      if @{ $self->{_callbacks} }
           or @{ $self->{_replies} };
     croak "This function is not available in subscription mode." if $self->{_subscription_loop};
     my $cmd = uc shift;
@@ -146,8 +147,8 @@ sub _connect {
         };
     }
 
-    $self->{_commands_in_flight} = 0;
-    $self->{_subscription_loop}  = 0;
+    $self->{_callbacks}         = [];
+    $self->{_subscription_loop} = 0;
 
     return 1;
 }
@@ -157,7 +158,7 @@ my $DONTWAIT = 0;
 
 # Windows don't have MSG_DONTWAIT, so we need to switch socket into non-blocking mode
 if ( $^O eq 'MSWin32' ) {
-    $SET_NB   = 1;
+    $SET_NB = 1;
 }
 else {
     $DONTWAIT = MSG_DONTWAIT;
@@ -193,7 +194,7 @@ sub _recv_data_nb {
 
             # if there's some replies lost
             die "Server closed connection. Some data was lost."
-              if $self->{_commands_in_flight}
+              if @{ $self->{_callbacks} }
                   or $self->{_in_multi};
 
             # clean disconnect, try to reconnect
@@ -208,7 +209,12 @@ sub _recv_data_nb {
     return;
 }
 
-=head2 $self->send_command($command, @arguments)
+sub _queue {
+    my ( $self, $reply ) = @_;
+    push @{ $self->{_replies} }, $reply;
+}
+
+=head2 $self->send_command($command[, @arguments])
 
 send command to the server. Returns true if command was successfully sent, or
 dies if error occured. Note, that it doesn't return server reply, you should
@@ -218,6 +224,29 @@ retrieve reply using I<get_reply> method.
 
 sub send_command {
     my $self = shift;
+    return $self->send_command_cb( @_, \&_queue );
+}
+
+sub _ignore { 1 }
+
+=head2 $self->send_command_cb($command[, @arguments][, \&callback])
+
+send command to the server, invoke specified I<callback> on reply. Callback
+invoked with 2 arguments: RedisDB object, and reply from the server.  If server
+return error reply will be L<RedisDB::Error> object, you can get description of
+error using this object in string context.  If I<callback> is not specified
+reply will be discarded.  Note, that RedisDB doesn't run any background
+threads, so it will not receive reply and invoke callback unless you call some
+of it's methods which check if there's reply from the server, like
+I<send_command>, I<send_command_cb>, I<reply_ready>, I<get_reply>, or
+I<get_all_replies>.
+
+=cut
+
+sub send_command_cb {
+    my $self = shift;
+    my $callback = pop if ref $_[-1] eq 'CODE';
+    $callback ||= \&_ignore;
     if ( $self->{_subscription_loop} ) {
         croak "only (UN)(P)SUBSCRIBE and QUIT allowed in subscription loop"
           unless $_[0] =~ /^(p?(un)?subscribe|quit)$/i;
@@ -232,7 +261,7 @@ sub send_command {
 
     $self->{debug} and warn "Sending request";
     defined $self->{_socket}->send($request) or die "Can't send request to server: $!";
-    $self->{_commands_in_flight}++;
+    push @{ $self->{_callbacks} }, $callback;
     return 1;
 }
 
@@ -260,9 +289,9 @@ receive reply from the server. Method croaks if server returns error reply.
 sub get_reply {
     my $self = shift;
 
-    unless ( @{ $self->{_replies} } ) {
+    while ( not @{ $self->{_replies} } ) {
         die "We are not waiting for reply"
-          unless $self->{_commands_in_flight}
+          unless @{ $self->{_callbacks} }
               or $self->{_subscription_loop};
         die "You can't read reply in child process" unless $self->{_pid} == $$;
         while ( not $self->_parse_reply ) {
@@ -286,8 +315,8 @@ sub get_reply {
     }
 
     my $res = shift @{ $self->{_replies} };
-    croak $res->[1] if $res->[0] eq '-';
-    return $res->[1];
+    croak "$res" if ref $res eq 'RedisDB::Error';
+    return $res;
 }
 
 =head2 $self->get_all_replies
@@ -314,7 +343,7 @@ Return number of commands sent to server replies to which wasn't yet retrieved b
 
 sub replies_to_fetch {
     my $self = shift;
-    return $self->{_commands_in_flight} + @{ $self->{_replies} };
+    return @{ $self->{_callbacks} } + @{ $self->{_replies} };
 }
 
 =head2 $self->version
@@ -418,7 +447,7 @@ Croaks in case of error.
 sub shutdown {
     my $self = shift;
     $self->send_command('SHUTDOWN');
-    $self->{_commands_in_flight}--;
+    pop @{ $self->{_callbacks} };
     return;
 }
 
@@ -536,7 +565,7 @@ sub subscription_loop {
     my ( $self, %args ) = @_;
     croak "Already in subscription loop" if $self->{_subscribtion_loop};
     croak "You can't start subscription loop while in pipelining mode."
-      if $self->{_commands_in_flight}
+      if @{ $self->{_callbacks} }
           or @{ $self->{_replies} };
     $self->{_subscribed}        = {};
     $self->{_psubscribed}       = {};
@@ -934,8 +963,16 @@ sub _mblk_item {
 sub _reply_completed {
     my $self = shift;
     $self->{_parse_state} = undef;
-    push @{ $self->{_replies} }, $self->{_parse_reply};
-    $self->{_commands_in_flight}--;
+    my $cb = shift @{ $self->{_callbacks} };
+    $cb ||= \&_queue;
+    my $rep;
+    if ( $self->{_parse_reply}[0] eq '-' ) {
+        $rep = RedisDB::Error->new( $self->{_parse_reply}[1] );
+    }
+    else {
+        $rep = $self->{_parse_reply}[1];
+    }
+    $cb->( $self, $rep );
     $self->{_parse_reply} = undef;
     return 1;
 }
@@ -959,20 +996,6 @@ L<Redis> in order to get all I want (see TODO), I decided that it will be
 simplier to write new module from scratch. This also solves the problem of
 backward compatibility. Pedro Melo, maintainer of L<Redis> have plans to
 implement some of these features too.
-
-=head1 TODO
-
-=over 4
-
-=item *
-
-Test all commands
-
-=item *
-
-Handle cases when client is not interested in replies
-
-=back
 
 =head1 BUGS
 
@@ -1001,6 +1024,5 @@ under the terms of either: the GNU General Public License as published
 by the Free Software Foundation; or the Artistic License.
 
 See http://dev.perl.org/licenses/ for more information.
-
 
 =cut

@@ -13,6 +13,7 @@ inc/Module/Install/Metadata.pm
 inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
 lib/RedisDB.pm
+lib/RedisDB/Error.pm
 Makefile.PL
 MANIFEST
 META.yml
