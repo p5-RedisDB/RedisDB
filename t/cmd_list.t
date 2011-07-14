@@ -51,3 +51,5 @@ if($redis->version >= 1.001) {
         }
     }
 }
+
+$redis->shutdown;

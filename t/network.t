@@ -41,7 +41,7 @@ dies_ok { $redis->get('key') } "Died on unclean disconnect";
 # Check that IO timeout is working
 
 SKIP: {
-    skip "OS $^O doesn't support timeout on sockets", 2 if $^O =~ /solaris/;
+    skip "OS $^O doesn't support timeout on sockets", 2 if $^O =~ /solaris|MSWin32/;
 
     $srv = IO::Socket::INET->new( LocalAddr => '127.0.0.1', Proto => 'tcp', Listen => 1 );
 

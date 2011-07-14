@@ -105,3 +105,5 @@ sub def_cb {
 
     return;
 }
+
+$redis->shutdown;

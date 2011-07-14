@@ -54,6 +54,8 @@ sub _start {
 sub stop {
     my $self = shift;
 
+    return if $^O eq 'MSWin32';
+
     # do not kill server from the child process
     if ( $self->{pid} and $self->{mypid} == $$ ) {
         kill SIGTERM, $self->{pid};

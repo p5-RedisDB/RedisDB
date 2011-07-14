@@ -16,3 +16,5 @@ $info->{redis_version} =~ /^([0-9]+)[.]([0-9]+)(?:[.]([0-9]+))?/;
 ok(($1 and $2), "Looks like a version");
 my $version = 0 + $1 + 0.001 * $2 + ($3 ? 0.000001 * $3 : 0);
 is '' . $redis->version, "$version", "Correct server version: $version";
+
+$redis->shutdown;

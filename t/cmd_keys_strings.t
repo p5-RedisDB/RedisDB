@@ -76,3 +76,5 @@ if ( $redis->version >= 2.001002 ) {
     is $redis->exists("expires"), 0, "expired key was deleted";
 }
 
+$redis->shutdown;
+$server->stop;
