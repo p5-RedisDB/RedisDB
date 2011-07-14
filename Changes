@@ -1,5 +1,10 @@
 Revision history for RedisDB
 
+0.17 Fri Jul 15 2011 Pavel Shaydo <zwon@cpan.org>
+    * fixed shutdown command
+    * tests now shutdown redis-server rather than kill it
+    * now it should pass tests on Windows
+
 0.16 Wed Jul 13 2011 Pavel Shaydo <zwon@cpan.org>
     * probably I shouldn't use MSG_DONTWAIT on Win at all
 

@@ -2,7 +2,7 @@ package RedisDB;
 
 use warnings;
 use strict;
-our $VERSION = "0.16";
+our $VERSION = "0.17";
 $VERSION = eval $VERSION;
 
 use IO::Socket::INET;
@@ -983,6 +983,10 @@ Known bugs are:
 
 Timeout support is OS dependent. If OS doesn't support SO_SNDTIMEO and SO_RCVTIMEO
 options timeouts will not work.
+
+=head1 ACKNOWLEDGEMENTS
+
+Thanks to Sanko Robinson and FunkyMonk for help with porting this module on Windows.
 
 =head1 AUTHOR
 
