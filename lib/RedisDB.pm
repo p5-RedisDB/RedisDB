@@ -344,7 +344,7 @@ my @commands = qw(
   lrange	lrem	lset	ltrim	mget	move	mset	msetnx	persist	ping
   publish	quit	randomkey	rename	renamenx	rpop	rpoplpush
   rpush	rpushx	sadd	save	scard	sdiff	sdiffstore	select	set
-  setbit	setex	setnx	setrange	shutdown	sinter	sinterstore
+  setbit	setex	setnx	setrange	sinter	sinterstore
   sismember	slaveof	smembers	smove	sort	spop	srandmember
   srem	strlen	sunion	sunionstore	sync	ttl	type	unwatch watch
   zadd	zcard
@@ -366,7 +366,7 @@ keys, lastsave, lindex, linsert, llen, lpop, lpush, lpushx,
 lrange, lrem, lset, ltrim, mget, move, mset, msetnx, persist, ping,
 publish, quit, randomkey, rename, renamenx, rpop, rpoplpush,
 rpush, rpushx, sadd, save, scard, sdiff, sdiffstore, select, set,
-setbit, setex, setnx, setrange, shutdown, sinter, sinterstore,
+setbit, setex, setnx, setrange, sinter, sinterstore,
 sismember, slaveof, smembers, smove, sort, spop, srandmember,
 srem, strlen, sunion, sunionstore, sync, ttl, type, unwatch, watch, zadd, zcard,
 zcount, zincrby, zinterstore, zrange, zrangebyscore, zrank, zremrangebyrank,
@@ -406,6 +406,20 @@ sub info {
     my $info = $self->execute('INFO');
     my %info = map { /^([^:]+):(.*)$/ } split /\r\n/, $info;
     return \%info;
+}
+
+=head2 $self->shutdown
+
+Shuts redis server down. Returns undef, as server doesn't send answer.
+Croaks in case of error.
+
+=cut
+
+sub shutdown {
+    my $self = shift;
+    $self->send_command('SHUTDOWN');
+    $self->{_commands_in_flight}--;
+    return;
 }
 
 =head1 HANDLING OF SERVER DISCONNECTS
