@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+0.18_1 Thu Jul 21 2011 Pavel Shaydo <zwon@cpan.org>
+    * added send_command_cb function
+
 0.17 Fri Jul 15 2011 Pavel Shaydo <zwon@cpan.org>
     * fixed shutdown command
     * tests now shutdown redis-server rather than kill it
