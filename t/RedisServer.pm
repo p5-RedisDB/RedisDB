@@ -72,9 +72,4 @@ sub restart {
     return;
 }
 
-sub DESTROY {
-    local $?;
-    shift->stop;
-}
-
 1;
