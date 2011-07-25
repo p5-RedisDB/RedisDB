@@ -469,11 +469,24 @@ subscription loop.
 
 You can send commands in pipelining mode. In this case you sending multiple
 commands to the server without waiting for replies.  You can use
-I<send_command> method to send multiple commands to the server. I<reply_ready>
-method may be used to check if some replies are already received. And
-I<get_reply> method may be used to fetch received reply. Note, that you can't
-use I<execute> method (or wrappers around it, like I<get> or I<set>) while in
-pipeline mode, you must receive replies on all pipelined commands first.
+I<send_command> and I<send_command_cb> methods to send multiple commands to the
+server.  In case of I<send_command> I<reply_ready> method may be used to check
+if some replies are already received, and I<get_reply> method may be used to
+fetch received reply. In case of I<send_command_cb> redis will invoke specified
+callback when it receive reply. Also if you not interested in reply you can
+omit callback, then reply will be dropped. Note, that RedisDB checks for
+replies only when you calling some of its methods, so the following loop will
+never exit:
+
+    my $reply;
+    $redis->send_command_cb("PING", sub { $reply = $_[1] });
+    sleep 1 while not $reply;
+
+because redis will never receive reply and invoke callback.
+
+Note also, that you can't use I<execute> method (or wrappers around it, like
+I<get> or I<set>) while in pipeline mode, you must receive replies on all
+pipelined commands first.
 
 =cut
 
