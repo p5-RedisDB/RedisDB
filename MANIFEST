@@ -20,13 +20,11 @@ META.yml
 README
 t/00-load.t
 t/basic_redis.t
-t/cmd_keys_strings.t
-t/cmd_list.t
-t/cmd_server.t
 t/manifest.t
 t/network.t
 t/pod.t
 t/protocol.t
+t/redis_commands.t
 t/RedisServer.pm
 t/subscribe.t
 t/transactions.t
