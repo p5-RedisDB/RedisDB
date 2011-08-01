@@ -46,6 +46,7 @@ eq_or_diff $res, [qw(is a list)], 'LRANGE returned correct result';
 
 is $redis->quit, "OK", "QUIT";
 
+ok ! $redis->reply_ready, "No any replies";
 $redis->send_command('SET', 'key A', 'value A');
 $redis->send_command('RPUSH', 'list B', 'B1');
 $redis->send_command('RPUSH', 'list B', 'B2');

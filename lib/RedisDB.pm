@@ -78,6 +78,7 @@ sub new {
     $self->{port} ||= 6379;
     $self->{host} ||= 'localhost';
     $self->{_replies} = [];
+    $self->{_callbacks} = [];
     $self->_connect unless $self->{lazy};
     return $self;
 }
@@ -259,7 +260,6 @@ sub send_command_cb {
     # and reconnect if not
     $self->_recv_data_nb;
 
-    $self->{debug} and warn "Sending request";
     defined $self->{_socket}->send($request) or die "Can't send request to server: $!";
     push @{ $self->{_callbacks} }, $callback;
     return 1;
@@ -296,7 +296,6 @@ sub get_reply {
         die "You can't read reply in child process" unless $self->{_pid} == $$;
         while ( not $self->_parse_reply ) {
             my $ret = $self->{_socket}->recv( my $buffer, 4096 );
-            $self->{debug} and warn "Received: $buffer";
             unless ( defined $ret ) {
                 next if $! == EINTR;
                 die "Error reading reply from server: $!";

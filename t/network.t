@@ -28,7 +28,9 @@ if ( fork == 0 ) {
 plan( skip_all => "Can't start server" ) unless $srv;
 
 plan("no_plan");
-my $redis = RedisDB->new( host => '127.0.0.1', port => $srv->sockport );
+my $port = $srv->sockport;
+close $srv;
+my $redis = RedisDB->new( host => '127.0.0.1', port => $port, lazy => 1 );
 my $ret;
 lives_ok { $ret = $redis->ping } "Ping";
 is $ret, 'PONG', "pong";
@@ -37,6 +39,7 @@ sleep 1;
 lives_ok { $ret = $redis->set( 'key', 'value' ) } "Connection restored";
 is $ret, 'OK', "key is set";
 dies_ok { $redis->get('key') } "Died on unclean disconnect";
+dies_ok { RedisDB->new( host => '127.0.0.1', port => $port ) } "Dies on conection failure";
 
 # Check that IO timeout is working
 
@@ -74,6 +77,18 @@ SKIP: {
         $cli->close;
         exit 0;
     }
+    dies_ok {
+        RedisDB->new( path => $sock_path, host => 'localhost' );
+    }
+    "path and host can't be specified together";
+    dies_ok {
+        RedisDB->new( path => $sock_path, port => 6379 );
+    }
+    "path and port can't be specified together";
+    dies_ok {
+        RedisDB->new( path => "$sock_path.does_not_exist" );
+    }
+    "croaks if can't connect to socket";
     lives_ok { $redis = RedisDB->new( path => $sock_path ) } "Connected to UNIX socket";
     is $redis->get("ping"), "PONG", "Got PONG via UNIX socket";
 }

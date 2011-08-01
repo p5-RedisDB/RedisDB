@@ -15,7 +15,9 @@ for (qw(this is a list)) {
     is $redis->rpush("list", $_), 'QUEUED', "Queued push '$_'";
 }
 is $redis->lrange("list", 0, 3), 'QUEUED', "Queued lrange";
-my $redis2 = RedisDB->new( host => 'localhost', port => $server->{port} );
+
+# You can pass hashref to constructor too
+my $redis2 = RedisDB->new( { host => 'localhost', port => $server->{port} } );
 is $redis2->set("key", "wrong value"), "OK", "Set key to wrong value";
 my $res = $redis->exec;
 eq_or_diff $res, [qw(OK 1 2 3 4), [qw(this is a list)]], "Transaction was successfull";
