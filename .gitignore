@@ -12,4 +12,5 @@ pod2htm*.tmp
 RedisDB-*
 *.swp
 META.yml
+MYMETA.yml
 inc/
