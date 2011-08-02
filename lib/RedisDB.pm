@@ -212,6 +212,7 @@ sub _recv_data_nb {
 
 sub _queue {
     my ( $self, $reply ) = @_;
+    --$self->{_to_be_fetched};
     push @{ $self->{_replies} }, $reply;
 }
 
@@ -225,6 +226,7 @@ retrieve reply using I<get_reply> method.
 
 sub send_command {
     my $self = shift;
+    ++$self->{_to_be_fetched};
     return $self->send_command_cb( @_, \&_queue );
 }
 
@@ -291,7 +293,7 @@ sub get_reply {
 
     while ( not @{ $self->{_replies} } ) {
         die "We are not waiting for reply"
-          unless @{ $self->{_callbacks} }
+          unless $self->{_to_be_fetched}
               or $self->{_subscription_loop};
         die "You can't read reply in child process" unless $self->{_pid} == $$;
         while ( not $self->_parse_reply ) {
@@ -326,9 +328,8 @@ Wait replies to all sent commands and return them as a list.
 
 sub get_all_replies {
     my $self = shift;
-    my $n    = $self->replies_to_fetch;
     my @res;
-    for ( 1 .. $n ) {
+    while ( $self->replies_to_fetch ) {
         push @res, $self->get_reply;
     }
     return @res;
@@ -336,13 +337,13 @@ sub get_all_replies {
 
 =head2 $self->replies_to_fetch
 
-Return number of commands sent to server replies to which wasn't yet retrieved by I<get_reply> or I<get_all_replies>.
+Return number of commands sent to server replies to which wasn't yet retrieved with I<get_reply> or I<get_all_replies>.
 
 =cut
 
 sub replies_to_fetch {
     my $self = shift;
-    return @{ $self->{_callbacks} } + @{ $self->{_replies} };
+    return $self->{_to_be_fetched} + @{ $self->{_replies} };
 }
 
 =head2 $self->version

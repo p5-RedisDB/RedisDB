@@ -72,6 +72,7 @@ $redis->send_command_cb('RPUSH', 'CB LIST', 'CCC');
 $redis->send_command_cb('RPUSH', 'CB LIST', 'DDD');
 $redis->send_command('RPUSH', 'CB LIST', 'EEE');
 $redis->send_command_cb('LRANGE', 'CB LIST', 0, 3, sub { my $redis = shift; cb($redis, 'LIST', @_) } );
+is $redis->replies_to_fetch, 1, "One reply to fetch";
 is $redis->get_reply, 3, "Added 3 elements to the list";
 $redis->send_command('PING');
 is $redis->get_reply, 'PONG', "Pinged server";
