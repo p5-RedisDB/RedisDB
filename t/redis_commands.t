@@ -13,6 +13,7 @@ subtest "Keys and strings commands" => \&cmd_keys_strings;
 subtest "Lists commands"            => \&cmd_lists;
 subtest "Hashes commands"           => \&cmd_hashes;
 subtest "Server info commands"      => \&cmd_server;
+subtest "Sets commands"             => \&cmd_sets;
 
 sub cmd_keys_strings {
     $redis->flushdb;
@@ -166,6 +167,42 @@ sub cmd_server {
     ok( ( $1 and $2 ), "Looks like a version" );
     my $version = 0 + $1 + 0.001 * $2 + ( $3 ? 0.000001 * $3 : 0 );
     is '' . $redis->version, "$version", "Correct server version: $version";
+}
+
+sub cmd_sets {
+    die "redis-server too old" unless $redis->version >= 0.1;
+    $redis->flushdb;
+    is $redis->sadd( "set1", "A" ), 1, "SADD set1 A";
+    is $redis->sadd( "set1", "B" ), 1, "SADD set1 B";
+    is $redis->sadd( "set1", "C" ), 1, "SADD set1 C";
+    is $redis->sadd( "set1", "A" ), 0, "SADD set1 A";
+    is $redis->sadd( "set1", "D" ), 1, "SADD set1 D";
+    is $redis->scard("set1"), 4, "4 elements in set1";
+
+    is $redis->sadd( "set2", "B" ), 1, "SADD set2 B";
+    is $redis->sadd( "set2", "D" ), 1, "SADD set2 D";
+    is $redis->sadd( "set2", "F" ), 1, "SADD set2 F";
+
+    eq_or_diff [ sort @{ $redis->sdiff( "set1", "set2" ) } ], [qw(A C)], "SDIFF";
+    is $redis->sdiffstore( "set3", "set2", "set1" ), 1, "SDIFFSTORE set3 set2 set1";
+    is $redis->sdiffstore( "set4", "set1", "set2" ), 2, "SDIFFSTORE set4 set1 set2";
+
+    eq_or_diff $redis->sinter( "set3", "set4" ), [], "SINTER set3 set4 is empty";
+    is $redis->sinterstore( "set5", "set1", "set2" ), 2, "SINTERSTORE set5 set1 set2";
+    is $redis->sismember( "set3", "F" ), 1, "SISMEMBER";
+    is $redis->sismember( "set3", "B" ), 0, "not SISMEMBER";
+    eq_or_diff [ sort @{ $redis->smembers("set5") } ], [qw(B D)], "SMEMBERS set5";
+    is $redis->smove( "set3", "set5", "B" ), 0, "SMOVE";
+    is $redis->smove( "set3", "set5", "F" ), 1, "SMOVE";
+    eq_or_diff [ sort @{ $redis->sunion( "set4", "set5" ) } ], [qw(A B C D F)], "SUNION";
+    is $redis->sunionstore( "big_set", "set4", "set5" ), 5, "SUNIONSTORE";
+    is $redis->sunionstore( "large_set", "big_set" ), 5, "copy set";
+    is $redis->sismember( "big_set", $redis->srandmember("big_set") ), 1, "SRANDMEMBER";
+    eq_or_diff $redis->sdiff( "large_set", "big_set" ), [], "SDIFF empty";
+    my $elem = $redis->spop("big_set");
+    eq_or_diff $redis->sdiff( "large_set", "big_set" ), [$elem], "SPOP removed element";
+    is $redis->srem( "large_set", $elem ), 1, "SREM";
+    eq_or_diff $redis->sdiff( "large_set", "big_set" ), [], "SREM removed element";
 }
 
 $redis->shutdown;
