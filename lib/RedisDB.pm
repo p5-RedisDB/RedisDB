@@ -377,8 +377,8 @@ my @commands = qw(
   sismember	slaveof	smembers	smove	sort	spop	srandmember
   srem	strlen	sunion	sunionstore	sync	ttl	type	unwatch watch
   zadd	zcard
-  zcount	zincrby	zinterstore	zrange	zrangebyscore	zrank	zremrangebyrank
-  zremrangebyscore	zrevrange	zrevrangebyscore	zrevrank
+  zcount	zincrby	zinterstore	zrange	zrangebyscore	zrank	zrem
+  zremrangebyrank   zremrangebyscore	zrevrange	zrevrangebyscore	zrevrank
   zscore	zunionstore
 );
 
@@ -398,7 +398,7 @@ rpush, rpushx, sadd, save, scard, sdiff, sdiffstore, select, set,
 setbit, setex, setnx, setrange, sinter, sinterstore,
 sismember, slaveof, smembers, smove, sort, spop, srandmember,
 srem, strlen, sunion, sunionstore, sync, ttl, type, unwatch, watch, zadd, zcard,
-zcount, zincrby, zinterstore, zrange, zrangebyscore, zrank, zremrangebyrank,
+zcount, zincrby, zinterstore, zrange, zrangebyscore, zrank, zrem, zremrangebyrank,
 zremrangebyscore, zrevrange, zrevrangebyscore, zrevrank,
 zscore, zunionstore
 
