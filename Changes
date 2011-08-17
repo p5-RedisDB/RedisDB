@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+0.21 Wed Aug 17 2011 Pavel Shaydo <zwon@cpan.org>
+    * Fix bug in subscription_loop, it was failing if you only use
+    subscribe option and not psubscribe
+
 0.20 Thu Aug  4 2011 Pavel Shaydo <zwon@cpan.org>
     * Add zrem command, thanks to Uwe Voelker for patch
 
