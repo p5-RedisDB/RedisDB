@@ -600,7 +600,7 @@ sub subscription_loop {
         }
     }
     croak "You must subscribe at least to one channel"
-      unless ( keys %{ $self->{_subscribed} }, keys %{ $self->{_psubscribed} } );
+      unless ( keys %{ $self->{_subscribed} } or keys %{ $self->{_psubscribed} } );
 
     while ( my $msg = $self->get_reply ) {
         die "Expected multi-bulk reply, but got $msg" unless ref $msg;

@@ -27,6 +27,11 @@ unless ( my $pid = fork ) {
     $redis->publish( "bar",        "bar message" );
     $redis->publish( "boo",        "boo message" );
     $redis->publish( "other.quit", "quit" );
+
+    # wait for first subscription loop to exit
+    sleep 1;
+    $redis->publish( "quit", "quit" );
+
     exit 0;
 }
 
@@ -43,9 +48,12 @@ $redis->subscription_loop(
     psubscribe       => [ 'news.*' => \&news_cb, 'other.*' ],
     default_callback => \&def_cb,
 );
+pass "Left first subscription loop";
+$redis->subscription_loop(
+    subscribe => [ quit => sub { $_[0]->unsubscribe('quit') } ],
+);
+pass "Left second subscription loop";
 alarm 0;
-
-pass "Left subscription loop";
 
 eq_or_diff \%counts, { bar => 2, other => 1, boo => 1 }, "Correct numbers of messages";
 
