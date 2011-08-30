@@ -39,6 +39,7 @@ sleep 1;
 lives_ok { $ret = $redis->set( 'key', 'value' ) } "Connection restored";
 is $ret, 'OK', "key is set";
 dies_ok { $redis->get('key') } "Died on unclean disconnect";
+wait;
 dies_ok { RedisDB->new( host => '127.0.0.1', port => $port ) } "Dies on conection failure";
 
 # Check that IO timeout is working
