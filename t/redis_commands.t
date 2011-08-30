@@ -14,6 +14,7 @@ subtest "Lists commands"            => \&cmd_lists;
 subtest "Hashes commands"           => \&cmd_hashes;
 subtest "Server info commands"      => \&cmd_server;
 subtest "Sets commands"             => \&cmd_sets;
+subtest "Ordered sets commands"     => \&cmd_zsets;
 
 sub cmd_keys_strings {
     $redis->flushdb;
@@ -203,6 +204,62 @@ sub cmd_sets {
     eq_or_diff $redis->sdiff( "large_set", "big_set" ), [$elem], "SPOP removed element";
     is $redis->srem( "large_set", $elem ), 1, "SREM";
     eq_or_diff $redis->sdiff( "large_set", "big_set" ), [], "SREM removed element";
+}
+
+sub cut_precision {
+    @_ = @{ +shift };
+    my @res;
+    while (@_) {
+        push @res, shift;
+        push @res, 0 + sprintf "%.3f", shift;
+    }
+    return \@res;
+}
+
+sub cmd_zsets {
+    die "redis-server too old" unless $redis->version >= 0.1;
+    $redis->flushdb;
+    is $redis->zadd( "zset1", 1.24, "one" ), 1, "ZADD add";
+    is $redis->zadd( "zset1", 1,    "one" ), 0, "ZADD update";
+    my @zset = ( 3.2 => "three", 2.1 => "two", 7 => "four", 5 => "five", 4.1 => "four" );
+    $redis->zadd( "zset1", splice @zset, 0, 2 ) while @zset;
+    is $redis->zcard("zset1"), 5, "ZCARD";
+    is $redis->zcount( "zset1", 1.1, 4 ), 2, "ZCOUNT";
+    is sprintf( "%.2f", $redis->zincrby( "zset1", 0.1, "two" ) ), "2.20", "ZINCRBY";
+    is sprintf( "%.2f", $redis->zincrby( "zset1", 0,   "two" ) ), "2.20", "ZINCRBY 0";
+
+    my @zset2 = ( 1 => "A", 2 => "B", 3 => "C", 4 => "D", 5 => "E", 6 => "F" );
+    $redis->zadd( "zset2", splice @zset2, 0, 2 ) while @zset2;
+    my @zset3 = ( 0.5 => "A", 0.4 => "B", 0.3 => "C", 0.2 => "D", 0.1 => "E" );
+    $redis->zadd( "zset3", splice @zset3, 0, 2 ) while @zset3;
+
+    is $redis->zinterstore( "zsum", 2, "zset2", "zset3" ), 5, "ZINTERSTORE";
+    eq_or_diff cut_precision( $redis->zrange( "zsum", 0, -1, "WITHSCORES" ) ),
+      [qw(A 1.5 B 2.4 C 3.3 D 4.2 E 5.1)], "ZRANGE";
+    is $redis->zinterstore( "zmax", 2, "zset2", "zset3", "weights", 1, 6, "aggregate", "max" ),
+      5, "ZINTERSTORE max";
+    eq_or_diff cut_precision( $redis->zrange( "zmax", 0, -1, "WITHSCORES" ) ),
+      [qw(B 2.4 A 3 C 3 D 4 E 5)], "ZRANGE";
+    eq_or_diff $redis->zrangebyscore( "zmax", '(3', '5' ), [qw(D E)], "ZRANGEBYSCORE";
+    is $redis->zrank( "zmax", "D" ), 3, "ZRANK";
+    is $redis->zrem( "zmax", 'C' ), 1, "ZREM";
+    is $redis->zrem( "zmax", 'E' ), 1, "ZREM";
+    is $redis->zrem( "zmax", 'F' ), 0, "ZREM";
+    eq_or_diff $redis->zrange( "zmax", 0, -1 ), [qw(B A D)], "check result of ZREM";
+    is $redis->zremrangebyrank( "zmax", 1, 1 ), 1, "ZREMRANGEBYRANK";
+    eq_or_diff $redis->zrange( "zmax", 0, -1 ), [qw(B D)], "check result of ZREMANGEBYRANK";
+    is $redis->zremrangebyscore( "zmax", 3, "+inf" ), 1, "ZREMRANGEBYSCORE";
+    eq_or_diff $redis->zrange( "zmax", 0, -1 ), [qw(B)], "check result of ZREMRANGEBYSCORE";
+    eq_or_diff $redis->zrevrange( "zset2", 0, -1 ),
+      [ reverse @{ $redis->zrange( "zset2", 0, -1 ) } ], "ZREVRANGE";
+    eq_or_diff $redis->zrevrangebyscore( "zset2", 6, 1 ),
+      [ reverse @{ $redis->zrangebyscore( "zset2", 1, 6 ) } ],
+      "ZREVRANGEBYSCORE";
+    is $redis->zrevrank( "zset2", "D" ), 2, "ZREVRANK";
+    is $redis->zscore( "zset2", "D" ), 4, "ZSCORE";
+    is $redis->zunionstore( "zunion", 2, "zset2", "zset3", "aggregate", "sum" ), 6, "ZUNIONSTORE";
+    eq_or_diff cut_precision( $redis->zrange( "zunion", 0, -1, "WITHSCORES" ) ),
+      [qw(A 1.5 B 2.4 C 3.3 D 4.2 E 5.1 F 6)], "ZUNIONSTORE result is correct";
 }
 
 $redis->shutdown;
