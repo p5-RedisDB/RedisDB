@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+0.23 Thu Sep  1 2011 Pavel Shaydo <zwon@cpan.org>
+    * allow exec while there are still some replies with
+      callbacks in flight
+
 0.22 Tue Aug 30 2011 Pavel Shaydo <zwon@cpan.org>
     * tests improvements
 
