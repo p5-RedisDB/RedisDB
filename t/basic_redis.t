@@ -68,6 +68,7 @@ $redis->send_command_cb('SET', 'CB A', 'AAA');
 $redis->send_command_cb('GET', 'CB A', \&cb);
 $redis->send_command_cb('SET', 'CB B', 'BBB');
 $redis->send_command_cb('GET', 'CB B', \&cb);
+is $redis->ping, "PONG", "can execute while sent some commands with callbacks";
 $redis->send_command_cb('RPUSH', 'CB LIST', 'CCC');
 $redis->send_command_cb('RPUSH', 'CB LIST', 'DDD');
 $redis->send_command('RPUSH', 'CB LIST', 'EEE');
@@ -81,4 +82,4 @@ eq_or_diff \@replies,
   "Callback was called with correct arguments";
 is $redis->replies_to_fetch, 0, "No replies to fetch";
 
-$redis->shutdown;
+END { $redis->shutdown; }

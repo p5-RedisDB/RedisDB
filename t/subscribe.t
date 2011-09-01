@@ -32,7 +32,8 @@ unless ( my $pid = fork ) {
     sleep 1;
     $redis->publish( "quit", "quit" );
 
-    exit 0;
+    require POSIX;
+    POSIX::_exit( 0 );
 }
 
 plan('no_plan');
@@ -114,4 +115,4 @@ sub def_cb {
     return;
 }
 
-$redis->shutdown;
+END { $redis->shutdown; }

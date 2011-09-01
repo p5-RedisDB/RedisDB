@@ -77,8 +77,9 @@ sub new {
     }
     $self->{port} ||= 6379;
     $self->{host} ||= 'localhost';
-    $self->{_replies} = [];
-    $self->{_callbacks} = [];
+    $self->{_replies}       = [];
+    $self->{_callbacks}     = [];
+    $self->{_to_be_fetched} = 0;
     $self->_connect unless $self->{lazy};
     return $self;
 }
@@ -103,8 +104,7 @@ mode and haven't yet got all replies.
 sub execute {
     my $self = shift;
     croak "You can't use RedisDB::execute while in pipelining mode."
-      if @{ $self->{_callbacks} }
-          or @{ $self->{_replies} };
+        if $self->replies_to_fetch;
     croak "This function is not available in subscription mode." if $self->{_subscription_loop};
     my $cmd = uc shift;
     $self->send_command( $cmd, @_ );
@@ -121,7 +121,7 @@ sub _connect {
         $self->{_socket} = IO::Socket::UNIX->new(
             Type => SOCK_STREAM,
             Peer => $self->{path},
-        ) or die "Can't connect to redis server socket at `$self->{path}': $!";
+        ) or croak "Can't connect to redis server socket at `$self->{path}': $!";
     }
     else {
         $self->{_socket} = IO::Socket::INET->new(
@@ -129,7 +129,7 @@ sub _connect {
             PeerPort => $self->{port},
             Proto    => 'tcp',
             ( $self->{timeout} ? ( Timeout => $self->{timeout} ) : () ),
-        ) or die "Can't connect to redis server $self->{host}:$self->{port}: $!";
+        ) or croak "Can't connect to redis server $self->{host}:$self->{port}: $!";
     }
 
     if ( $self->{timeout} ) {
@@ -300,7 +300,7 @@ sub get_reply {
             my $ret = $self->{_socket}->recv( my $buffer, 4096 );
             unless ( defined $ret ) {
                 next if $! == EINTR;
-                die "Error reading reply from server: $!";
+                croak "Error reading reply from server: $!";
             }
             if ( $buffer ne '' ) {
 
@@ -446,7 +446,7 @@ Croaks in case of error.
 
 sub shutdown {
     my $self = shift;
-    $self->send_command('SHUTDOWN');
+    $self->send_command_cb('SHUTDOWN');
     pop @{ $self->{_callbacks} };
     return;
 }
@@ -628,6 +628,7 @@ sub subscription_loop {
             die "Got unknown reply $msg->[0] in subscription mode";
         }
     }
+    $self->{_to_be_fetched} = 0;
     $self->_connect;
     return;
 }
