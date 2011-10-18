@@ -115,4 +115,4 @@ sub def_cb {
     return;
 }
 
-END { $redis->shutdown; }
+END { $redis->shutdown if $redis; }

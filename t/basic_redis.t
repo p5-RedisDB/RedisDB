@@ -82,4 +82,4 @@ eq_or_diff \@replies,
   "Callback was called with correct arguments";
 is $redis->replies_to_fetch, 0, "No replies to fetch";
 
-END { $redis->shutdown; }
+END { $redis->shutdown if $redis; }
