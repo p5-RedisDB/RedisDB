@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+0.24 Tue Oct 18 2011 Pavel Shaydo <zwon@cpan.org>
+    * as cpantester went offline I didn't see reports about failing
+    tests for nearly two months...
+
 0.23 Thu Sep  1 2011 Pavel Shaydo <zwon@cpan.org>
     * allow exec while there are still some replies with
       callbacks in flight
