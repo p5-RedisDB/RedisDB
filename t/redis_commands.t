@@ -217,7 +217,7 @@ sub cut_precision {
 }
 
 sub cmd_zsets {
-    die "redis-server too old" unless $redis->version >= 0.1;
+    die "redis-server too old" unless $redis->version >= 1.003015;
     $redis->flushdb;
     is $redis->zadd( "zset1", 1.24, "one" ), 1, "ZADD add";
     is $redis->zadd( "zset1", 1,    "one" ), 0, "ZADD update";
@@ -248,18 +248,22 @@ sub cmd_zsets {
     eq_or_diff $redis->zrange( "zmax", 0, -1 ), [qw(B A D)], "check result of ZREM";
     is $redis->zremrangebyrank( "zmax", 1, 1 ), 1, "ZREMRANGEBYRANK";
     eq_or_diff $redis->zrange( "zmax", 0, -1 ), [qw(B D)], "check result of ZREMANGEBYRANK";
-    is $redis->zremrangebyscore( "zmax", 3, "+inf" ), 1, "ZREMRANGEBYSCORE";
-    eq_or_diff $redis->zrange( "zmax", 0, -1 ), [qw(B)], "check result of ZREMRANGEBYSCORE";
-    eq_or_diff $redis->zrevrange( "zset2", 0, -1 ),
-      [ reverse @{ $redis->zrange( "zset2", 0, -1 ) } ], "ZREVRANGE";
-    eq_or_diff $redis->zrevrangebyscore( "zset2", 6, 1 ),
-      [ reverse @{ $redis->zrangebyscore( "zset2", 1, 6 ) } ],
-      "ZREVRANGEBYSCORE";
-    is $redis->zrevrank( "zset2", "D" ), 2, "ZREVRANK";
-    is $redis->zscore( "zset2", "D" ), 4, "ZSCORE";
-    is $redis->zunionstore( "zunion", 2, "zset2", "zset3", "aggregate", "sum" ), 6, "ZUNIONSTORE";
-    eq_or_diff cut_precision( $redis->zrange( "zunion", 0, -1, "WITHSCORES" ) ),
-      [qw(A 1.5 B 2.4 C 3.3 D 4.2 E 5.1 F 6)], "ZUNIONSTORE result is correct";
+
+    if ( $redis->version >= 2.001006 ) {
+        is $redis->zremrangebyscore( "zmax", 3, "+inf" ), 1, "ZREMRANGEBYSCORE";
+        eq_or_diff $redis->zrange( "zmax", 0, -1 ), [qw(B)], "check result of ZREMRANGEBYSCORE";
+        eq_or_diff $redis->zrevrange( "zset2", 0, -1 ),
+          [ reverse @{ $redis->zrange( "zset2", 0, -1 ) } ], "ZREVRANGE";
+        eq_or_diff $redis->zrevrangebyscore( "zset2", 6, 1 ),
+          [ reverse @{ $redis->zrangebyscore( "zset2", 1, 6 ) } ],
+          "ZREVRANGEBYSCORE";
+        is $redis->zrevrank( "zset2", "D" ), 2, "ZREVRANK";
+        is $redis->zscore( "zset2", "D" ), 4, "ZSCORE";
+        is $redis->zunionstore( "zunion", 2, "zset2", "zset3", "aggregate", "sum" ), 6,
+          "ZUNIONSTORE";
+        eq_or_diff cut_precision( $redis->zrange( "zunion", 0, -1, "WITHSCORES" ) ),
+          [qw(A 1.5 B 2.4 C 3.3 D 4.2 E 5.1 F 6)], "ZUNIONSTORE result is correct";
+    }
 }
 
 $redis->shutdown;
