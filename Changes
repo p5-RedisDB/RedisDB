@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+0.25 Tue Dec 27 2011 Pavel Shaydo <zwon@cpan.org>
+    * fixed tests to pass with Test::More 1.005
+
 0.24 Tue Oct 18 2011 Pavel Shaydo <zwon@cpan.org>
     * as cpantester went offline I didn't see reports about failing
     tests for nearly two months...
