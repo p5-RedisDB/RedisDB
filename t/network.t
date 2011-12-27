@@ -27,7 +27,6 @@ if ( fork == 0 ) {
 
 plan( skip_all => "Can't start server" ) unless $srv;
 
-plan("no_plan");
 my $port = $srv->sockport;
 close $srv;
 my $redis = RedisDB->new( host => '127.0.0.1', port => $port, lazy => 1 );
@@ -53,7 +52,8 @@ SKIP: {
         $SIG{ALRM} = sub { exit 0 };
         alarm 10;
         my $cli = $srv->accept;
-        1 while defined $cli->recv( my $buf, 1024 );
+        my $buf;
+        1 while defined $cli->recv( $buf, 1024 ) && $buf;
         exit 0;
     }
 
@@ -94,3 +94,4 @@ SKIP: {
     is $redis->get("ping"), "PONG", "Got PONG via UNIX socket";
 }
 
+done_testing;

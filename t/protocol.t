@@ -1,4 +1,4 @@
-use Test::Most 0.22 qw(no_plan);
+use Test::Most 0.22;
 
 use ok 'RedisDB';
 use utf8;
@@ -16,6 +16,8 @@ subtest "Bulk reply" => \&bulk_reply;
 subtest "Multi-bulk reply" => \&multi_bulk_reply;
 
 subtest "Transaction" => \&transaction;
+
+done_testing;
 
 sub request_encoding {
     my $command = 'test';

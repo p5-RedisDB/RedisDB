@@ -5,7 +5,6 @@ use RedisDB;
 
 my $server = RedisServer->start;
 plan( skip_all => "Can't start redis-server" ) unless $server;
-plan('no_plan');
 
 my $redis = RedisDB->new( host => 'localhost', port => $server->{port} );
 
@@ -45,4 +44,13 @@ is $redis->quit, "OK", "QUIT";
 dies_ok { $redis->set( "key2", "43" ) } "Not reconnecting when in transaction";
 $redis = undef;
 
-$redis2->shutdown;
+done_testing;
+
+END {
+    if ($redis) {
+        $redis->shutdown;
+    }
+    elsif ($redis2) {
+        $redis2->shutdown;
+    }
+}

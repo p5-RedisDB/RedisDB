@@ -36,8 +36,6 @@ unless ( my $pid = fork ) {
     POSIX::_exit( 0 );
 }
 
-plan('no_plan');
-
 my %counts;
 
 is $redis->set( "running test", "subscribe.t" ), "OK", "Successfully set value in DB";
@@ -115,4 +113,5 @@ sub def_cb {
     return;
 }
 
+done_testing;
 END { $redis->shutdown if $redis; }

@@ -5,7 +5,6 @@ use RedisDB;
 
 my $server = RedisServer->start;
 plan( skip_all => "Can't start redis-server" ) unless $server;
-plan('no_plan');
 my $redis = RedisDB->new( host => 'localhost', port => $server->{port} );
 diag("Testing against redis-server " . $redis->info->{redis_version});
 $redis->send_command('PING');
@@ -82,4 +81,5 @@ eq_or_diff \@replies,
   "Callback was called with correct arguments";
 is $redis->replies_to_fetch, 0, "No replies to fetch";
 
+done_testing;
 END { $redis->shutdown if $redis; }

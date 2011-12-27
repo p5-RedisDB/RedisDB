@@ -5,7 +5,6 @@ use RedisDB;
 
 my $server = RedisServer->start;
 plan( skip_all => "Can't start redis-server" ) unless $server;
-plan('no_plan');
 
 my $redis = RedisDB->new( host => 'localhost', port => $server->{port} );
 
@@ -266,4 +265,6 @@ sub cmd_zsets {
     }
 }
 
-$redis->shutdown;
+done_testing;
+
+END { $redis->shutdown if $redis; }
