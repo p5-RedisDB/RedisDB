@@ -4,6 +4,7 @@ name     'RedisDB';
 all_from 'lib/RedisDB.pm';
 author   q{Pavel Shaydo <zwon@cpan.org>};
 license  'perl';
+perl_version '5.008004';
 
 homepage 'http://github.com/trinitum/RedisDB';
 repository 'git://github.com/trinitum/RedisDB';
