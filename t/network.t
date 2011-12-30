@@ -73,8 +73,8 @@ SKIP: {
         $SIG{ALRM} = sub { exit 0 };
         alarm 10;
         my $cli = $srv->accept;
-        $cli->recv( my $buf, 1024 );
-        $cli->send("+PONG\r\n");
+        defined $cli->recv( my $buf, 1024 ) or die "recv filed: $!";
+        defined $cli->send("+PONG\r\n") or die "send filed: $!";
         $cli->close;
         exit 0;
     }
