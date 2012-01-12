@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+0.27 Thu Jan 12 2012 Pavel Shaydo <zwon@cpan.org>
+    * fix bug with parsing empty list in transaction result,
+      thanks to @vovpov for reporting the problem
+
 0.26 Fri Dec 30 2011 Pavel Shaydo <zwon@cpan.org>
     * require perl 5.8.4
     * added some error logging to network.t
