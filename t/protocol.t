@@ -144,7 +144,7 @@ sub multi_bulk_reply {
 }
 
 sub transaction {
-    $redis->{_callbacks} = [ \&cb, \&cb ];
+    $redis->{_callbacks} = [ \&cb, \&cb, \&cb ];
     $redis->{_buffer} =
       "*7\015\012+OK\015\012:5\015\012:6\015\012:7\015\012:8\015\012*4\015\012\$4\015\012";
     ok( !$redis->_parse_reply, 'incomplete result - not parsed' );
@@ -165,5 +165,8 @@ sub transaction {
         [ qw(OK 1 2 3 4), [qw(this is a list)] ],
         "parsed with list in the end too"
     );
+    $redis->{_buffer} = "*4\015\012*0\015\012+OK\015\012*-1\015\012*2\015\012\$2\015\012aa\015\012\$2\015\012bb\015\012";
+    ok( $redis->_parse_reply, 'empty list in transaction result' );
+    eq_or_diff( $reply, [ [], 'OK', undef, [ qw(aa bb) ] ] );
 }
 

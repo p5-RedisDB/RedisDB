@@ -104,7 +104,7 @@ mode and haven't yet got all replies.
 sub execute {
     my $self = shift;
     croak "You can't use RedisDB::execute while in pipelining mode."
-        if $self->replies_to_fetch;
+      if $self->replies_to_fetch;
     croak "This function is not available in subscription mode." if $self->{_subscription_loop};
     my $cmd = uc shift;
     $self->send_command( $cmd, @_ );
@@ -895,13 +895,24 @@ sub _parse_reply {
                     $self->{_parse_reply}[1] = [];
                     $repeat                  = 1;
                 }
-                elsif ( $len == 0 ) {
-                    $self->{_parse_reply}[1] = [];
-                    return $self->_reply_completed;
-                }
-                elsif ( $len == -1 ) {
-                    $self->{_parse_reply}[1] = undef;
-                    return $self->_reply_completed;
+                elsif ( $len == 0 || $len == -1 ) {
+                    if ( $self->{_parse_mblk_level}-- == 1 ) {
+                        $self->{_parse_reply}[1] = $len ? undef : [];
+                        return $self->_reply_completed;
+                    }
+                    else {
+                        ( $self->{_parse_mblk_len}, $self->{_parse_reply} ) =
+                          @{ $self->{_parse_mblk_store} };
+                        push @{ $self->{_parse_reply}[1] }, $len ? undef : [];
+                        if ( --$self->{_parse_mblk_len} ) {
+                            $self->{_parse_state} = $WAIT_BUCKS;
+                            $repeat = 1;
+                        }
+                        else {
+                            $repeat = 0;
+                        }
+                        $completed = !$repeat;
+                    }
                 }
                 else {
                     die "Invalid multi-bulk reply: *$len\015\012$self->{_buffer}";
