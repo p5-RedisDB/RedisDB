@@ -94,10 +94,11 @@ wrapper named after the redis command. E.g.:
     # is the same as
     $redis->set(key => 'value');
 
-See "SUPPORTED REDIS COMMANDS" section for the full list of defined aliases.
+See L</"WRAPPER METHODS"> section for the full list of defined aliases.
 
-Note, that you can't use I<execute> if you have sent some commands in pipelining
-mode and haven't yet got all replies.
+Note, that you can't use I<execute> if you have sent some commands using
+I<send_command> method without callback argument and have not yet got all
+replies.
 
 =cut
 
@@ -420,24 +421,38 @@ my @commands = qw(
   zscore	zunionstore
 );
 
-=head1 SUPPORTED REDIS COMMANDS
+=head1 WRAPPER METHODS
 
-Usually, instead of using I<execute> method, you can just use methods with names
-matching names of the redis commands. The following methods are defined as wrappers around execute:
-append, auth, bgrewriteaof, bgsave, blpop, brpop, brpoplpush, config_get,
-config_set, config_resetstat, dbsize, debug_object, debug_segfault,
-decr, decrby, del, echo, exists, expire, expireat, flushall,
-flushdb, get, getbit, getrange, getset, hdel, hexists, hget, hgetall,
-hincrby, hkeys, hlen, hmget, hmset, hset, hsetnx, hvals, incr, incrby,
-keys, lastsave, lindex, linsert, llen, lpop, lpush, lpushx,
-lrange, lrem, lset, ltrim, mget, move, mset, msetnx, persist, ping,
-publish, quit, randomkey, rename, renamenx, rpop, rpoplpush,
-rpush, rpushx, sadd, save, scard, sdiff, sdiffstore, select, set,
-setbit, setex, setnx, setrange, sinter, sinterstore,
-sismember, slaveof, smembers, smove, sort, spop, srandmember,
-srem, strlen, sunion, sunionstore, sync, ttl, type, unwatch, watch, zadd, zcard,
-zcount, zincrby, zinterstore, zrange, zrangebyscore, zrank, zrem, zremrangebyrank,
-zremrangebyscore, zrevrange, zrevrangebyscore, zrevrank,
+Instead of using I<execute> and I<send_command> methods directly, it may be
+more convenient to use wrapper methods with names matching names of the redis
+commands. These methods call I<execute> or I<send_command> depending on the
+presence of callback argument. If callback is specified, method invokes
+I<send_command> and returns as soon as command is sent to server; when reply is
+received, it will be passed to callback (see L</"PIPELINING SUPPORT">). If
+there is no callback, method invokes I<execute>, waits for reply from server,
+and returns reply. E.g.:
+
+    $val = $redis->get($key);
+    # equivalent to
+    $val = $redis->execute("get", $key);
+
+    $redis->get($key, sub { $val = $_[1] });
+    # equivalent to
+    $redis->send_command("get", $key, sub { $val = $_[1] });
+
+The following wrapper methods are defined: append, auth, bgrewriteaof, bgsave,
+blpop, brpop, brpoplpush, config_get, config_set, config_resetstat, dbsize,
+debug_object, debug_segfault, decr, decrby, del, echo, exists, expire,
+expireat, flushall, flushdb, get, getbit, getrange, getset, hdel, hexists,
+hget, hgetall, hincrby, hkeys, hlen, hmget, hmset, hset, hsetnx, hvals, incr,
+incrby, keys, lastsave, lindex, linsert, llen, lpop, lpush, lpushx, lrange,
+lrem, lset, ltrim, mget, move, mset, msetnx, persist, ping, publish, quit,
+randomkey, rename, renamenx, rpop, rpoplpush, rpush, rpushx, sadd, save, scard,
+sdiff, sdiffstore, select, set, setbit, setex, setnx, setrange, sinter,
+sinterstore, sismember, slaveof, smembers, smove, sort, spop, srandmember,
+srem, strlen, sunion, sunionstore, sync, ttl, type, unwatch, watch, zadd,
+zcard, zcount, zincrby, zinterstore, zrange, zrangebyscore, zrank, zrem,
+zremrangebyrank, zremrangebyscore, zrevrange, zrevrangebyscore, zrevrank,
 zscore, zunionstore
 
 See description of all commands in redis documentation at L<http://redis.io/commands>.
@@ -450,7 +465,12 @@ for my $command (@commands) {
     no strict 'refs';
     *{ __PACKAGE__ . "::$command" } = sub {
         my $self = shift;
-        return $self->execute( $uccom, @_ );
+        if ( ref $_[-1] eq 'CODE' ) {
+            return $self->send_command( $uccom, @_ );
+        }
+        else {
+            return $self->execute( $uccom, @_ );
+        }
     };
 }
 
@@ -553,7 +573,7 @@ is a no-op function:
     # and this will wait for the last reply
     $redis->mainloop;
 
-or using wrapper functions you can rewrite it as:
+or using L</"WRAPPER METHODS"> you can rewrite it as:
 
     for (@keys) {
         my $val = $redis->get($_);
