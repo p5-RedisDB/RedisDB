@@ -216,18 +216,33 @@ sub _queue {
     push @{ $self->{_replies} }, $reply;
 }
 
-=head2 $self->send_command($command[, @arguments])
+=head2 $self->send_command($command[, @arguments][, \&callback])
 
 send command to the server. Returns true if command was successfully sent, or
 dies if error occured. Note, that it doesn't return server reply, you should
-retrieve reply using I<get_reply> method.
+retrieve reply using I<get_reply> method or, if I<callback> specified, it will
+be invoked upon receiving reply from the server with two arguments: the RedisDB
+object, and reply from the server.  If server returns error, reply will be
+L<RedisDB::Error> object, you can get description of the error using this
+object in string context.  If you aren't interested in reply, you can use
+RedisDB::IGNORE_REPLY as the last argument.
+
+Note, that RedisDB doesn't run any background threads, so it will not receive
+reply and invoke callback unless you call some of it's methods which check if
+there's reply from the server, like I<send_command>, I<reply_ready>,
+I<get_reply>, or I<get_all_replies>.
 
 =cut
 
 sub send_command {
     my $self = shift;
-    ++$self->{_to_be_fetched};
-    return $self->send_command_cb( @_, \&_queue );
+    if ( ref $_[-1] eq 'CODE' ) {
+        return $self->send_command_cb(@_);
+    }
+    else {
+        ++$self->{_to_be_fetched};
+        return $self->send_command_cb( @_, \&_queue );
+    }
 }
 
 sub _ignore {
@@ -236,6 +251,8 @@ sub _ignore {
         warn "Ignoring error returned by redis-server: $res";
     }
 }
+
+sub IGNORE_REPLY { return \&_ignore; }
 
 =head2 $self->send_command_cb($command[, @arguments][, \&callback])
 
