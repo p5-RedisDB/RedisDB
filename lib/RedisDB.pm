@@ -230,7 +230,12 @@ sub send_command {
     return $self->send_command_cb( @_, \&_queue );
 }
 
-sub _ignore { 1 }
+sub _ignore {
+    my ( $self, $res ) = @_;
+    if ( ref $res eq 'RedisDB::Error' ) {
+        warn "Ignoring error returned by redis-server: $res";
+    }
+}
 
 =head2 $self->send_command_cb($command[, @arguments][, \&callback])
 
