@@ -237,13 +237,32 @@ I<get_reply>, or I<get_all_replies>.
 
 sub send_command {
     my $self = shift;
+
+    my $callback;
     if ( ref $_[-1] eq 'CODE' ) {
-        return $self->send_command_cb(@_);
+        $callback = pop;
     }
     else {
         ++$self->{_to_be_fetched};
-        return $self->send_command_cb( @_, \&_queue );
+        $callback = \&_queue;
     }
+
+    my $command = uc shift;
+    if ( $self->{_subscription_loop} ) {
+        croak "only (UN)(P)SUBSCRIBE and QUIT allowed in subscription loop"
+          unless $command =~ /^(P?(UN)?SUBSCRIBE|QUIT)$/;
+    }
+    my $request = _build_redis_request( $command, @_ );
+    $self->_connect unless $self->{_socket} and $self->{_pid} == $$;
+
+    # Here we reading received data and storing it in the _buffer,
+    # but the main purpose is to check if connection is still alive
+    # and reconnect if not
+    $self->_recv_data_nb;
+
+    defined $self->{_socket}->send($request) or die "Can't send request to server: $!";
+    push @{ $self->{_callbacks} }, $callback;
+    return 1;
 }
 
 sub _ignore {
@@ -289,21 +308,7 @@ sub send_command_cb {
     my $self = shift;
     my $callback = pop if ref $_[-1] eq 'CODE';
     $callback ||= \&_ignore;
-    if ( $self->{_subscription_loop} ) {
-        croak "only (UN)(P)SUBSCRIBE and QUIT allowed in subscription loop"
-          unless $_[0] =~ /^(p?(un)?subscribe|quit)$/i;
-    }
-    my $request = _build_redis_request(@_);
-    $self->_connect unless $self->{_socket} and $self->{_pid} == $$;
-
-    # Here we reading received data and storing it in the _buffer,
-    # but the main purpose is to check if connection is still alive
-    # and reconnect if not
-    $self->_recv_data_nb;
-
-    defined $self->{_socket}->send($request) or die "Can't send request to server: $!";
-    push @{ $self->{_callbacks} }, $callback;
-    return 1;
+    return $self->send_command( @_, $callback );
 }
 
 =head2 $self->reply_ready
