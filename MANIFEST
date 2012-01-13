@@ -26,5 +26,6 @@ t/pod.t
 t/protocol.t
 t/redis_commands.t
 t/RedisServer.pm
+t/send_command_cb.t
 t/subscribe.t
 t/transactions.t
