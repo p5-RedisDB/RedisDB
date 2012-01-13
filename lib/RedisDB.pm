@@ -266,6 +266,22 @@ of it's methods which check if there's reply from the server, like
 I<send_command>, I<send_command_cb>, I<reply_ready>, I<get_reply>, or
 I<get_all_replies>.
 
+B<DEPRECATED:> this method is deprecated and may be removed in one of the
+future versions. Please use I<send_command> method instead. If you are using
+I<send_command_cb> with I<&callback> argument, you can just change method to
+I<send_command> and it will do the same. If you are using I<send_command_cb>
+with default callback, you should add RedisDB::IGNORE_REPLY as the last
+argument when changing method name to I<send_command>.  Here is the example
+that shows equivalents with the I<send_command>:
+
+    $redis->send_command_cb("SET", "Key", "Value");
+    # may be replaced with
+    $redis->send_command("SET", "Key", "Value", RedisDB::IGNORE_REPLY);
+
+    $redis->send_command_cb("GET", "Key", \&process_reply);
+    # may be replaced with
+    $redis->send_command("GET", "Key", \&process_reply);
+
 =cut
 
 sub send_command_cb {
