@@ -467,26 +467,61 @@ subscription loop.
 
 =head1 PIPELINING SUPPORT
 
-You can send commands in pipelining mode. In this case you sending multiple
-commands to the server without waiting for replies.  You can use
-I<send_command> and I<send_command_cb> methods to send multiple commands to the
-server.  In case of I<send_command> I<reply_ready> method may be used to check
-if some replies are already received, and I<get_reply> method may be used to
-fetch received reply. In case of I<send_command_cb> redis will invoke specified
-callback when it receive reply. Also if you not interested in reply you can
-omit callback, then reply will be dropped. Note, that RedisDB checks for
-replies only when you calling some of its methods, so the following loop will
-never exit:
+You can send commands in the pipelining mode. In this case you sending multiple
+commands to the server without waiting for the replies.  This is implemented by
+the I<send_command> method. Recommended way of using it is to pass a reference
+to the callback function as the last argument.  When module receives reply from
+the server, it will call this function with two arguments: reference to the
+RedisDB object, and reply from the server. It is important to understand
+though, that RedisDB does not run any background threads, neither it checks for
+the replies by setting some timer, so e.g. in the following example callback
+will never be invoked:
 
-    my $reply;
-    $redis->send_command_cb("PING", sub { $reply = $_[1] });
-    sleep 1 while not $reply;
+    my $pong;
+    $redis->send_command( "ping", sub { $pong = $_[1] } );
+    sleep 1 while not $pong;    # this will never return
 
-because redis will never receive reply and invoke callback.
+Therefore you need perriodically trigger check for the replies. The check is
+triggered when you call the following methods: I<send_command>, I<reply_ready>,
+I<get_reply>, I<get_all_replies>.  Calling wrapper method, like
+C<< $redis->get('key') >>, will also trigger check as internally wrapper methods
+use methods listed above.
 
-Note also, that you can't use I<execute> method (or wrappers around it, like
-I<get> or I<set>) while in pipeline mode, you must receive replies on all
-pipelined commands first.
+If you invoke I<send_command> without a callback argument, you have to fetch
+reply later explicitly using I<get_reply> method. This is how synchronous
+I<execute> is implemented, basically it is:
+
+    sub execute {
+        my $self = shift;
+        $self->send_command(@_);
+        return $self->get_reply;
+    }
+
+That is why it is not allowed to call I<execute> if you have not got replies to
+all commands sent previously with I<send_command> without callback.
+
+Sometimes you are not interested in replies sent by the server, e.g. SET
+command usually just return 'OK', in this case you can pass to I<send_command>
+callback which ignores its arguments, or use C<RedisDB::IGNORE_REPLY> constant, it
+is a no-op function:
+
+    for (@keys) {
+        # execute will not just send 'GET' command to the server,
+        # but it will also receive response to the 'SET' command sent on
+        # the previous loop iteration
+        my $val = $redis->execute( "get", $_ );
+        $redis->send_command( "set", $_, fun($val), RedisDB::IGNORE_REPLY );
+    }
+    # and this will wait for the last reply
+    $redis->mainloop;
+
+or using wrapper functions you can rewrite it as:
+
+    for (@keys) {
+        my $val = $redis->get($_);
+        $redis->set( $_, fun($val), RedisDB::IGNORE_REPLY );
+    }
+    $redis->mainloop;
 
 =cut
 
