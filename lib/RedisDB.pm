@@ -28,14 +28,15 @@ RedisDB - Perl extension to access redis database
 
 =head1 DESCRIPTION
 
-This module provides interface to access redis database. It transparently
-handles disconnects and forks. It supports pipelining mode.
+This module provides interface to access redis key-value store. It
+transparently handles disconnects and forks. It supports transactions,
+pipelining, and subscription mode.
 
 =head1 METHODS
 
 =head2 $class->new(%options)
 
-Creates new RedisDB object. The following options are allowed:
+Creates the new RedisDB object. The following options are accepted:
 
 =over 4
 
@@ -50,18 +51,19 @@ port to connect. Default: 6379
 =item path
 
 you can connect to redis using UNIX socket. In this case instead of
-I<host> and I<port> you should specify I<path>.
+L</host> and L</port> you should specify I<path>.
 
 =item timeout
 
-IO timeout. With this option set, if IO operation will take more than specified
-number of seconds module will croak. Note, that some OSes don't support SO_RCVTIMEO,
-and SO_SNDTIMEO socket options, in this case timeout will not work.
+IO timeout. With this option set, if IO operation has taken more than specified
+number of seconds, module will croak. Note, that some OSes do not support
+SO_RCVTIMEO, and SO_SNDTIMEO socket options, in this case timeout will not
+work.
 
 =item lazy
 
 by default I<new> establishes connection to the server. If this parameter is
-set, then connection will be established when you will send command to the
+set, then connection will be established when you will send a command to the
 server.
 
 =back
@@ -86,9 +88,9 @@ sub new {
 
 =head2 $self->execute($command, @arguments)
 
-send command to the server and return server reply. It throws exception if
-server returns error. It may be more convenient to use instead of this method
-wrapper named after the redis command. E.g.:
+send a command to the server and return the result. It will throw the exception
+if the server returns an error. It may be more convenient to use instead of
+this method wrapper named after the corresponding redis command. E.g.:
 
     $redis->execute('set', key => 'value');
     # is the same as
@@ -219,19 +221,20 @@ sub _queue {
 
 =head2 $self->send_command($command[, @arguments][, \&callback])
 
-send command to the server. Returns true if command was successfully sent, or
-dies if error occured. Note, that it doesn't return server reply, you should
-retrieve reply using I<get_reply> method or, if I<callback> specified, it will
-be invoked upon receiving reply from the server with two arguments: the RedisDB
-object, and reply from the server.  If server returns error, reply will be
-L<RedisDB::Error> object, you can get description of the error using this
-object in string context.  If you aren't interested in reply, you can use
-RedisDB::IGNORE_REPLY as the last argument.
+send a command to the server. Returns true if the command was successfully
+sent, or dies if an error occured. Note, that it does not return reply from
+the server, you should retrieve it using the I<get_reply> method, or if I<callback>
+has been specified, it will be invoked upon receiving the reply with two
+arguments: the RedisDB object, and the reply from the server.  If the server
+returns an error, the second argument to the callback will be a L<RedisDB::Error>
+object, you can get description of the error using this object in string
+context.  If you are not interested in reply, you can use RedisDB::IGNORE_REPLY
+constant as the last argument.
 
-Note, that RedisDB doesn't run any background threads, so it will not receive
-reply and invoke callback unless you call some of it's methods which check if
-there's reply from the server, like I<send_command>, I<reply_ready>,
-I<get_reply>, or I<get_all_replies>.
+Note, that RedisDB does not run any background threads, so it will not receive
+the reply and invoke the callback unless you call some of its methods which
+check if there are replies from the server, like I<send_command>,
+I<reply_ready>, I<get_reply>, or I<get_all_replies>.
 
 =cut
 
@@ -276,23 +279,24 @@ sub IGNORE_REPLY { return \&_ignore; }
 
 =head2 $self->send_command_cb($command[, @arguments][, \&callback])
 
-send command to the server, invoke specified I<callback> on reply. Callback
-invoked with 2 arguments: RedisDB object, and reply from the server.  If server
-return error reply will be L<RedisDB::Error> object, you can get description of
-error using this object in string context.  If I<callback> is not specified
-reply will be discarded.  Note, that RedisDB doesn't run any background
-threads, so it will not receive reply and invoke callback unless you call some
-of it's methods which check if there's reply from the server, like
-I<send_command>, I<send_command_cb>, I<reply_ready>, I<get_reply>, or
-I<get_all_replies>.
+send a command to the server, invoke specified I<callback> on reply. The
+callback is invoked with two arguments: the RedisDB object, and reply from the
+server.  If the server returned an error, the second argument will be a
+L<RedisDB::Error> object, you can get description of the error using this
+object in string context.  If the I<callback> is not specified, the reply will
+be discarded.  Note, that RedisDB does not run any background threads, so it
+will not receive the reply and invoke the callback unless you call some of its
+methods which check if there are replies from the server, like I<send_command>,
+I<send_command_cb>, I<reply_ready>, I<get_reply>, or I<get_all_replies>.
 
-B<DEPRECATED:> this method is deprecated and may be removed in one of the
-future versions. Please use I<send_command> method instead. If you are using
-I<send_command_cb> with I<&callback> argument, you can just change method to
-I<send_command> and it will do the same. If you are using I<send_command_cb>
-with default callback, you should add RedisDB::IGNORE_REPLY as the last
-argument when changing method name to I<send_command>.  Here is the example
-that shows equivalents with the I<send_command>:
+B<DEPRECATED:> this method is deprecated and may be removed in some future
+version. Please use I<send_command> method instead. If you are using
+I<send_command_cb> with I<&callback> argument, you can just replace the method
+with I<send_command> and it will do the same. If you are using
+I<send_command_cb> with the default callback, you should add the
+RedisDB::IGNORE_REPLY constant as the last argument when replacing the method
+with I<send_command>.  Here is the example that shows equivalents with
+I<send_command>:
 
     $redis->send_command_cb("SET", "Key", "Value");
     # may be replaced with
@@ -313,8 +317,8 @@ sub send_command_cb {
 
 =head2 $self->reply_ready
 
-This method may be used in pipelining mode to check if there are
-some replies already received from server. Returns number of replies
+This method may be used in the pipelining mode to check if there are some
+replies already received from the server. Returns the number of replies
 available for reading.
 
 =cut
@@ -328,7 +332,7 @@ sub reply_ready {
 
 =head2 $self->get_reply
 
-receive reply from the server. Method croaks if server returns error reply.
+receive reply from the server. Method croaks if the server returns an error.
 
 =cut
 
@@ -366,7 +370,7 @@ sub get_reply {
 
 =head2 $self->get_all_replies
 
-Wait replies to all sent commands and return them as a list.
+Wait for the replies to all the commands sent and return them as a list.
 
 =cut
 
@@ -381,7 +385,8 @@ sub get_all_replies {
 
 =head2 $self->replies_to_fetch
 
-Return number of commands sent to server replies to which wasn't yet retrieved with I<get_reply> or I<get_all_replies>.
+Return the number of commands sent to the server replies to which wasn't yet
+retrieved with I<get_reply> or I<get_all_replies>.
 
 =cut
 
@@ -392,9 +397,9 @@ sub replies_to_fetch {
 
 =head2 $self->version
 
-Return version of the server client is connected to. Version is returned as floating point
-number represented the same way as the perl versions. E.g. for redis 2.1.12 it will return
-2.001012.
+Return the version of the server client is connected to. The version is
+returned as a floating point number represented the same way as the perl
+versions. E.g. for redis 2.1.12 it will return 2.001012.
 
 =cut
 
@@ -431,11 +436,11 @@ my @commands = qw(
 Instead of using I<execute> and I<send_command> methods directly, it may be
 more convenient to use wrapper methods with names matching names of the redis
 commands. These methods call I<execute> or I<send_command> depending on the
-presence of callback argument. If callback is specified, method invokes
-I<send_command> and returns as soon as command is sent to server; when reply is
-received, it will be passed to callback (see L</"PIPELINING SUPPORT">). If
-there is no callback, method invokes I<execute>, waits for reply from server,
-and returns reply. E.g.:
+presence of the callback argument. If callback is specified, the method invokes
+I<send_command> and returns as soon as the command has been sent to the server;
+when the reply is received, it will be passed to the callback (see
+L</"PIPELINING SUPPORT">). If there is no callback, the method invokes
+I<execute>, waits for the reply from the server, and returns it. E.g.:
 
     $val = $redis->get($key);
     # equivalent to
@@ -460,7 +465,8 @@ zcard, zcount, zincrby, zinterstore, zrange, zrangebyscore, zrank, zrem,
 zremrangebyrank, zremrangebyscore, zrevrange, zrevrangebyscore, zrevrank,
 zscore, zunionstore
 
-See description of all commands in redis documentation at L<http://redis.io/commands>.
+See description of all commands in redis documentation at
+L<http://redis.io/commands>.
 
 =cut
 
@@ -487,8 +493,9 @@ The following commands implement some additional postprocessing of results:
 
 =head2 $self->info
 
-Return information and statistics about server. Redis returns information in form of
-I<field:value>, I<info> method parses result and returns it as hash reference.
+return information and statistics about the server. Redis-server returns
+information in form of I<field:value>, the I<info> method parses result and
+returns it as a hash reference.
 
 =cut
 
@@ -502,8 +509,8 @@ sub info {
 
 =head2 $self->shutdown
 
-Shuts redis server down. Returns undef, as server doesn't send answer.
-Croaks in case of error.
+Shuts the redis server down. Returns undef, as the server doesn't send the
+answer.  Croaks in case of the error.
 
 =cut
 
@@ -516,21 +523,22 @@ sub shutdown {
 
 =head1 HANDLING OF SERVER DISCONNECTS
 
-Redis server may close connection if it was idle for some time, also connection
-may be closed in case redis-server was restarted. RedisDB restores connection
-to the server but only if no data was lost as result of disconnect. E.g. if
-client was idle for some time and redis server closed connection, it will be
-transparently restored on sending next command. If you send a command and
-server closed connection without sending complete reply, connection will not be
-restored and module will throw exception. Also module will throw exception if
-connection will be closed in the middle of transaction or while you're in
+Redis server may close a connection if it was idle for some time, also the
+connection may be closed in case when redis-server was restarted. RedisDB
+restores a connection to the server but only if no data was lost as a result of
+disconnect. E.g. if the client was idle for some time and the redis server
+closed the connection, it will be transparently restored on sending next
+command. If you have sent a command and the server has closed the connection
+without sending complete reply, the connection will not be restored and the
+module will throw an exception. Also the module will throw an exception if the
+connection was closed in the middle of a transaction or while you're in a
 subscription loop.
 
 =cut
 
 =head1 PIPELINING SUPPORT
 
-You can send commands in the pipelining mode. In this case you sending multiple
+You can send commands in the pipelining mode. It means you are sending multiple
 commands to the server without waiting for the replies.  This is implemented by
 the I<send_command> method. Recommended way of using it is to pass a reference
 to the callback function as the last argument.  When module receives reply from
@@ -590,13 +598,14 @@ or using L</"WRAPPER METHODS"> you can rewrite it as:
 
 =head1 SUBSCRIPTIONS SUPPORT
 
-RedisDB supports subscriptions to redis channels. In subscription mode you can
-subscribe to some channels and receive all messages sent to these channels.
-Every time RedisDB receives message for the channel it invokes callback
-provided by user. User can specify different callbacks for different channels.
-When in subscription mode you can subscribe to additional channels, or
-unsubscribe from channels you subscribed to, but you can't use any other redis
-commands like set, get, etc. Here's example of running in subscription mode:
+RedisDB supports subscriptions to redis channels. In the subscription mode you
+can subscribe to some channels and receive all the messages sent to these
+channels.  Every time RedisDB receives a message for the channel it invokes a
+callback provided by the user. User can specify different callbacks for the
+different channels.  When in the subscription mode you can subscribe to
+additional channels, or unsubscribe from the channels you subscribed to, but
+you can't use any other redis commands like set, get, etc. Here is the example
+of running in the subscription mode:
 
     my $message_cb = sub {
         my ($redis, $channel, $pattern, $message) = @_;
@@ -620,17 +629,18 @@ commands like set, get, etc. Here's example of running in subscription mode:
         default_callback => $message_cb,
     );
 
-subscription_loop will subscribe you to news channel and control.* channels. It
-will call specified callbacks every time new message received.  You can
-subscribe to additional channels sending their names to control.subscribe
-channel. You can unsubscribe from all channels by sending message to
-control.quit channel. Every callback receives four arguments: RedisDB object,
-channel for which message was received, pattern if you subscribed to this
-channel using I<psubscribe> method, and message itself.
+subscription_loop will subscribe you to the news channel and control.*
+channels. It will call specified callbacks every time a new message received.
+You can subscribe to additional channels sending their names to the
+control.subscribe channel. You can unsubscribe from all the channels by sending
+a message to the control.quit channel. Every callback receives four arguments:
+the RedisDB object, the channel for which the message was received, the pattern
+if you subscribed to this channel using I<psubscribe> method, and the message
+itself.
 
-You can publish messages into channels using I<publish> method. This method
-should be called when you in normal mode, and can't be used while you're in
-subscription mode.
+You can publish messages into the channels using the I<publish> method. This
+method should be called when you in the normal mode, and can't be used while
+you're in the subscription mode.
 
 Following methods can be used in subscribtion mode:
 
@@ -638,27 +648,28 @@ Following methods can be used in subscribtion mode:
 
 =head2 $self->subscription_loop(%parameters)
 
-Enter into subscription mode. Function subscribes you to specified channels,
-waits for messages, and invokes callbacks for every received message. Function
-returns after you unsubscribed from all channels. It accepts following parameters:
+Enter into the subscription mode. The method subscribes you to the specified
+channels, waits for the messages, and invokes the appropriate callback for
+every received message. The method returns after you unsubscribed from all the
+channels. It accepts the following parameters:
 
 =over 4
 
 =item default_callback
 
-reference to the default callback. This callback is invoked for the message if you
+reference to the default callback. This callback is invoked for a message if you
 didn't specify other callback for the channel this message comes from.
 
 =item subscribe
 
-array reference. Contains list of channels you want to subscribe. Channel name
-may be optionally followed by reference to callback function for this channel.
-E.g.:
+an array reference. Contains the list of channels you want to subscribe. A
+channel name may be optionally followed by the reference to a callback function
+for this channel.  E.g.:
 
     [ 'news', 'messages', 'errors' => \&error_cb, 'other' ]
 
 channels "news", "messages", and "other" will use default callback, but for
-"errors" channel error_cb function will be used.
+the "errors" channel error_cb function will be used.
 
 =item psubscribe
 
@@ -667,8 +678,8 @@ same as subscribe, but you specify patterns for channels' names.
 =back
 
 All parameters are optional, but you must subscribe at least to one channel. Also
-if default_callback is not specified, you have to explicitely specify callback
-for every channel you're going to subscribe.
+if default_callback is not specified, you have to explicitely specify a callback
+for every channel you are going to subscribe.
 
 =cut
 
@@ -733,8 +744,8 @@ sub subscription_loop {
 
 =head2 $self->subscribe($channel[, $callback])
 
-Subscribe to additional I<$channel>. If I<$callback> is not specified, default
-callback will be used.
+Subscribe to the additional I<$channel>. If I<$callback> is not specified,
+default callback will be used.
 
 =cut
 
@@ -769,8 +780,8 @@ sub psubscribe {
 
 =head2 $self->unsubscribe([@channels])
 
-Unsubscribe from the listed I<@channels>. If no channels specified, unsubscribe
-from all channels.
+Unsubscribe from the listed I<@channels>. If no channels was specified,
+unsubscribe from all the channels.
 
 =cut
 
@@ -781,8 +792,8 @@ sub unsubscribe {
 
 =head2 $self->punsubscribe([@patterns])
 
-Unsubscribe from the listed I<@patterns>. If no patterns specified, unsubscribe
-from all channels to which you subscribed using I<psubscribe>.
+Unsubscribe from the listed I<@patterns>. If no patterns was specified,
+unsubscribe from all the channels to which you subscribed using I<psubscribe>.
 
 =cut
 
@@ -813,26 +824,26 @@ sub psubscribed {
 
 =head1 TRANSACTIONS SUPPORT
 
-Transactions allow you execute a sequence of commands in a single step. In
-order to start transaction you should use method I<multi>.  After you entered
-transaction all commands you issue are queued, but not executed till you call
-I<exec> method. Tipically these commands return string "QUEUED" as result, but
-if there's an error in e.g. number of arguments they may croak. When you
-calling exec all queued commands are executed and exec returns list of results
-for every command in transaction. If any command failed exec will croak. If
-instead of I<exec> you will call I<discard>, all scheduled commands will be
-canceled.
+Transactions allow you to execute a sequence of commands in a single step. In
+order to start a transaction you should use the I<multi> method.  After you
+have entered a transaction all the commands you issue are queued, but not
+executed till you call the I<exec> method. Tipically these commands return
+string "QUEUED" as result, but if there is an error in e.g. number of
+arguments, they may croak. When you call exec, all the queued commands will be
+executed and exec will return a list of results for every command in the
+transaction. If any command has failed, exec will croak. If instead of I<exec>
+you call I<discard>, all scheduled commands will be canceled.
 
-You can set some keys as watched. If any whatched key will be changed by
-another client before you call exec, transaction will be discarded and exec
-will return false value.
+You can set some keys as watched. If any whatched key has been changed by
+another client before you called exec, the transaction will be discarded and
+exec will return false value.
 
 =cut
 
 =head2 $self->multi
 
-Enter transaction. After this and till I<exec> or I<discard> will be called,
-all commands will be queued but not executed.
+Enter the transaction. After this and till I<exec> or I<discard> will be called,
+all the commands will be queued but not executed.
 
 =cut
 
@@ -846,10 +857,10 @@ sub multi {
 
 =head2 $self->exec
 
-Execute all queued commands and finish transaction. Returns list of results for
-every command. May croak if some command failed.  Also unwatches all keys. If
-some of the watched keys was changed by other client, transaction will be
-canceled and I<exec> will return false.
+Execute all queued commands and finish the transaction. Returns a list of
+results for every command. Will croak if some command has failed.  Also
+unwatches all the keys. If some of the watched keys has been changed by other
+client, the transaction will be canceled and I<exec> will return false.
 
 =cut
 
@@ -1110,15 +1121,14 @@ L<Redis>, L<Redis::hiredis>, L<AnyEvent::Redis>
 
 =head1 WHY ANOTHER ONE
 
-I was in need of a client for redis database. L<AnyEvent::Redis> didn't suite
-me as it requires event loop, and it didn't fit into existing code. Problem
-with L<Redis> is that it doesn't (at the time I write this) reconnect to the
-server if connection was closed after timeout or as result or server restart,
-and it doesn't support pipelining. After analizing what I need to change in
-L<Redis> in order to get all I want (see TODO), I decided that it will be
-simplier to write new module from scratch. This also solves the problem of
-backward compatibility. Pedro Melo, maintainer of L<Redis> have plans to
-implement some of these features too.
+I was in need of the client for redis database. L<AnyEvent::Redis> didn't suite
+me as it requires an event loop, and it didn't fit into the existing code. The
+problem with L<Redis> is that it didn't (at the time I started this) reconnect
+to the server if connection was closed after timeout or as result of the server
+restart, and it does not support pipelining. After analizing what I need to
+change in L<Redis> in order to get all I want, I decided that it will be
+simplier to write the new module from scratch. This also solves the problem of
+backward compatibility.
 
 =head1 BUGS
 
