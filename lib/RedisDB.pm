@@ -330,6 +330,37 @@ sub reply_ready {
     return @{ $self->{_replies} } ? 1 : 0;
 }
 
+=head2 $self->mainloop
+
+this method blocks till all replies from the server will be received
+
+=cut
+
+sub mainloop {
+    my $self = shift;
+
+    while ( @{ $self->{_callbacks} } ) {
+        die "You can't call mainloop in the child process" unless $self->{_pid} == $$;
+        my $ret = $self->{_socket}->recv( my $buffer, 4096 );
+        unless ( defined $ret ) {
+            next if $! == EINTR;
+            croak "Error reading reply from server: $!";
+        }
+        if ( $buffer ne '' ) {
+
+            # received some data
+            $self->{_buffer} .= $buffer;
+            1 while $self->_parse_reply;
+        }
+        else {
+
+            # disconnected
+            die "Server unexpectedly closed connection before sending full reply";
+        }
+    }
+    return;
+}
+
 =head2 $self->get_reply
 
 receive reply from the server. Method croaks if the server returns an error.

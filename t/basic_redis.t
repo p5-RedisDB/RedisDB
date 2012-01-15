@@ -82,5 +82,20 @@ eq_or_diff \@replies,
   "Callback was called with correct arguments";
 is $redis->replies_to_fetch, 0, "No replies to fetch";
 
+my $incr;
+my $icnt;
+$incr = sub {
+    my ( $redis, $res ) = @_;
+    $icnt = $res;
+    $redis->rpush( 'mainlist', $res, RedisDB::IGNORE_REPLY );
+    $redis->incr( 'mainloop', $incr ) if $res < 5;
+};
+$redis->incr( 'mainloop', $incr );
+$redis->send_command('PING');
+$redis->mainloop;
+is $icnt, 5, "last result of increment is 5";
+is $redis->get_reply, 'PONG', "got PONG after mainloop";
+eq_or_diff $redis->lrange( 'mainlist', 0, -1 ), [ 1 .. 5 ], "Correct mainlist value";
+
 done_testing;
 END { $redis->shutdown if $redis; }
