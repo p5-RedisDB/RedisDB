@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+0.29 Sun Jan 15 2012 Pavel Shaydo <zwon@cpan.org>
+    * implement mainloop method
+    * documentation improvements
+
 0.28_1 Fri Jan 13 2012 Pavel Shaydo <zwon@cpan.org>
     * reworking piplening support
     * send_command now accept callback argument
