@@ -41,6 +41,24 @@ dies_ok { $redis->get('key') } "Died on unclean disconnect";
 wait;
 dies_ok { RedisDB->new( host => '127.0.0.1', port => $port ) } "Dies on conection failure";
 
+# Check what will happen if server immediately closes connection
+
+$srv = IO::Socket::INET->new( LocalAddr => '127.0.0.1', Proto => 'tcp', Listen => 1 );
+if ( fork == 0 ) {
+    $SIG{ALRM} = sub { exit 0 };
+    alarm 5;
+    while () {
+        my $cli = $srv->accept;
+        close $cli;
+    }
+}
+
+$port = $srv->sockport;
+close $srv;
+$redis = RedisDB->new( host => '127.0.0.1', port => $port, lazy => 1 );
+$redis->{_db_number} = 1;
+dies_ok { $redis->set( 'key', 'value' ); } "dies if redis-server immediately closes connection";
+
 # Check that IO timeout is working
 
 SKIP: {

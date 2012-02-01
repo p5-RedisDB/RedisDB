@@ -119,6 +119,12 @@ sub execute {
 
 sub _connect {
     my $self = shift;
+
+    # this is to prevent recursion
+    croak "Couldn't connect to the redis-server."
+      . " Connection was immediately closed by the server."
+      if $self->{_in_connect}++;
+
     $self->{_pid} = $$;
 
     if ( $self->{path} ) {
@@ -158,6 +164,7 @@ sub _connect {
         $self->send_command( "SELECT", $self->{_db_number}, IGNORE_REPLY() );
     }
 
+    delete $self->{_in_connect};
     return 1;
 }
 
