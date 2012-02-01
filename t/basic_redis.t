@@ -97,5 +97,15 @@ is $icnt, 5, "last result of increment is 5";
 is $redis->get_reply, 'PONG', "got PONG after mainloop";
 eq_or_diff $redis->lrange( 'mainlist', 0, -1 ), [ 1 .. 5 ], "Correct mainlist value";
 
+$redis->set( "DB_number", 0 );
+is $redis->select(1),        'OK',  "selected DB 1";
+is $redis->get("DB_number"), undef, "DB_number is not defined";
+$redis->set( "DB_number", 1 );
+is $redis->get("DB_number"), 1, "DB number 1";
+$redis->quit;
+is $redis->get("DB_number"), 1,    "after reconnecting DB number is still 1";
+is $redis->select(0),        'OK', "selected DB 0";
+is $redis->get("DB_number"), 0,    "DB number 0";
+
 done_testing;
 END { $redis->shutdown if $redis; }
