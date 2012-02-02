@@ -60,8 +60,7 @@ subtest "No _connect recursion" => sub {
 
     my $port = $srv->sockport;
     close $srv;
-    my $redis = RedisDB->new( host => '127.0.0.1', port => $port, lazy => 1 );
-    $redis->{_db_number} = 1;
+    my $redis = RedisDB->new( host => '127.0.0.1', port => $port, lazy => 1, database => 1 );
     dies_ok { $redis->set( 'key', 'value' ); } "dies on recursive _connect";
     kill 9, $pid;
 };

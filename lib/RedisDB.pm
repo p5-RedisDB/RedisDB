@@ -34,6 +34,8 @@ pipelining, and subscription mode.
 
 =head1 METHODS
 
+=cut
+
 =head2 $class->new(%options)
 
 Creates the new RedisDB object. The following options are accepted:
@@ -52,6 +54,13 @@ port to connect. Default: 6379
 
 you can connect to redis using UNIX socket. In this case instead of
 L</host> and L</port> you should specify I<path>.
+
+=item database
+
+DB number to use. Specified database will be selected immediately after
+connecting to the server. Database changes when you sending I<select> command
+to the server. You can get current database using I<selected_database> method.
+Default value is 0.
 
 =item timeout
 
@@ -82,7 +91,7 @@ sub new {
     $self->{_replies}       = [];
     $self->{_callbacks}     = [];
     $self->{_to_be_fetched} = 0;
-    $self->{_db_number}     = 0;
+    $self->{database} //= 0;
     $self->_connect unless $self->{lazy};
     return $self;
 }
@@ -160,8 +169,8 @@ sub _connect {
 
     $self->{_callbacks}         = [];
     $self->{_subscription_loop} = 0;
-    if ( $self->{_db_number} ) {
-        $self->send_command( "SELECT", $self->{_db_number}, IGNORE_REPLY() );
+    if ( $self->{database} ) {
+        $self->send_command( "SELECT", $self->{database}, IGNORE_REPLY() );
     }
 
     delete $self->{_in_connect};
@@ -267,12 +276,12 @@ sub send_command {
           unless $command =~ /^(P?(UN)?SUBSCRIBE|QUIT)$/;
     }
 
-    # if SELECT has been successful, we should update _db_number
+    # if SELECT has been successful, we should update database
     if ( $command eq 'SELECT' ) {
         my $cb    = $callback;
         my $dbnum = $_[0];
         $callback = sub {
-            $_[0]->{_db_number} = $dbnum unless ref $_[1];
+            $_[0]->{database} = $dbnum unless ref $_[1];
             $cb->(@_);
         };
     }
@@ -448,9 +457,19 @@ sub replies_to_fetch {
     return $self->{_to_be_fetched} + @{ $self->{_replies} };
 }
 
+=head2 $self->selected_database
+
+Get currently selected database.
+
+=cut
+
+sub selected_database {
+    shift->{database};
+}
+
 =head2 $self->version
 
-Return the version of the server client is connected to. The version is
+Return the version of the server the client is connected to. The version is
 returned as a floating point number represented the same way as the perl
 versions. E.g. for redis 2.1.12 it will return 2.001012.
 
@@ -578,12 +597,12 @@ sub shutdown {
 
 Redis server may close a connection if it was idle for some time, also the
 connection may be closed in case when redis-server was restarted. RedisDB
-restores a connection to the server but only if no data was lost as a result of
-disconnect. E.g. if the client was idle for some time and the redis server
-closed the connection, it will be transparently restored on sending next
-command. If you have sent a command and the server has closed the connection
-without sending complete reply, the connection will not be restored and the
-module will throw an exception. Also the module will throw an exception if the
+restores a connection to the server, but only if no data was lost as a result
+of the disconnect. E.g. if the client was idle for some time and the redis
+server closed the connection, it will be transparently restored on sending next
+command. If you sent a command and the server has closed the connection without
+sending a complete reply, the connection will not be restored and the module
+will throw an exception. Also the module will throw an exception if the
 connection was closed in the middle of a transaction or while you're in a
 subscription loop.
 
