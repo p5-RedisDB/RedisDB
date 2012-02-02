@@ -7,48 +7,72 @@ use File::Spec;
 use Try::Tiny;
 
 # Check that module is able to restore connection
+subtest "Restore connection" => sub {
+    my $srv = IO::Socket::INET->new( LocalAddr => '127.0.0.1', Proto => 'tcp', Listen => 1 );
+    plan skip_all => "Can't start server" unless $srv;
 
-my $srv = IO::Socket::INET->new( LocalAddr => '127.0.0.1', Proto => 'tcp', Listen => 1 );
-
-if ( fork == 0 ) {
-    my $conn = 0;
-    $SIG{ALRM} = sub { die "Died on timeout. $conn connections accepted" };
-    alarm 10;
-    my @replies = ( "+PONG\015\012", "+OK\015\012", "+OK" );
-    while (@replies) {
-        my $cli = $srv->accept;
-        $conn++;
-        { local $/ = "\r\n"; $cli->getline; }
-        $cli->send( shift(@replies), 0 );
-        close $cli;
+    my $pid = fork;
+    if ( $pid == 0 ) {
+        my $conn = 0;
+        $SIG{ALRM} = sub { die "Died on timeout. $conn connections accepted" };
+        alarm 10;
+        my @replies = ( "+PONG\015\012", "+OK\015\012", "+OK" );
+        while (@replies) {
+            my $cli = $srv->accept;
+            $conn++;
+            { local $/ = "\r\n"; $cli->getline; }
+            $cli->send( shift(@replies), 0 );
+            close $cli;
+        }
+        exit 0;
     }
-    exit 0;
-}
 
-plan( skip_all => "Can't start server" ) unless $srv;
+    my $port = $srv->sockport;
+    close $srv;
+    my $redis = RedisDB->new( host => '127.0.0.1', port => $port, lazy => 1 );
+    my $ret;
+    lives_ok { $ret = $redis->ping } "Ping";
+    is $ret, 'PONG', "pong";
+    undef $ret;
+    sleep 1;
+    lives_ok { $ret = $redis->set( 'key', 'value' ) } "Connection restored";
+    is $ret, 'OK', "key is set";
+    dies_ok { $redis->get('key') } "Died on unclean disconnect";
+    wait;
+    dies_ok { RedisDB->new( host => '127.0.0.1', port => $port ) } "Dies on conection failure";
+    kill 9, $pid;
+};
 
-my $port = $srv->sockport;
-close $srv;
-my $redis = RedisDB->new( host => '127.0.0.1', port => $port, lazy => 1 );
-my $ret;
-lives_ok { $ret = $redis->ping } "Ping";
-is $ret, 'PONG', "pong";
-undef $ret;
-sleep 1;
-lives_ok { $ret = $redis->set( 'key', 'value' ) } "Connection restored";
-is $ret, 'OK', "key is set";
-dies_ok { $redis->get('key') } "Died on unclean disconnect";
-wait;
-dies_ok { RedisDB->new( host => '127.0.0.1', port => $port ) } "Dies on conection failure";
+# Check what will happen if server immediately closes connection
+subtest "No _connect recursion" => sub {
+    my $srv = IO::Socket::INET->new( LocalAddr => '127.0.0.1', Proto => 'tcp', Listen => 1 );
+    plan skip_all => "Can't start server" unless $srv;
+
+    my $pid = fork;
+    if ( $pid == 0 ) {
+        $SIG{ALRM} = sub { exit 0 };
+        alarm 5;
+        while () {
+            my $cli = $srv->accept;
+            close $cli;
+        }
+    }
+
+    my $port = $srv->sockport;
+    close $srv;
+    my $redis = RedisDB->new( host => '127.0.0.1', port => $port, lazy => 1, database => 1 );
+    dies_ok { $redis->set( 'key', 'value' ); } "dies on recursive _connect";
+    kill 9, $pid;
+};
 
 # Check that IO timeout is working
+subtest "socket timeout" => sub {
+    plan skip_all => "OS $^O doesn't support timeout on sockets" if $^O =~ /solaris|MSWin32/;
 
-SKIP: {
-    skip "OS $^O doesn't support timeout on sockets", 2 if $^O =~ /solaris|MSWin32/;
+    my $srv = IO::Socket::INET->new( LocalAddr => '127.0.0.1', Proto => 'tcp', Listen => 1 );
 
-    $srv = IO::Socket::INET->new( LocalAddr => '127.0.0.1', Proto => 'tcp', Listen => 1 );
-
-    if ( fork == 0 ) {
+    my $pid = fork;
+    if ( $pid == 0 ) {
         $SIG{ALRM} = sub { exit 0 };
         alarm 10;
         my $cli = $srv->accept;
@@ -57,19 +81,20 @@ SKIP: {
         exit 0;
     }
 
-    $redis = RedisDB->new( host => '127.0.0.1', port => $srv->sockport, timeout => 3 );
+    my $redis = RedisDB->new( host => '127.0.0.1', port => $srv->sockport, timeout => 3 );
     lives_ok { $redis->send_command('PING') } "Sent command without problems";
     dies_ok { $redis->get_reply } "Dies on timeout while receiving reply";
-}
+    kill 9, $pid;
+};
 
 # Check that we can connect to UNIX socket
-
-SKIP: {
+subtest "UNIX socket" => sub {
     my $sock_path = File::Spec->catfile( tempdir( CLEANUP => 1 ), "test_redis" );
     my $srv =
       try { IO::Socket::UNIX->new( Type => SOCK_STREAM, Local => $sock_path, Listen => 1 ) };
-    skip "Can't create UNIX socket", 2 unless $srv;
-    if ( fork == 0 ) {
+    plan skip_all => "Can't create UNIX socket" unless $srv;
+    my $pid = fork;
+    if ( $pid == 0 ) {
         $SIG{ALRM} = sub { exit 0 };
         alarm 10;
         my $cli = $srv->accept;
@@ -90,8 +115,10 @@ SKIP: {
         RedisDB->new( path => "$sock_path.does_not_exist" );
     }
     "croaks if can't connect to socket";
+    my $redis;
     lives_ok { $redis = RedisDB->new( path => $sock_path ) } "Connected to UNIX socket";
     is $redis->get("ping"), "PONG", "Got PONG via UNIX socket";
-}
+    kill 9, $pid;
+};
 
 done_testing;

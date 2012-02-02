@@ -1,5 +1,14 @@
 Revision history for RedisDB
 
+0.30_2 Thu Feb  2 2012 Pavel Shaydo <zwon@cpan.org>
+    * add database parameter to the constructor
+    * add selected_database method
+
+0.30_1 Wed Feb  1 2012 Pavel Shaydo <zwon@cpan.org>
+    * restore selected database on reconnect
+    * do not invoke _connect recursively
+    * refactor network.t
+
 0.29 Sun Jan 15 2012 Pavel Shaydo <zwon@cpan.org>
     * implement mainloop method
     * documentation improvements
