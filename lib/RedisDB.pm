@@ -2,7 +2,7 @@ package RedisDB;
 
 use warnings;
 use strict;
-our $VERSION = "0.30_2";
+our $VERSION = "0.30_3";
 $VERSION = eval $VERSION;
 
 use RedisDB::Error;

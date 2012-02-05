@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+0.30_3 Sun Feb  5 2012 Pavel Shaydo <zwon@cpan.org>
+    * replace accidentally used //= with ||=
+
 0.30_2 Thu Feb  2 2012 Pavel Shaydo <zwon@cpan.org>
     * add database parameter to the constructor
     * add selected_database method
