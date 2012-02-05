@@ -91,7 +91,7 @@ sub new {
     $self->{_replies}       = [];
     $self->{_callbacks}     = [];
     $self->{_to_be_fetched} = 0;
-    $self->{database} //= 0;
+    $self->{database} ||= 0;
     $self->_connect unless $self->{lazy};
     return $self;
 }
