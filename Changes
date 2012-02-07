@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+0.31 Tue Feb  7 2012 Pavel Shaydo <zwon@cpan.org>
+    * no changes
+
 0.30_3 Sun Feb  5 2012 Pavel Shaydo <zwon@cpan.org>
     * replace accidentally used //= with ||=
 
