@@ -29,3 +29,4 @@ t/RedisServer.pm
 t/send_command_cb.t
 t/subscribe.t
 t/transactions.t
+t/utf8.t
