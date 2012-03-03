@@ -70,6 +70,12 @@ number of seconds, module will croak. Note, that some OSes do not support
 SO_RCVTIMEO, and SO_SNDTIMEO socket options, in this case timeout will not
 work.
 
+=item utf8
+
+Assume that all data on the server encoded in UTF-8. As result all strings will
+be converted to UTF-8 before sending to server, and all results will be decoded
+from UTF-8. See L</"UTF-8 SUPPORT">.
+
 =item lazy
 
 by default I<new> establishes connection to the server. If this parameter is
@@ -593,6 +599,24 @@ sub shutdown {
     pop @{ $self->{_callbacks} };
     return;
 }
+
+=head1 UTF-8 SUPPORT
+
+The redis protocol is designed to work with the binary data, both keys and
+values are encoded in the same way as sequences of octets.  By default this
+module expects all data to be just strings of bytes. There is an option to
+treat all data as UTF-8 strings. If you pass I<utf8> parameter to the
+constructor, module will encode all strings to UTF-8 before sending them to
+server, and will decode all strings received from server from UTF-8. This has
+following repercussions you should be aware off: first, you can't store binary
+data on server with this option on, it would be treated as a sequence of latin1
+characters, and would be converted into a corresponding sequence of UTF-8 encoded
+characters; second, if data returned by the server is not a valid UTF-8 encoded
+string, the module will croak, and you will have to reinitialize the
+connection. Generally, I would recommend to write a wrapper around L<RedisDB> instead of
+setting I<utf8> option.
+
+=cut
 
 =head1 HANDLING OF SERVER DISCONNECTS
 
