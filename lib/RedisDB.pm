@@ -474,6 +474,23 @@ sub selected_database {
     shift->{database};
 }
 
+=head2 $self->reset_connection
+
+Resets connection. This closes existing connection and drops all previously
+sent requests. After invoking this method the object returns to the same state
+as it was returned by the constructor.
+
+=cut
+
+sub reset_connection {
+    my $self = shift;
+    delete $self->{$_} for grep /^_/, keys %$self;
+    $self->{_replies}       = [];
+    $self->{_callbacks}     = [];
+    $self->{_to_be_fetched} = 0;
+    return;
+}
+
 =head2 $self->version
 
 Return the version of the server the client is connected to. The version is
