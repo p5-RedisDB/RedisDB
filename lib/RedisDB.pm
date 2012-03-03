@@ -13,6 +13,7 @@ use POSIX qw(:errno_h);
 use Config;
 use Carp;
 use Try::Tiny;
+use Encode qw();
 
 =head1 NAME
 
@@ -286,7 +287,7 @@ sub send_command {
         };
     }
 
-    my $request = _build_redis_request( $command, @_ );
+    my $request = _build_redis_request( $self, $command, @_ );
     $self->_connect unless $self->{_socket} and $self->{_pid} == $$;
 
     # Here we reading received data and storing it in the _buffer,
@@ -962,13 +963,17 @@ sub discard {
 #
 # Builds unified redis request from given I<$command> and I<@arguments>.
 sub _build_redis_request {
+    my $self  = shift;
     my $nargs = @_;
 
-    use bytes;
     my $req = "*$nargs\015\012";
-    while ( $nargs-- ) {
-        my $arg = shift;
-        $req .= '$' . length($arg) . "\015\012" . $arg . "\015\012";
+    if ( $self->{utf8} ) {
+        $req .= '$' . length($_) . "\015\012" . $_ . "\015\012"
+          for map { Encode::encode( 'UTF-8', $_, Encode::FB_CROAK | Encode::LEAVE_SRC ) } @_;
+    }
+    else {
+        use bytes;
+        $req .= '$' . length($_) . "\015\012" . $_ . "\015\012" for @_;
     }
     return $req;
 }
@@ -1059,6 +1064,14 @@ sub _parse_reply {
             return unless length $self->{_buffer} >= 2 + $self->{_parse_bulk_len};
             my $bulk = substr( $self->{_buffer}, 0, $self->{_parse_bulk_len}, '' );
             substr $self->{_buffer}, 0, 2, '';
+            if ( $self->{utf8} ) {
+                try {
+                    $bulk = Encode::decode( 'UTF-8', $bulk, Encode::FB_CROAK | Encode::LEAVE_SRC );
+                }
+                catch {
+                    croak "Couldn't decode reply from the server, invalid UTF-8: '$bulk'";
+                };
+            }
             if ( $self->{_parse_reply}[0] eq '$' ) {
                 $self->{_parse_reply}[1] = $bulk;
                 return $self->_reply_completed;

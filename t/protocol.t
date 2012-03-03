@@ -27,31 +27,31 @@ sub request_encoding {
 
     use bytes;
     my $binary =
-"Some strings may contain\n linebreaks\0 \r\n or zero terminated strings\0 or some latin1 chars \110";
+      "Some strings may contain\n linebreaks\0 \r\n or zero terminated strings\0 or some latin1 chars \110";
 
     my $lf = "\015\012";
     eq_or_diff(
-        RedisDB::_build_redis_request($command),
+        RedisDB::_build_redis_request( $redis, $command ),
         join( $lf, '*1', '$4', 'test', '' ),
         "Single command is ok"
     );
-    eq_or_diff( RedisDB::_build_redis_request( $command, $int ),
+    eq_or_diff( RedisDB::_build_redis_request( $redis, $command, $int ),
         join( $lf, '*2', '$4', 'test', '$2', '12', '' ), "Integer" );
     eq_or_diff(
-        RedisDB::_build_redis_request( $command, $string ),
+        RedisDB::_build_redis_request( $redis, $command, $string ),
         join( $lf, '*2', '$4', 'test', '$24', $string, '' ),
         "ASCII string"
     );
     my $ulen = length $ustring;
     ok $ulen > 7, "Length is in bytes";
     eq_or_diff(
-        RedisDB::_build_redis_request( $command, $ustring, $string ),
+        RedisDB::_build_redis_request( $redis, $command, $ustring, $string ),
         join( $lf, '*3', '$4', 'test', "\$$ulen", $ustring, '$24', $string, '' ),
         "unicode string"
     );
     my $blen = length $binary;
     eq_or_diff(
-        RedisDB::_build_redis_request( $command, $binary, $ustring ),
+        RedisDB::_build_redis_request( $redis, $command, $binary, $ustring ),
         join( $lf, '*3', '$4', 'test', "\$$blen", $binary, "\$$ulen", $ustring, '' ),
         "binary string"
     );
