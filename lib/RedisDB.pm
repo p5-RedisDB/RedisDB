@@ -159,10 +159,7 @@ sub _connect {
     }
 
     if ( $self->{timeout} ) {
-        my $timeout =
-          $Config{longsize} == 4
-          ? pack( 'LL', $self->{timeout}, 0 )
-          : pack( 'QQ', $self->{timeout} );
+        my $timeout = pack( 'L!L!', $self->{timeout}, 0 );
         try {
             defined $self->{_socket}->sockopt( SO_RCVTIMEO, $timeout )
               or die "Can't set timeout: $!";
