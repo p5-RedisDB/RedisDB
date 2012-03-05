@@ -633,6 +633,21 @@ setting I<utf8> option.
 
 =cut
 
+=head1 ERROR HANDLING
+
+If an error happens which the module can't handle, it will croak. It may
+happen as a result of a network error, or invalid data encoding, or if the
+server returned an error reply. In some cases the RedisDB object after throwing
+an exception will be left in inconsistant state. If you want to continue using
+the object after getting an exception, you should invoke the
+L</reset_connection> method on it. This will drop current connection and all
+outstanding requests, so the object will return to the same state it was just
+after creation with the L</new> method. If the connection was in subscription
+mode, you will have to restore all the subscriptions, if it was in the middle
+of transaction, you will have to start the transaction again.
+
+=cut
+
 =head1 HANDLING OF SERVER DISCONNECTS
 
 Redis server may close a connection if it was idle for some time, also the
