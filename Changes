@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+1.00 Mon Mar  5 2012 Pavel Shaydo <zwon@cpan.org>
+    * no changes
+
 0.32_2 Mon Mar  5 2012 Pavel Shaydo <zwon@cpan.org>
     * document error handling
 
