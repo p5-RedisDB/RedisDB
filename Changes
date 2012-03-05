@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+0.32_2 Mon Mar  5 2012 Pavel Shaydo <zwon@cpan.org>
+    * document error handling
+
 0.32_1 Sat Mar  3 2012 Pavel Shaydo <zwon@cpan.org>
     * add UTF-8 support
     * add reset_connection method
