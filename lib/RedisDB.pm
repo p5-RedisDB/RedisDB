@@ -123,7 +123,7 @@ replies.
 
 sub execute {
     my $self = shift;
-    croak "You can't use RedisDB::execute while in pipelining mode."
+    croak "You can't use RedisDB::execute when you have replies to fetch."
       if $self->replies_to_fetch;
     croak "This function is not available in subscription mode." if $self->{_subscription_loop};
     my $cmd = uc shift;
@@ -137,7 +137,7 @@ sub _connect {
     my $self = shift;
 
     # this is to prevent recursion
-    croak "Couldn't connect to the redis-server."
+    confess "Couldn't connect to the redis-server."
       . " Connection was immediately closed by the server."
       if $self->{_in_connect}++;
 
@@ -173,6 +173,7 @@ sub _connect {
 
     $self->{_callbacks}         = [];
     $self->{_subscription_loop} = 0;
+    delete $self->{_server_version};
     if ( $self->{database} ) {
         $self->send_command( "SELECT", $self->{database}, IGNORE_REPLY() );
     }
@@ -207,7 +208,7 @@ sub _recv_data_nb {
             next if $! == EINTR;
 
             # die on any other error
-            die "Error reading from server: $!";
+            confess "Error reading from server: $!";
         }
         elsif ( $buf ne '' ) {
 
@@ -220,8 +221,8 @@ sub _recv_data_nb {
             # server closed connection. Check if some data was lost.
             1 while $self->{_buffer} and $self->_parse_reply;
 
-            # if there's some replies lost
-            die "Server closed connection. Some data was lost."
+            # if there are some replies lost
+            confess "Server closed connection. Some data was lost."
               if @{ $self->{_callbacks} }
                   or $self->{_in_multi};
 
@@ -298,7 +299,7 @@ sub send_command {
     # and reconnect if not
     $self->_recv_data_nb;
 
-    defined $self->{_socket}->send($request) or die "Can't send request to server: $!";
+    defined $self->{_socket}->send($request) or confess "Can't send request to server: $!";
     push @{ $self->{_callbacks} }, $callback;
     return 1;
 }
@@ -375,11 +376,11 @@ sub mainloop {
     my $self = shift;
 
     while ( @{ $self->{_callbacks} } ) {
-        die "You can't call mainloop in the child process" unless $self->{_pid} == $$;
+        croak "You can't call mainloop in the child process" unless $self->{_pid} == $$;
         my $ret = $self->{_socket}->recv( my $buffer, 4096 );
         unless ( defined $ret ) {
             next if $! == EINTR;
-            croak "Error reading reply from server: $!";
+            confess "Error reading reply from server: $!";
         }
         if ( $buffer ne '' ) {
 
@@ -390,7 +391,7 @@ sub mainloop {
         else {
 
             # disconnected
-            die "Server unexpectedly closed connection before sending full reply";
+            confess "Server unexpectedly closed connection before sending full reply";
         }
     }
     return;
@@ -406,15 +407,15 @@ sub get_reply {
     my $self = shift;
 
     while ( not @{ $self->{_replies} } ) {
-        die "We are not waiting for reply"
+        croak "We are not waiting for reply"
           unless $self->{_to_be_fetched}
               or $self->{_subscription_loop};
-        die "You can't read reply in child process" unless $self->{_pid} == $$;
+        croak "You can't read reply in child process" unless $self->{_pid} == $$;
         while ( not $self->_parse_reply ) {
             my $ret = $self->{_socket}->recv( my $buffer, 4096 );
             unless ( defined $ret ) {
                 next if $! == EINTR;
-                croak "Error reading reply from server: $!";
+                confess "Error reading reply from server: $!";
             }
             if ( $buffer ne '' ) {
 
@@ -424,7 +425,7 @@ sub get_reply {
             else {
 
                 # disconnected
-                die "Server unexpectedly closed connection before sending full reply";
+                confess "Server unexpectedly closed connection before sending full reply";
             }
         }
     }
@@ -500,7 +501,7 @@ sub version {
     my $self = shift;
     my $info = $self->info;
     $info->{redis_version} =~ /^([0-9]+)[.]([0-9]+)(?:[.]([0-9]+))?/
-      or die "Can't parse version string: $info->{redis_version}";
+      or croak "Can't parse version string: $info->{redis_version}";
     $self->{_server_version} = $1 + 0.001 * $2 + ( $3 ? 0.000001 * $3 : 0 );
     return $self->{_server_version};
 }
@@ -823,7 +824,7 @@ sub subscription_loop {
       unless ( keys %{ $self->{_subscribed} } or keys %{ $self->{_psubscribed} } );
 
     while ( my $msg = $self->get_reply ) {
-        die "Expected multi-bulk reply, but got $msg" unless ref $msg;
+        confess "Expected multi-bulk reply, but got $msg" unless ref $msg;
         if ( $msg->[0] eq 'message' ) {
             $self->{_subscribed}{ $msg->[1] }( $self, $msg->[1], undef, $msg->[2] );
         }
@@ -845,7 +846,7 @@ sub subscription_loop {
             last unless $msg->[2] or %{ $self->{_subscribed} };
         }
         else {
-            die "Got unknown reply $msg->[0] in subscription mode";
+            confess "Got unknown reply $msg->[0] in subscription mode";
         }
     }
     $self->{_to_be_fetched} = 0;
@@ -1169,8 +1170,7 @@ sub _parse_reply {
                 $self->{_parse_reply} = ['*'];
             }
             else {
-                die "Invalid multi-bulk reply. Expected '\$' or ':' but got $char"
-                  ;    # $self->{_buffer}";
+                die "Invalid multi-bulk reply. Expected '\$' or ':' but got $char";
             }
             $repeat = 1;
         }
