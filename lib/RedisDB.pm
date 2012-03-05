@@ -685,9 +685,9 @@ I<get_reply>, I<get_all_replies>.  Calling wrapper method, like
 C<< $redis->get('key') >>, will also trigger check as internally wrapper methods
 use methods listed above.
 
-If you invoke I<send_command> without a callback argument, you have to fetch
-reply later explicitly using I<get_reply> method. This is how synchronous
-I<execute> is implemented, basically it is:
+Also you can omit callback argument when invoke I<send_command>. In this case
+you have to fetch reply later explicitly using I<get_reply> method. This is how
+synchronous I<execute> is implemented, basically it is:
 
     sub execute {
         my $self = shift;
@@ -695,8 +695,9 @@ I<execute> is implemented, basically it is:
         return $self->get_reply;
     }
 
-That is why it is not allowed to call I<execute> if you have not got replies to
-all commands sent previously with I<send_command> without callback.
+That is why it is not allowed to call I<execute> unless you have got replies to
+all commands sent previously with I<send_command> without callback. Using
+I<send_command> without callback is not recommended.
 
 Sometimes you are not interested in replies sent by the server, e.g. SET
 command usually just return 'OK', in this case you can pass to I<send_command>
