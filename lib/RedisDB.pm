@@ -1,8 +1,8 @@
 package RedisDB;
 
-use warnings;
 use strict;
-our $VERSION = "1.00";
+use warnings;
+our $VERSION = "1.01";
 $VERSION = eval $VERSION;
 
 use RedisDB::Error;

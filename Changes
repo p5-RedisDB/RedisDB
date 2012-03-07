@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+1.01 Wed Mar  7 2012 Pavel Shaydo <zwon@cpan.org>
+    * re-authenticate on reconnect
+
 1.00 Mon Mar  5 2012 Pavel Shaydo <zwon@cpan.org>
     * no changes
 

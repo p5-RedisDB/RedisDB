@@ -19,6 +19,7 @@ MANIFEST
 META.yml
 README
 t/00-load.t
+t/auth.t
 t/basic_redis.t
 t/manifest.t
 t/network.t
