@@ -16,6 +16,7 @@ sub start {
     return unless grep { -x } map { File::Spec->catfile( $_, $REDIS_SERVER ) } File::Spec->path;
 
     $args{port} ||= $ENV{TEST_REDIS_PORT} || 6380;
+    my $requirepass = $args{password} ? "requirepass $args{password}" : "";
     unless ( $args{dir} ) {
         require File::Temp;
         $args{dir} = File::Temp::tempdir( 'test_redisXXXXXX', TMPDIR => 1, CLEANUP => 0 );
@@ -29,6 +30,7 @@ logfile $logfile
 databases 2
 dbfilename dump_test.rdb
 dir $args{dir}
+$requirepass
 EOC
         open my $cfg_fd, ">", File::Spec->catfile( $args{dir}, "redis.cfg" ) or die $!;
         print $cfg_fd $cfg;

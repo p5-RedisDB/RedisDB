@@ -1,0 +1,27 @@
+use Test::Most 0.22;
+use lib 't';
+use RedisServer;
+use RedisDB;
+
+my $server = RedisServer->start( password => 'test' );
+plan( skip_all => "Can't start redis-server" ) unless $server;
+my $redis = RedisDB->new( host => 'localhost', port => $server->{port} );
+dies_ok { $redis->ping } "Couldn't ping before auth";
+dies_ok { $redis->auth("wrong pass") } "Didn't accept wrong password";
+is $redis->auth('test'), 'OK', "Authenticated";
+is $redis->ping, 'PONG', "Can ping now";
+$redis->select(1);
+$redis->set( "Database", 1 );
+$redis->quit;
+is $redis->ping, 'PONG', "Still can ping server after reconnecting";
+is $redis->get("Database"), 1, "Selected database 1";
+$redis->{password} = 'wrong';
+$redis->quit;
+throws_ok { $redis->ping } qr/invalid password/i, "dies on reconnect if password is wrong";
+
+done_testing;
+
+END {
+    RedisDB->new( host => 'localhost', port => $server->{port}, password => 'test' )->shutdown
+      if $server
+}
