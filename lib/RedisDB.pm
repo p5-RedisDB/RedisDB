@@ -219,7 +219,7 @@ sub _recv_data_nb {
     $self->{_socket}->blocking(0) if $SET_NB;
 
     while (1) {
-        my $ret = recv( $self->{_socket}, my $buf, 4096, $DONTWAIT );
+        my $ret = recv( $self->{_socket}, my $buf, 131072, $DONTWAIT );
         unless ( defined $ret ) {
 
             # socket is connected, no data in recv buffer
@@ -401,7 +401,7 @@ sub mainloop {
 
     while ( @{ $self->{_callbacks} } ) {
         croak "You can't call mainloop in the child process" unless $self->{_pid} == $$;
-        my $ret = $self->{_socket}->recv( my $buffer, 4096 );
+        my $ret = $self->{_socket}->recv( my $buffer, 131072 );
         unless ( defined $ret ) {
             next if $! == EINTR;
             confess "Error reading reply from server: $!";
@@ -436,7 +436,7 @@ sub get_reply {
               or $self->{_subscription_loop};
         croak "You can't read reply in child process" unless $self->{_pid} == $$;
         while ( not $self->_parse_reply ) {
-            my $ret = $self->{_socket}->recv( my $buffer, 4096 );
+            my $ret = $self->{_socket}->recv( my $buffer, 131072 );
             unless ( defined $ret ) {
                 next if $! == EINTR;
                 confess "Error reading reply from server: $!";
