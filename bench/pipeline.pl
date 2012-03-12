@@ -1,22 +1,37 @@
 #!/usr/bin/perl 
 
+use 5.010;
 use strict;
 use warnings;
 use RedisDB;
 use lib qw(t ../t);
 use RedisServer;
+use Time::HiRes qw(time);
+use Getopt::Long;
 
-my $srv = RedisServer->start;
-my $redisdb = RedisDB->new(host => "localhost", port => $srv->{port});
+my ( $pipeline, $size, $count ) = ( 1, 16, 50_000 );
+GetOptions(
+    "pipeline!" => \$pipeline,
+    "size=i"    => \$size,
+    "count=i"   => \$count,
+) or die;
 
-for ( 1 .. 10 ) {
-    for ( 1 .. 10000 ) {
-        $redisdb->send_command( 'SET', "RDB$_", "0123456789abcdef" );
-        $redisdb->send_command( 'GET', "RDB$_" );
-    }
-    my %res;
-    for ( 1 .. 20000 ) {
-        $res{ $redisdb->get_reply }++;
-    }
-    die "wrong result" unless $res{'0123456789abcdef'} == 10000;
+say "RedisDB: ", RedisDB->VERSION;
+say "Testing ", ( $pipeline ? "in pipeling mode" : "in synchronous mode" );
+say "Data chunk size ",  $size;
+say "Number of chunks ", $count;
+
+my $srv     = RedisServer->start;
+my $redisdb = RedisDB->new( host => "localhost", port => $srv->{port} );
+my $chunk   = 'x' x $size;
+my @cb      = $pipeline ? RedisDB::IGNORE_REPLY : ();
+
+my $start = time;
+
+for ( 1 .. $count ) {
+    $redisdb->set( "RDB$_", $chunk, @cb );
+    $redisdb->get( "RDB$_", @cb );
 }
+$redisdb->mainloop;
+
+printf "Time: %.3fs\n", time - $start;
