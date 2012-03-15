@@ -10,6 +10,36 @@ use RedisDB::Error;
 use Carp;
 use Try::Tiny;
 
+=head1 NAME
+
+RedisDB::Parse::Redis
+
+=head1 SYNOPSIS
+
+    use RedisDB::Parse::Redis;
+    my $parser = RedisDB::Parse::Redis->new( redisdb => $ref );
+    $parser->add_callback(\&cb);
+    $parser->add($data);
+
+=head1 DESCRIPTION
+
+This module provides functions to build redis requests and parse replies from
+the server. Normally you don't want to use this module directly, see
+L<RedisDB> instead.
+
+=head1 METHODS
+
+=cut
+
+=head2 $self->new(redisdb => $redis, utf8 => $flag)
+
+Creates new parser object. I<redisdb> parameter points to the L<RedisDB>
+object which owns this parser. The reference will be passed to callbacks as
+the first argument. I<utf8> flag may be set if you want all data encoded as
+UTF-8 before sending to server, and decoded when received.
+
+=cut
+
 sub new {
     my ( $class, %params ) = @_;
     my $self = {
@@ -20,6 +50,12 @@ sub new {
     };
     return bless $self, $class;
 }
+
+=head2 $self->build_request($command, @arguments)
+
+Encodes I<$command> and I<@arguments> as redis request.
+
+=cut
 
 sub build_request {
     my $self  = shift;
@@ -37,19 +73,46 @@ sub build_request {
     return $req;
 }
 
+=head2 $self->add_callback(\&cb)
+
+Pushes callback to the queue of callbacks.
+
+=cut
+
 sub add_callback {
     my ( $self, $cb ) = @_;
     push @{ $self->{_callbacks} }, $cb;
 }
+
+=head2 $self->set_default_callback(\&cb)
+
+Set callback to invoke when there are no callbacks in queue.
+Used by subscription loop.
+
+=cut
 
 sub set_default_callback {
     my ($self, $cb) = @_;
     $self->{_default_cb} = $cb;
 }
 
+=head2 $self->callbacks
+
+Returns true if there are callbacks in queue
+
+=cut
+
 sub callbacks {
     @{ shift->{_callbacks} };
 }
+
+=head2 $self->add($data)
+
+Process new data received from the server. For every reply found callback from
+the queue will be invoked with two parameters -- reference to L<RedisDB>
+object, and decoded reply from the server.
+
+=cut
 
 sub add {
     my ( $self, $data ) = @_;
@@ -230,3 +293,25 @@ sub _reply_completed {
 }
 
 1;
+
+__END__
+
+=head1 SEE ALSO
+
+L<RedisDB>
+
+=head1 AUTHOR
+
+Pavel Shaydo, C<< <zwon at cpan.org> >>
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright 2011, 2012 Pavel Shaydo.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of either: the GNU General Public License as published
+by the Free Software Foundation; or the Artistic License.
+
+See http://dev.perl.org/licenses/ for more information.
+
+=cut
