@@ -1,5 +1,11 @@
 Revision history for RedisDB
 
+1.02_1 Thu Mar 15 2012 Pavel Shaydo <zwon@cpan.org>
+    * extract parser into separate module
+    * fix handling of error replies in transactions
+    * increase read buffer size
+    * update bench/mark.pl script
+
 1.01 Wed Mar  7 2012 Pavel Shaydo <zwon@cpan.org>
     * re-authenticate on reconnect
 
