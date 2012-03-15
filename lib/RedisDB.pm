@@ -6,6 +6,7 @@ our $VERSION = "1.01";
 $VERSION = eval $VERSION;
 
 use RedisDB::Error;
+use RedisDB::Parse::Redis;
 use IO::Socket::INET;
 use IO::Socket::UNIX;
 use Socket qw(MSG_DONTWAIT SO_RCVTIMEO SO_SNDTIMEO);
@@ -101,11 +102,16 @@ sub new {
     $self->{port} ||= 6379;
     $self->{host} ||= 'localhost';
     $self->{_replies}       = [];
-    $self->{_callbacks}     = [];
     $self->{_to_be_fetched} = 0;
     $self->{database} ||= 0;
+    $self->_init_parser;
     $self->_connect unless $self->{lazy};
     return $self;
+}
+
+sub _init_parser {
+    my $self = shift;
+    $self->{_parser} = RedisDB::Parse::Redis->new( utf8 => $self->{utf8}, redisdb => $self );
 }
 
 =head2 $self->execute($command, @arguments)
@@ -176,7 +182,7 @@ sub _connect {
         };
     }
 
-    $self->{_callbacks}         = [];
+    $self->_init_parser;
     $self->{_subscription_loop} = 0;
     delete $self->{_server_version};
 
@@ -232,17 +238,13 @@ sub _recv_data_nb {
         elsif ( $buf ne '' ) {
 
             # received some data
-            $self->{_buffer} .= $buf;
-            1 while $self->{_buffer} and $self->_parse_reply;
+            $self->{_parser}->add($buf);
         }
         else {
 
-            # server closed connection. Check if some data was lost.
-            1 while $self->{_buffer} and $self->_parse_reply;
-
             # if there are some replies lost
             confess "Server closed connection. Some data was lost."
-              if @{ $self->{_callbacks} }
+              if $self->{_parser}->callbacks
                   or $self->{_in_multi};
 
             # clean disconnect, try to reconnect
@@ -317,14 +319,14 @@ sub send_command {
 
     $self->_connect unless $self->{_socket} and $self->{_pid} == $$;
 
-    # Here we reading received data and storing it in the _buffer,
+    # Here we reading received data and parsing it,
     # but the main purpose is to check if connection is still alive
     # and reconnect if not
     $self->_recv_data_nb;
 
-    my $request = _build_redis_request( $self, $command, @_ );
+    my $request = $self->{_parser}->build_request( $command, @_ );
     defined $self->{_socket}->send($request) or confess "Can't send request to server: $!";
-    push @{ $self->{_callbacks} }, $callback;
+    $self->{_parser}->add_callback($callback);
     return 1;
 }
 
@@ -399,7 +401,7 @@ this method blocks till all replies from the server will be received
 sub mainloop {
     my $self = shift;
 
-    while ( @{ $self->{_callbacks} } ) {
+    while ( $self->{_parser}->callbacks ) {
         croak "You can't call mainloop in the child process" unless $self->{_pid} == $$;
         my $ret = $self->{_socket}->recv( my $buffer, 131072 );
         unless ( defined $ret ) {
@@ -409,8 +411,7 @@ sub mainloop {
         if ( $buffer ne '' ) {
 
             # received some data
-            $self->{_buffer} .= $buffer;
-            1 while $self->_parse_reply;
+            $self->{_parser}->add($buffer);
         }
         else {
 
@@ -430,27 +431,26 @@ receive reply from the server. Method croaks if the server returns an error.
 sub get_reply {
     my $self = shift;
 
-    while ( not @{ $self->{_replies} } ) {
-        croak "We are not waiting for reply"
-          unless $self->{_to_be_fetched}
-              or $self->{_subscription_loop};
-        croak "You can't read reply in child process" unless $self->{_pid} == $$;
-        while ( not $self->_parse_reply ) {
-            my $ret = $self->{_socket}->recv( my $buffer, 131072 );
-            unless ( defined $ret ) {
-                next if $! == EINTR;
-                confess "Error reading reply from server: $!";
-            }
-            if ( $buffer ne '' ) {
+    croak "We are not waiting for reply"
+      unless @{ $self->{_replies} }
+          or $self->{_to_be_fetched}
+          or $self->{_subscription_loop};
+    croak "You can't read reply in child process" unless $self->{_pid} == $$;
+    while ( not @{$self->{_replies}} ) {
+        my $ret = $self->{_socket}->recv( my $buffer, 131072 );
+        unless ( defined $ret ) {
+            next if $! == EINTR;
+            confess "Error reading reply from server: $!";
+        }
+        if ( $buffer ne '' ) {
 
-                # received some data
-                $self->{_buffer} .= $buffer;
-            }
-            else {
+            # received some data
+            $self->{_parser}->add($buffer);
+        }
+        else {
 
-                # disconnected
-                confess "Server unexpectedly closed connection before sending full reply";
-            }
+            # disconnected
+            confess "Server unexpectedly closed connection before sending full reply";
         }
     }
 
@@ -507,8 +507,8 @@ as it was returned by the constructor.
 sub reset_connection {
     my $self = shift;
     delete $self->{$_} for grep /^_/, keys %$self;
-    $self->{_replies}       = [];
-    $self->{_callbacks}     = [];
+    $self->{_replies} = [];
+    $self->_init_parser;
     $self->{_to_be_fetched} = 0;
     return;
 }
@@ -635,7 +635,6 @@ answer.  Croaks in case of the error.
 sub shutdown {
     my $self = shift;
     $self->send_command_cb('SHUTDOWN');
-    pop @{ $self->{_callbacks} };
     return;
 }
 
@@ -839,12 +838,13 @@ sub subscription_loop {
     my ( $self, %args ) = @_;
     croak "Already in subscription loop" if $self->{_subscribtion_loop};
     croak "You can't start subscription loop while in pipelining mode."
-      if @{ $self->{_callbacks} }
+      if $self->{_parser}->callbacks
           or @{ $self->{_replies} };
     $self->{_subscribed}        = {};
     $self->{_psubscribed}       = {};
     $self->{_subscription_cb}   = $args{default_callback};
     $self->{_subscription_loop} = 1;
+    $self->{_parser}->set_default_callback(\&_queue);
 
     if ( $args{subscribe} ) {
         while ( my $channel = shift @{ $args{subscribe} } ) {

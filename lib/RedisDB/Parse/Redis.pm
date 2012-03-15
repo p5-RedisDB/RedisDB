@@ -1,13 +1,23 @@
 package RedisDB::Parse::Redis;
+
 use strict;
 use warnings;
-use Encode;
+our $VERSION = "1.01";
+$VERSION = eval $VERSION;
+
+use Encode qw();
 use RedisDB::Error;
 use Carp;
+use Try::Tiny;
 
 sub new {
     my ( $class, %params ) = @_;
-    my $self = { utf8 => $params{utf8}, _callbacks => [], _buffer => '', };
+    my $self = {
+        redisdb    => $params{redisdb},
+        utf8       => $params{utf8},
+        _callbacks => [],
+        _buffer    => '',
+    };
     return bless $self, $class;
 }
 
@@ -32,6 +42,11 @@ sub add_callback {
     push @{ $self->{_callbacks} }, $cb;
 }
 
+sub set_default_callback {
+    my ($self, $cb) = @_;
+    $self->{_default_cb} = $cb;
+}
+
 sub callbacks {
     @{ shift->{_callbacks} };
 }
@@ -39,7 +54,7 @@ sub callbacks {
 sub add {
     my ( $self, $data ) = @_;
     $self->{_buffer} .= $data;
-    1 while $self->{_buffer} and $self->_parse_reply;
+    1 while length $self->{_buffer} and $self->_parse_reply;
 }
 
 # $self->_parse_reply
@@ -114,7 +129,7 @@ sub _parse_reply {
                     $bulk = Encode::decode( 'UTF-8', $bulk, Encode::FB_CROAK | Encode::LEAVE_SRC );
                 }
                 catch {
-                    croak "Couldn't decode reply from the server, invalid UTF-8: '$bulk'";
+                    confess "Couldn't decode reply from the server, invalid UTF-8: '$bulk'";
                 };
             }
             return 1 if $self->_reply_completed($bulk);
@@ -209,8 +224,8 @@ sub _reply_completed {
     }
 
     $self->{_parse_state} = undef;
-    my $cb = shift @{ $self->{_callbacks} };
-    $cb->( $self, $reply );
+    my $cb = shift( @{ $self->{_callbacks} } ) || $self->{_default_cb};
+    $cb->( $self->{redisdb}, $reply );
     return 1;
 }
 

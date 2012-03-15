@@ -32,9 +32,9 @@ subtest "utf8 enabled" => sub {
       RedisDB->new( host => 'localhost', port => $server->{port}, utf8 => 1, );
     dies_ok { $redis8->get("binary") } "Couldn't get binary value";
     $redis8->reset_connection;
-    $redis8->set( "moose", $moose );
-    is $redis8->get("moose"), $moose, "latin1 value stored/retrieved correctly";
+    is $redis8->set( "moose", $moose ), "OK", "set latin1 value";
     is $redis->get("moose"), $moose_bin, "latin1 value is utf8 encoded";
+    is $redis8->get("moose"), $moose, "latin1 value stored/retrieved correctly";
     $redis8->set( "utf8", $utf8 );
     is $redis8->get("utf8"), $utf8, "utf8 value stored/retrieved correctly";
     is $redis->get("utf8"), $nonutf, "utf8 value correctly encoded";
