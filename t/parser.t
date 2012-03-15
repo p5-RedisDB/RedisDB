@@ -4,7 +4,7 @@ use RedisDB::Parse::Redis;
 use utf8;
 
 my $parser = RedisDB::Parse::Redis->new();
-my $lf = "\015\012";
+my $lf     = "\015\012";
 
 subtest "Request encoding" => \&request_encoding;
 
@@ -139,10 +139,9 @@ sub multi_bulk_reply {
 sub transaction {
     @replies = ();
     $parser->add_callback( \&cb ) for 1 .. 4;
-    $parser->add(
-        "*7$lf+OK$lf:5$lf:6$lf:7$lf:8$lf*4$lf\$4$lf" );
+    $parser->add("*7$lf+OK$lf:5$lf:6$lf:7$lf:8$lf*4$lf\$4$lf");
     is @replies, 0, 'Incomplete result - not parsed';
-    $parser->add( "this$lf\$2${lf}is$lf\$1${lf}a$lf\$4${lf}list$lf" );
+    $parser->add("this$lf\$2${lf}is$lf\$1${lf}a$lf\$4${lf}list$lf");
     is @replies, 0, 'After encapsulated multi-bulk part - still not parsed';
     $parser->add("\$5${lf}value$lf");
     is @replies, 1, 'Got a reply';
@@ -160,14 +159,11 @@ sub transaction {
         [ qw(OK 1 2 3 4), [qw(this is a list)] ],
         "Parsed with list in the end too"
     );
-    $parser->add(
-        "*4$lf*0$lf+OK$lf*-1$lf*2$lf\$2${lf}aa$lf\$2${lf}bb$lf"
-    );
+    $parser->add( "*4$lf*0$lf+OK$lf*-1$lf*2$lf\$2${lf}aa$lf\$2${lf}bb$lf" );
     is @replies, 1, 'Got a reply';
-    eq_or_diff shift(@replies), [ [], 'OK', undef, [qw(aa bb)] ];
-    $parser->add(
-        "*3$lf*0$lf-Oops$lf+OK$lf"
-    );
+    eq_or_diff shift(@replies), [ [], 'OK', undef, [qw(aa bb)] ],
+      "Parsed reply with empty list and undef";
+    $parser->add( "*3$lf*0$lf-Oops$lf+OK$lf" );
     is @replies, 1, 'Got a reply with error inside';
     my $reply = shift @replies;
     eq_or_diff $reply->[0], [], "  has empty list";
