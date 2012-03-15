@@ -14,6 +14,7 @@ inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
 lib/RedisDB.pm
 lib/RedisDB/Error.pm
+lib/RedisDB/Parse/Redis.pm
 Makefile.PL
 MANIFEST
 META.yml
@@ -23,8 +24,8 @@ t/auth.t
 t/basic_redis.t
 t/manifest.t
 t/network.t
+t/parser.t
 t/pod.t
-t/protocol.t
 t/redis_commands.t
 t/RedisServer.pm
 t/send_command_cb.t
