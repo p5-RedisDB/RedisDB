@@ -315,7 +315,6 @@ sub send_command {
         };
     }
 
-    my $request = _build_redis_request( $self, $command, @_ );
     $self->_connect unless $self->{_socket} and $self->{_pid} == $$;
 
     # Here we reading received data and storing it in the _buffer,
@@ -323,6 +322,7 @@ sub send_command {
     # and reconnect if not
     $self->_recv_data_nb;
 
+    my $request = _build_redis_request( $self, $command, @_ );
     defined $self->{_socket}->send($request) or confess "Can't send request to server: $!";
     push @{ $self->{_callbacks} }, $callback;
     return 1;
