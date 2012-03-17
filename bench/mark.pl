@@ -20,8 +20,12 @@ say "Redis:          ", Redis->VERSION;
 say "Redis::hiredis: ", Redis::hiredis->VERSION;
 say "Redis::Client:  ", Redis::Client->VERSION;
 
-my $srv     = RedisServer->start;
-my $redis   = Redis->new( server => "localhost:$srv->{port}", encoding => undef, );
+my $srv   = RedisServer->start;
+my $redis = Redis->new(
+    server   => "localhost:$srv->{port}",
+    encoding => undef,
+#    reconnect => 1,
+);
 my $redisdb = RedisDB->new( host => "localhost", port => $srv->{port} );
 my $rediscl = Redis::Client->new( host => "localhost", port => $srv->{port} );
 my $hiredis = Redis::hiredis->new();
@@ -34,6 +38,8 @@ sub sender {
         $cli->get("key$_");
     }
 }
+
+$redisdb->set( "RDB$_", "0123456789abcdef", RedisDB::IGNORE_REPLY ) for 1 .. 1000;
 
 say '';
 
@@ -56,6 +62,13 @@ cmpthese 150, {
             $redisdb->get( "RDB$_", RedisDB::IGNORE_REPLY );
         }
         $redisdb->mainloop;
+    },
+    "Redis Pipelining" => sub {
+        for ( 1 .. 1000 ) {
+            $redis->set( "RDB$_", "0123456789abcdef", sub { } );
+            $redis->get( "RDB$_", sub { } );
+        }
+        $redis->wait_all_responses;
     },
     "hiredis pipelining" => sub {
         for ( 1 .. 1000 ) {
