@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+1.02_3 Sun Mar 18 2012 Pavel Shaydo <zwon@cpan.org>
+    * require EU::MM 6.3002 to build
+
 1.02_2 Sat Mar 17 2012 Pavel Shaydo <zwon@cpan.org>
     * switch to plain EU::MM
     * remove manifest.t
