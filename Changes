@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+1.03 Mon Mar 19 2012 Pavel Shaydo <zwon@cpan.org>
+    * require Encode 2.10
+
 1.02_3 Sun Mar 18 2012 Pavel Shaydo <zwon@cpan.org>
     * require EU::MM 6.3002 to build
 
