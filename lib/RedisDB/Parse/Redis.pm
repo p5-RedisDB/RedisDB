@@ -12,7 +12,7 @@ use Try::Tiny;
 
 =head1 NAME
 
-RedisDB::Parse::Redis
+RedisDB::Parse::Redis - redis protocol parser for RedisDB
 
 =head1 SYNOPSIS
 
