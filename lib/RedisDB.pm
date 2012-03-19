@@ -2,10 +2,11 @@ package RedisDB;
 
 use strict;
 use warnings;
-our $VERSION = "1.01";
+our $VERSION = "1.02_3";
 $VERSION = eval $VERSION;
 
 use RedisDB::Error;
+use RedisDB::Parse::Redis;
 use IO::Socket::INET;
 use IO::Socket::UNIX;
 use Socket qw(MSG_DONTWAIT SO_RCVTIMEO SO_SNDTIMEO);
@@ -101,11 +102,16 @@ sub new {
     $self->{port} ||= 6379;
     $self->{host} ||= 'localhost';
     $self->{_replies}       = [];
-    $self->{_callbacks}     = [];
     $self->{_to_be_fetched} = 0;
     $self->{database} ||= 0;
+    $self->_init_parser;
     $self->_connect unless $self->{lazy};
     return $self;
+}
+
+sub _init_parser {
+    my $self = shift;
+    $self->{_parser} = RedisDB::Parse::Redis->new( utf8 => $self->{utf8}, redisdb => $self );
 }
 
 =head2 $self->execute($command, @arguments)
@@ -176,7 +182,7 @@ sub _connect {
         };
     }
 
-    $self->{_callbacks}         = [];
+    $self->_init_parser;
     $self->{_subscription_loop} = 0;
     delete $self->{_server_version};
 
@@ -232,17 +238,13 @@ sub _recv_data_nb {
         elsif ( $buf ne '' ) {
 
             # received some data
-            $self->{_buffer} .= $buf;
-            1 while $self->{_buffer} and $self->_parse_reply;
+            $self->{_parser}->add($buf);
         }
         else {
 
-            # server closed connection. Check if some data was lost.
-            1 while $self->{_buffer} and $self->_parse_reply;
-
             # if there are some replies lost
             confess "Server closed connection. Some data was lost."
-              if @{ $self->{_callbacks} }
+              if $self->{_parser}->callbacks
                   or $self->{_in_multi};
 
             # clean disconnect, try to reconnect
@@ -315,16 +317,16 @@ sub send_command {
         };
     }
 
-    my $request = _build_redis_request( $self, $command, @_ );
     $self->_connect unless $self->{_socket} and $self->{_pid} == $$;
 
-    # Here we reading received data and storing it in the _buffer,
+    # Here we reading received data and parsing it,
     # but the main purpose is to check if connection is still alive
     # and reconnect if not
     $self->_recv_data_nb;
 
+    my $request = $self->{_parser}->build_request( $command, @_ );
     defined $self->{_socket}->send($request) or confess "Can't send request to server: $!";
-    push @{ $self->{_callbacks} }, $callback;
+    $self->{_parser}->add_callback($callback);
     return 1;
 }
 
@@ -399,7 +401,7 @@ this method blocks till all replies from the server will be received
 sub mainloop {
     my $self = shift;
 
-    while ( @{ $self->{_callbacks} } ) {
+    while ( $self->{_parser}->callbacks ) {
         croak "You can't call mainloop in the child process" unless $self->{_pid} == $$;
         my $ret = $self->{_socket}->recv( my $buffer, 131072 );
         unless ( defined $ret ) {
@@ -409,8 +411,7 @@ sub mainloop {
         if ( $buffer ne '' ) {
 
             # received some data
-            $self->{_buffer} .= $buffer;
-            1 while $self->_parse_reply;
+            $self->{_parser}->add($buffer);
         }
         else {
 
@@ -430,27 +431,26 @@ receive reply from the server. Method croaks if the server returns an error.
 sub get_reply {
     my $self = shift;
 
-    while ( not @{ $self->{_replies} } ) {
-        croak "We are not waiting for reply"
-          unless $self->{_to_be_fetched}
-              or $self->{_subscription_loop};
-        croak "You can't read reply in child process" unless $self->{_pid} == $$;
-        while ( not $self->_parse_reply ) {
-            my $ret = $self->{_socket}->recv( my $buffer, 131072 );
-            unless ( defined $ret ) {
-                next if $! == EINTR;
-                confess "Error reading reply from server: $!";
-            }
-            if ( $buffer ne '' ) {
+    croak "We are not waiting for reply"
+      unless @{ $self->{_replies} }
+          or $self->{_to_be_fetched}
+          or $self->{_subscription_loop};
+    croak "You can't read reply in child process" unless $self->{_pid} == $$;
+    while ( not @{$self->{_replies}} ) {
+        my $ret = $self->{_socket}->recv( my $buffer, 131072 );
+        unless ( defined $ret ) {
+            next if $! == EINTR;
+            confess "Error reading reply from server: $!";
+        }
+        if ( $buffer ne '' ) {
 
-                # received some data
-                $self->{_buffer} .= $buffer;
-            }
-            else {
+            # received some data
+            $self->{_parser}->add($buffer);
+        }
+        else {
 
-                # disconnected
-                confess "Server unexpectedly closed connection before sending full reply";
-            }
+            # disconnected
+            confess "Server unexpectedly closed connection before sending full reply";
         }
     }
 
@@ -507,8 +507,8 @@ as it was returned by the constructor.
 sub reset_connection {
     my $self = shift;
     delete $self->{$_} for grep /^_/, keys %$self;
-    $self->{_replies}       = [];
-    $self->{_callbacks}     = [];
+    $self->{_replies} = [];
+    $self->_init_parser;
     $self->{_to_be_fetched} = 0;
     return;
 }
@@ -635,7 +635,6 @@ answer.  Croaks in case of the error.
 sub shutdown {
     my $self = shift;
     $self->send_command_cb('SHUTDOWN');
-    pop @{ $self->{_callbacks} };
     return;
 }
 
@@ -839,12 +838,13 @@ sub subscription_loop {
     my ( $self, %args ) = @_;
     croak "Already in subscription loop" if $self->{_subscribtion_loop};
     croak "You can't start subscription loop while in pipelining mode."
-      if @{ $self->{_callbacks} }
+      if $self->{_parser}->callbacks
           or @{ $self->{_replies} };
     $self->{_subscribed}        = {};
     $self->{_psubscribed}       = {};
     $self->{_subscription_cb}   = $args{default_callback};
     $self->{_subscription_loop} = 1;
+    $self->{_parser}->set_default_callback(\&_queue);
 
     if ( $args{subscribe} ) {
         while ( my $channel = shift @{ $args{subscribe} } ) {
@@ -1036,242 +1036,6 @@ sub discard {
     my $res = $self->execute('DISCARD');
     $self->{_in_multi} = undef;
     return $res;
-}
-
-# build_redis_request($command, @arguments)
-#
-# Builds unified redis request from given I<$command> and I<@arguments>.
-sub _build_redis_request {
-    my $self  = shift;
-    my $nargs = @_;
-
-    my $req = "*$nargs\015\012";
-    if ( $self->{utf8} ) {
-        $req .= '$' . length($_) . "\015\012" . $_ . "\015\012"
-          for map { Encode::encode( 'UTF-8', $_, Encode::FB_CROAK | Encode::LEAVE_SRC ) } @_;
-    }
-    else {
-        use bytes;
-        $req .= '$' . length($_) . "\015\012" . $_ . "\015\012" for @_;
-    }
-    return $req;
-}
-
-# $self->_parse_reply
-#
-# checks if buffer contains full reply. Returns 1 if it is,
-# and pushes reply into @{$self->{_replies}}
-my ( $READ_LINE, $READ_NUMBER, $READ_BULK_LEN, $READ_BULK, $READ_MBLK_LEN, $WAIT_BUCKS ) = 1 .. 6;
-
-sub _parse_reply {
-    my $self = shift;
-    return unless $self->{_buffer};
-
-    # if we not yet started parsing reply
-    unless ( $self->{_parse_state} ) {
-        my $type = substr( $self->{_buffer}, 0, 1, '' );
-        $self->{_parse_reply} = [$type];
-        if ( $type eq '+' or $type eq '-' ) {
-            $self->{_parse_state} = $READ_LINE;
-        }
-        elsif ( $type eq ':' ) {
-            $self->{_parse_state} = $READ_NUMBER;
-        }
-        elsif ( $type eq '$' ) {
-            $self->{_parse_state} = $READ_BULK_LEN;
-        }
-        elsif ( $type eq '*' ) {
-            $self->{_parse_state}      = $READ_MBLK_LEN;
-            $self->{_parse_mblk_level} = 1;
-        }
-        else {
-            die "Got invalid reply: $type$self->{_buffer}";
-        }
-    }
-
-    # parse data
-    my $repeat    = 1;
-    my $completed = 0;
-    while ($repeat) {
-        $repeat = 0;
-        return unless length $self->{_buffer} >= 2;
-        if ( $self->{_parse_state} == $READ_LINE ) {
-            if ( defined( my $line = $self->_read_line ) ) {
-                if ( $self->{_parse_reply}[0] eq '+' or $self->{_parse_reply}[0] eq '-' ) {
-                    $self->{_parse_reply}[1] = $line;
-                    return $self->_reply_completed;
-                }
-                else {
-                    $repeat    = $self->_mblk_item($line);
-                    $completed = !$repeat;
-                }
-            }
-        }
-        elsif ( $self->{_parse_state} == $READ_NUMBER ) {
-            if ( defined( my $line = $self->_read_line ) ) {
-                die "Received invalid integer reply :$line" unless $line =~ /^-?[0-9]+$/;
-                if ( $self->{_parse_reply}[0] eq ':' ) {
-                    $self->{_parse_reply}[1] = $line;
-                    return $self->_reply_completed;
-                }
-                else {
-                    $repeat    = $self->_mblk_item($line);
-                    $completed = !$repeat;
-                }
-            }
-        }
-        elsif ( $self->{_parse_state} == $READ_BULK_LEN ) {
-            if ( defined( my $len = $self->_read_line ) ) {
-                if ( $len >= 0 ) {
-                    $self->{_parse_state}    = $READ_BULK;
-                    $self->{_parse_bulk_len} = $len;
-                    $repeat                  = 1;
-                }
-                elsif ( $len == -1 ) {
-                    if ( $self->{_parse_reply}[0] eq '$' ) {
-                        $self->{_parse_reply}[1] = undef;
-                        return $self->_reply_completed;
-                    }
-                    else {
-                        $repeat    = $self->_mblk_item(undef);
-                        $completed = !$repeat;
-                    }
-                }
-            }
-        }
-        elsif ( $self->{_parse_state} == $READ_BULK ) {
-            return unless length $self->{_buffer} >= 2 + $self->{_parse_bulk_len};
-            my $bulk = substr( $self->{_buffer}, 0, $self->{_parse_bulk_len}, '' );
-            substr $self->{_buffer}, 0, 2, '';
-            if ( $self->{utf8} ) {
-                try {
-                    $bulk = Encode::decode( 'UTF-8', $bulk, Encode::FB_CROAK | Encode::LEAVE_SRC );
-                }
-                catch {
-                    croak "Couldn't decode reply from the server, invalid UTF-8: '$bulk'";
-                };
-            }
-            if ( $self->{_parse_reply}[0] eq '$' ) {
-                $self->{_parse_reply}[1] = $bulk;
-                return $self->_reply_completed;
-            }
-            else {
-                $repeat    = $self->_mblk_item($bulk);
-                $completed = !$repeat;
-            }
-        }
-        elsif ( $self->{_parse_state} == $READ_MBLK_LEN ) {
-            if ( defined( my $len = $self->_read_line ) ) {
-                if ( $len > 0 ) {
-                    $self->{_parse_mblk_len} = $len;
-                    $self->{_parse_state}    = $WAIT_BUCKS;
-                    $self->{_parse_reply}[1] = [];
-                    $repeat                  = 1;
-                }
-                elsif ( $len == 0 || $len == -1 ) {
-                    if ( $self->{_parse_mblk_level}-- == 1 ) {
-                        $self->{_parse_reply}[1] = $len ? undef : [];
-                        return $self->_reply_completed;
-                    }
-                    else {
-                        ( $self->{_parse_mblk_len}, $self->{_parse_reply} ) =
-                          @{ $self->{_parse_mblk_store} };
-                        push @{ $self->{_parse_reply}[1] }, $len ? undef : [];
-                        if ( --$self->{_parse_mblk_len} ) {
-                            $self->{_parse_state} = $WAIT_BUCKS;
-                            $repeat = 1;
-                        }
-                        else {
-                            $repeat = 0;
-                        }
-                        $completed = !$repeat;
-                    }
-                }
-                else {
-                    die "Invalid multi-bulk reply: *$len\015\012$self->{_buffer}";
-                }
-            }
-        }
-        elsif ( $self->{_parse_state} == $WAIT_BUCKS ) {
-            my $char = substr( $self->{_buffer}, 0, 1, '' );
-            if ( $char eq '$' ) {
-                $self->{_parse_state} = $READ_BULK_LEN;
-            }
-            elsif ( $char eq ':' ) {
-                $self->{_parse_state} = $READ_NUMBER;
-            }
-            elsif ( $char eq '+' ) {
-                $self->{_parse_state} = $READ_LINE;
-            }
-            elsif ( $char eq '*' ) {
-                $self->{_parse_state} = $READ_MBLK_LEN;
-                $self->{_parse_mblk_level}++;
-                $self->{_parse_mblk_store} = [ $self->{_parse_mblk_len}, $self->{_parse_reply} ];
-                $self->{_parse_reply} = ['*'];
-            }
-            else {
-                die "Invalid multi-bulk reply. Expected '\$' or ':' but got $char";
-            }
-            $repeat = 1;
-        }
-    }
-    return $completed ? $self->_reply_completed : undef;
-}
-
-sub _read_line {
-    my $self = shift;
-    my $pos = index $self->{_buffer}, "\015\012";
-    my $line;
-    if ( $pos >= 0 ) {
-
-        # Got end of the line, add all stuff before \r\n
-        # to the reply string. Strip \r\n from the buffer
-        $line = substr( $self->{_buffer}, 0, $pos, '' );
-        substr $self->{_buffer}, 0, 2, '';
-    }
-    return $line;
-}
-
-sub _mblk_item {
-    my ( $self, $value ) = @_;
-
-    push @{ $self->{_parse_reply}[1] }, $value;
-    my $repeat;
-    if ( --$self->{_parse_mblk_len} ) {
-        $self->{_parse_state} = $WAIT_BUCKS;
-        $repeat = 1;
-    }
-    elsif ( --$self->{_parse_mblk_level} ) {
-        $self->{_parse_mblk_len} = shift @{ $self->{_parse_mblk_store} };
-        $self->{_parse_mblk_len}--;
-        my $reply = shift @{ $self->{_parse_mblk_store} };
-        push @{ $reply->[1] }, $self->{_parse_reply}[1];
-        $self->{_parse_reply} = $reply;
-        $self->{_parse_state} = $WAIT_BUCKS;
-        $repeat               = $self->{_parse_mblk_len} > 0;
-    }
-    else {
-        $repeat = 0;
-    }
-
-    return $repeat;
-}
-
-sub _reply_completed {
-    my $self = shift;
-    $self->{_parse_state} = undef;
-    my $cb = shift @{ $self->{_callbacks} };
-    $cb ||= \&_queue;
-    my $rep;
-    if ( $self->{_parse_reply}[0] eq '-' ) {
-        $rep = RedisDB::Error->new( $self->{_parse_reply}[1] );
-    }
-    else {
-        $rep = $self->{_parse_reply}[1];
-    }
-    $cb->( $self, $rep );
-    $self->{_parse_reply} = undef;
-    return 1;
 }
 
 1;

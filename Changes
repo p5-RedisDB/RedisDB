@@ -1,5 +1,18 @@
 Revision history for RedisDB
 
+1.02_3 Sun Mar 18 2012 Pavel Shaydo <zwon@cpan.org>
+    * require EU::MM 6.3002 to build
+
+1.02_2 Sat Mar 17 2012 Pavel Shaydo <zwon@cpan.org>
+    * switch to plain EU::MM
+    * remove manifest.t
+
+1.02_1 Thu Mar 15 2012 Pavel Shaydo <zwon@cpan.org>
+    * extract parser into separate module
+    * fix handling of error replies in transactions
+    * increase read buffer size
+    * update bench/mark.pl script
+
 1.01 Wed Mar  7 2012 Pavel Shaydo <zwon@cpan.org>
     * re-authenticate on reconnect
 
