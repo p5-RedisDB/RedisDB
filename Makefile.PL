@@ -4,13 +4,16 @@ use warnings;
 use ExtUtils::MakeMaker 6.3002;
 
 WriteMakefile(
-    NAME               => 'RedisDB',
-    AUTHOR             => q{Pavel Shaydo <zwon@cpan.org>},
-    VERSION_FROM       => 'lib/RedisDB.pm',
-    ABSTRACT_FROM      => 'lib/RedisDB.pm',
-    LICENSE            => 'perl',
-    PL_FILES           => {},
-    PREREQ_PM          => { 'Try::Tiny' => 0, },
+    NAME          => 'RedisDB',
+    AUTHOR        => q{Pavel Shaydo <zwon@cpan.org>},
+    VERSION_FROM  => 'lib/RedisDB.pm',
+    ABSTRACT_FROM => 'lib/RedisDB.pm',
+    LICENSE       => 'perl',
+    PL_FILES      => {},
+    PREREQ_PM     => {
+        'Try::Tiny' => 0,
+        Encode      => 2.10,
+    },
     CONFIGURE_REQUIRES => { 'ExtUtils::MakeMaker' => 6.3002, },
     BUILD_REQUIRES     => {
         'Test::More'        => 0.96,
