@@ -167,6 +167,10 @@ sub cmd_server {
     ok( ( $1 and $2 ), "Looks like a version" );
     my $version = 0 + $1 + 0.001 * $2 + ( $3 ? 0.000001 * $3 : 0 );
     is '' . $redis->version, "$version", "Correct server version: $version";
+
+    if ($redis->version >= 2.0) {
+        eq_or_diff $redis->config_get("loglevel"), [qw(loglevel notice)], "CONFIG GET";
+    }
 }
 
 sub cmd_sets {

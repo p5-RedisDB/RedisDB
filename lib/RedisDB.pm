@@ -324,7 +324,7 @@ sub send_command {
     # and reconnect if not
     $self->_recv_data_nb;
 
-    my $request = $self->{_parser}->build_request( $command, @_ );
+    my $request = $self->{_parser}->build_request( (split /\s+/, $command), @_ );
     defined $self->{_socket}->send($request) or confess "Can't send request to server: $!";
     $self->{_parser}->add_callback($callback);
     return 1;
