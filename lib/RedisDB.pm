@@ -2,7 +2,7 @@ package RedisDB;
 
 use strict;
 use warnings;
-our $VERSION = "1.03";
+our $VERSION = "1.04";
 $VERSION = eval $VERSION;
 
 use RedisDB::Error;
@@ -1068,7 +1068,9 @@ options timeouts will not work.
 
 =head1 ACKNOWLEDGEMENTS
 
-Thanks to Sanko Robinson and FunkyMonk for help with porting this module on Windows.
+Sanko Robinson and FunkyMonk helped me with porting this module to Windows.
+
+HIROSE Masaake fixed handling of commands containing space (like "CONFIG GET")
 
 =head1 AUTHOR
 

@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+1.04 Tue Mar 27 2012 Pavel Shaydo <zwon@cpan.org>
+    * fix handling of commands with whitespace.
+      Thanks to HIROSE Masaaki for the patch.
+
 1.03 Mon Mar 19 2012 Pavel Shaydo <zwon@cpan.org>
     * require Encode 2.10
 
