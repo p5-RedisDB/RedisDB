@@ -324,7 +324,7 @@ sub send_command {
     # and reconnect if not
     $self->_recv_data_nb;
 
-    my $request = $self->{_parser}->build_request( (split /\s+/, $command), @_ );
+    my $request = $self->{_parser}->build_request( $command, @_ );
     defined $self->{_socket}->send($request) or confess "Can't send request to server: $!";
     $self->{_parser}->add_callback($callback);
     return 1;
@@ -589,16 +589,15 @@ L<http://redis.io/commands>.
 =cut
 
 for my $command (@commands) {
-    my $uccom = uc $command;
-    $uccom =~ s/_/ /g;
+    my @uccom = split /_/, uc $command;
     no strict 'refs';
     *{ __PACKAGE__ . "::$command" } = sub {
         my $self = shift;
         if ( ref $_[-1] eq 'CODE' ) {
-            return $self->send_command( $uccom, @_ );
+            return $self->send_command( @uccom, @_ );
         }
         else {
-            return $self->execute( $uccom, @_ );
+            return $self->execute( @uccom, @_ );
         }
     };
 }
