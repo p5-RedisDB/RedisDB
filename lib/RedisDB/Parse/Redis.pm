@@ -2,7 +2,7 @@ package RedisDB::Parse::Redis;
 
 use strict;
 use warnings;
-our $VERSION = "1.04";
+our $VERSION = "1.05";
 $VERSION = eval $VERSION;
 
 use Encode qw();
