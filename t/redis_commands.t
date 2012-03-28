@@ -3,6 +3,7 @@ use lib 't';
 use RedisServer;
 use RedisDB;
 use Digest::SHA qw(sha1_hex);
+use Time::HiRes qw(usleep);
 
 my $server = RedisServer->start;
 plan( skip_all => "Can't start redis-server" ) unless $server;
@@ -85,6 +86,18 @@ sub cmd_keys_strings {
         is $redis->ttl("persistent"),     -1, "key will persist";
         sleep 3;
         is $redis->exists("expires"), 0, "expired key was deleted";
+    }
+
+    if ( $redis->version >= 2.005 ) {
+        is $redis->setex( "pexpires", 10, "in two seconds" ), "OK", "SETEX";
+        ok $redis->pttl("pexpires") > 1000, "PTTL > 1000";
+        is $redis->pexpire( "pexpires", 9000 ), 1, "PEXPIRE";
+        ok $redis->ttl("pexpires") < 10, "TTL < 10";
+        is $redis->psetex( "pexpires", 20_000, "20 seconds" ), "OK", "PSETEX";
+        ok $redis->ttl("pexpires") > 10, "TTL > 10";
+        is $redis->pexpireat( "pexpires", time * 1000 + 1100 ), 1, "PEXPIREAT";
+        usleep 1_200_000;
+        is $redis->get("pexpires"), undef, "expired";
     }
 }
 
