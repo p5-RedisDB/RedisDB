@@ -535,8 +535,8 @@ my @commands = qw(
   config_set	config_resetstat	dbsize	debug_object	debug_segfault
   decr	decrby	del	echo	eval    evalsha exists	expire	expireat	flushall
   flushdb	get	getbit	getrange	getset	hdel	hexists	hget	hgetall
-  hincrby	hkeys	hlen	hmget	hmset	hset	hsetnx	hvals	incr	incrby
-  keys	lastsave	lindex	linsert	llen	lpop	lpush	lpushx
+  hincrby	hincrbyfloat	hkeys	hlen	hmget	hmset	hset	hsetnx	hvals	incr	incrby
+  incrbyfloat	keys	lastsave	lindex	linsert	llen	lpop	lpush	lpushx
   lrange	lrem	lset	ltrim	mget	move	mset	msetnx	persist
   pexpire	pexpireat	psetex	pttl	ping
   publish	quit	randomkey	rename	renamenx	rpop	rpoplpush

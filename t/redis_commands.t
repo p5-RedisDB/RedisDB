@@ -46,6 +46,9 @@ sub cmd_keys_strings {
     is $redis->incrby( "counter", 77 ), 78, "INCRBY 77";
     is $redis->decr("counter"), 77, "DECR";
     is $redis->decrby( "counter", 35 ), 42, "DECRBY 35";
+    if ( $redis->version > 2.005 ) {
+        ok abs( $redis->incrbyfloat( "counter", -2.5 ) - 39.5 ) < 1e-7, "INCRBYFLOAT";
+    }
 
     eq_or_diff [ sort @{ $redis->keys('*') } ], [ sort "my first key", "counter" ], "KEYS";
 
@@ -162,6 +165,9 @@ sub cmd_hashes {
     is $redis->hincrby( 'thash', counter => 4 ), 7, "HINCRBY existing key";
     is $redis->hexists( 'thash', 'counter' ), 1, "HEXISTS == 1";
     is $redis->hget( 'thash', 'counter' ), 7, "HGET";
+    if ( $redis->version > 2.005 ) {
+        ok abs( $redis->hincrbyfloat( 'thash', 'counter', '-2.5' ) - 4.5 ) < 1e-7, "HINCRBYFLOAT";
+    }
     is $redis->hdel( 'thash', 'counter' ), 1, "HDEL";
 
     my %thash = @{ $redis->hgetall('thash') };
