@@ -170,8 +170,12 @@ sub cmd_server {
     my $version = 0 + $1 + 0.001 * $2 + ( $3 ? 0.000001 * $3 : 0 );
     is '' . $redis->version, "$version", "Correct server version: $version";
 
-    if ($redis->version >= 2.0) {
+    if ( $redis->version >= 2.0 ) {
         eq_or_diff $redis->config_get("loglevel"), [qw(loglevel notice)], "CONFIG GET";
+    }
+    if ( $redis->version >= 2.005 ) {
+        my ( $sec, $ms ) = @{ $redis->time };
+        ok time - $sec < 2, "Server time is correct";
     }
 }
 

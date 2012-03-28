@@ -543,7 +543,7 @@ my @commands = qw(
   script_load   sdiff	sdiffstore	select	set
   setbit	setex	setnx	setrange	sinter	sinterstore
   sismember	slaveof	smembers	smove	sort	spop	srandmember
-  srem	strlen	sunion	sunionstore	sync	ttl	type	unwatch watch
+  srem	strlen	sunion	sunionstore	sync	time    ttl	type	unwatch watch
   zadd	zcard
   zcount	zincrby	zinterstore	zrange	zrangebyscore	zrank	zrem
   zremrangebyrank   zremrangebyscore	zrevrange	zrevrangebyscore	zrevrank
