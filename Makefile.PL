@@ -19,6 +19,7 @@ WriteMakefile(
         'Test::More'        => 0.96,
         'Test::Most'        => 0.22,
         'Test::Differences' => 0.61,
+        'Digest::SHA'       => 0,
     },
     dist       => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean      => { FILES    => 'RedisDB-*' },

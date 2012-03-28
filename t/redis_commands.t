@@ -2,6 +2,7 @@ use Test::Most 0.22;
 use lib 't';
 use RedisServer;
 use RedisDB;
+use Digest::SHA qw(sha1_hex);
 
 my $server = RedisServer->start;
 plan( skip_all => "Can't start redis-server" ) unless $server;
@@ -14,6 +15,7 @@ subtest "Hashes commands"           => \&cmd_hashes;
 subtest "Server info commands"      => \&cmd_server;
 subtest "Sets commands"             => \&cmd_sets;
 subtest "Ordered sets commands"     => \&cmd_zsets;
+subtest "Scripts"                   => \&cmd_scripts;
 
 sub cmd_keys_strings {
     $redis->flushdb;
@@ -267,6 +269,26 @@ sub cmd_zsets {
         eq_or_diff cut_precision( $redis->zrange( "zunion", 0, -1, "WITHSCORES" ) ),
           [qw(A 1.5 B 2.4 C 3.3 D 4.2 E 5.1 F 6)], "ZUNIONSTORE result is correct";
     }
+}
+
+sub cmd_scripts {
+    plan skip_all => "This test requires redis-server >= 2.6" unless $redis->version >= 2.005;
+    $redis->flushdb;
+    is $redis->script_flush, 'OK', "SCRIPT FLUSH";
+
+    my $script1 = "return {1,2,{3,'test',ARGV[1]}}";
+    my $sha1    = sha1_hex($script1);
+    eq_or_diff $redis->eval( $script1, 0, 'passed' ), [ '1', '2', [ '3', 'test', 'passed' ] ], "EVAL";
+
+    my $script2 = "return redis.call('set',KEYS[1],ARGV[1])";
+    my $sha2    = sha1_hex($script2);
+    is $redis->eval( $script2, 1, 'eval', 'passed' ), "OK", "eval set";
+
+    my $script3 = "return redis.call('get',KEYS[1])";
+    my $sha3    = sha1_hex($script3);
+    eq_or_diff $redis->script_exists( $sha1, $sha3, $sha2 ), [ 1, 0, 1 ], "SCRIPT EXISTS";
+    is $redis->script_load($script3), $sha3, "SCRIPT LOAD";
+    eq_or_diff $redis->evalsha( $sha3, 1, 'eval' ), "passed", "EVALSHA";
 }
 
 done_testing;
