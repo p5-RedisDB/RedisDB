@@ -633,7 +633,7 @@ answer.  Croaks in case of the error.
 
 sub shutdown {
     my $self = shift;
-    $self->send_command_cb('SHUTDOWN');
+    $self->send_command_cb('SHUTDOWN', @_);
     return;
 }
 
