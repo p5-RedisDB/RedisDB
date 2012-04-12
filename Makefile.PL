@@ -24,6 +24,7 @@ WriteMakefile(
     dist       => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean      => { FILES    => 'RedisDB-*' },
     META_MERGE => {
+        requires  => { perl => 5.008004, },
         resources => {
             homepage   => 'https://github.com/trinitum/RedisDB',
             bugtracker => 'https://github.com/trinitum/RedisDB/issues',
