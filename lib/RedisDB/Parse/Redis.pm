@@ -9,6 +9,7 @@ use Encode qw();
 use RedisDB::Error;
 use Carp;
 use Try::Tiny;
+use Scalar::Util qw(weaken);
 
 =head1 NAME
 
@@ -48,6 +49,7 @@ sub new {
         _callbacks => [],
         _buffer    => '',
     };
+    weaken( $self->{redisdb} );
     return bless $self, $class;
 }
 

@@ -12,6 +12,7 @@ t/00-load.t
 t/auth.t
 t/basic_redis.t
 t/network.t
+t/no-leak.t
 t/parser.t
 t/pod.t
 t/redis_commands.t
