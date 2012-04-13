@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+1.06 Sat Apr 14 2012 Pavel Shaydo <zwon@cpan.org>
+    * fix memory leak due to circular references,
+      reported by vovpov@github
+
 1.05 Thu Mar 29 2012 Pavel Shaydo <zwon@cpan.org>
     * fix SHUTDOWN
     * add support for EVAL and SCRIPT commands
