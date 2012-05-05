@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+1.07 Sat May  5 2012 Pavel Shaydo <zwon@cpan.org>
+    * minor tweak of _connect method. Reported by Dmitry Bigunyak.
+      Fixes #8
+
 1.06 Sat Apr 14 2012 Pavel Shaydo <zwon@cpan.org>
     * fix memory leak due to circular references,
       reported by vovpov@github
