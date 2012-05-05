@@ -150,7 +150,7 @@ sub _connect {
     # this is to prevent recursion
     confess "Couldn't connect to the redis-server."
       . " Connection was immediately closed by the server."
-      if $self->{_in_connect}++;
+      if $self->{_in_connect};
 
     $self->{_pid} = $$;
 
@@ -182,6 +182,7 @@ sub _connect {
         };
     }
 
+    $self->{_in_connect}++;
     $self->_init_parser;
     $self->{_subscription_loop} = 0;
     delete $self->{_server_version};
