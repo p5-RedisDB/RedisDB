@@ -190,7 +190,7 @@ sub cmd_server {
     is '' . $redis->version, "$version", "Correct server version: $version";
 
     if ( $redis->version >= 2.0 ) {
-        eq_or_diff $redis->config_get("loglevel"), [qw(loglevel notice)], "CONFIG GET";
+        eq_or_diff $redis->config_get("dbfilename"), [qw(dbfilename dump_test.rdb)], "CONFIG GET";
     }
     if ( $redis->version >= 2.005 ) {
         my ( $sec, $ms ) = @{ $redis->time };
