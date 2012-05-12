@@ -7,6 +7,7 @@ my $server = RedisServer->start;
 plan( skip_all => "Can't start redis-server" ) unless $server;
 my $redis = RedisDB->new( host => 'localhost', port => $server->{port} );
 diag("Testing against redis-server " . $redis->info->{redis_version});
+plan( skip_all => "test requires redis-server version 2.0.0 and above" ) if $redis->version < 2;
 $redis->send_command('PING');
 my $res = $redis->get_reply;
 is $res, 'PONG', "Got PONG";

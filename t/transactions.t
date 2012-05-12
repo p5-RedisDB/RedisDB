@@ -7,6 +7,7 @@ my $server = RedisServer->start;
 plan( skip_all => "Can't start redis-server" ) unless $server;
 
 my $redis = RedisDB->new( host => 'localhost', port => $server->{port} );
+plan( skip_all => "test requires redis-server version 2.0.0 and above" ) if $redis->version < 2;
 
 is $redis->multi, 'OK', "Entered transaction";
 is $redis->set( "key", "value" ), 'QUEUED', "Queued set";

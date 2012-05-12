@@ -12,12 +12,18 @@ is $redis->auth('test'), 'OK', "Authenticated";
 is $redis->ping, 'PONG', "Can ping now";
 $redis->select(1);
 $redis->set( "Database", 1 );
-$redis->quit;
-is $redis->ping, 'PONG', "Still can ping server after reconnecting";
-is $redis->get("Database"), 1, "Selected database 1";
-$redis->{password} = 'wrong';
-$redis->quit;
-throws_ok { $redis->ping } qr/invalid password/i, "dies on reconnect if password is wrong";
+
+if ( $redis->version >= 2 ) {
+    $redis->quit;
+    is $redis->ping, 'PONG', "Still can ping server after reconnecting";
+    is $redis->get("Database"), 1, "Selected database 1";
+    $redis->{password} = 'wrong';
+    $redis->quit;
+    throws_ok { $redis->ping } qr/invalid password/i, "dies on reconnect if password is wrong";
+}
+else {
+    diag "Can't finish test, requires redis-server version 2.0.0 and above";
+}
 
 done_testing;
 

@@ -1071,6 +1071,8 @@ Known bugs are:
 Timeout support is OS dependent. If OS doesn't support SO_SNDTIMEO and SO_RCVTIMEO
 options timeouts will not work.
 
+QUIT command doesn't work with redis-server before version 2.0
+
 =head1 ACKNOWLEDGEMENTS
 
 Sanko Robinson and FunkyMonk helped me with porting this module to Windows.
