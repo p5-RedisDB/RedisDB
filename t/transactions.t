@@ -20,7 +20,7 @@ is $redis->lrange( "list", 0, 3 ), 'QUEUED', "Queued lrange";
 my $redis2 = RedisDB->new( { host => 'localhost', port => $server->{port} } );
 is $redis2->set( "key", "wrong value" ), "OK", "Set key to wrong value";
 my $res = $redis->exec;
-eq_or_diff $res, [ qw(OK 1 2 3 4), [qw(this is a list)] ], "Transaction was successfull";
+eq_or_diff $res, [ 'OK', 1, 2, 3, 4, [qw(this is a list)] ], "Transaction was successfull";
 is $redis->get("key"), "value", "key set to correct value";
 
 if ( $redis->version >= 2.001 ) {

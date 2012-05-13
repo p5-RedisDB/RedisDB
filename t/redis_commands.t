@@ -301,7 +301,7 @@ sub cmd_scripts {
 
     my $script1 = "return {1,2,{3,'test',ARGV[1]}}";
     my $sha1    = sha1_hex($script1);
-    eq_or_diff $redis->eval( $script1, 0, 'passed' ), [ '1', '2', [ '3', 'test', 'passed' ] ], "EVAL";
+    eq_or_diff $redis->eval( $script1, 0, 'passed' ), [ 1, 2, [ 3, 'test', 'passed' ] ], "EVAL";
 
     my $script2 = "return redis.call('set',KEYS[1],ARGV[1])";
     my $sha2    = sha1_hex($script2);

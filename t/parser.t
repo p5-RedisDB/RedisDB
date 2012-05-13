@@ -169,7 +169,7 @@ sub transaction {
     is @replies, 1, 'Got a reply';
     eq_or_diff(
         shift(@replies),
-        [ qw(OK 5 6 7 8), [qw(this is a list)], 'value' ],
+        [ 'OK', 5, 6, 7, 8, [qw(this is a list)], 'value' ],
         "Successfuly parsed a transaction reply"
     );
     $parser->add(
@@ -178,7 +178,7 @@ sub transaction {
     is @replies, 1, 'Got a reply';
     eq_or_diff(
         shift(@replies),
-        [ qw(OK 1 2 3 4), [qw(this is a list)] ],
+        [ 'OK', 1, 2, 3, 4, [qw(this is a list)] ],
         "Parsed with list in the end too"
     );
     $parser->add( "*4$lf*0$lf+OK$lf*-1$lf*2$lf\$2${lf}aa$lf\$2${lf}bb$lf" );

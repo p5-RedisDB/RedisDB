@@ -173,7 +173,7 @@ sub _parse_reply {
         elsif ( $self->{_parse_state} == $READ_NUMBER ) {
             return unless defined( my $line = $self->_read_line );
             die "Received invalid integer reply :$line" unless $line =~ /^-?[0-9]+$/;
-            return 1 if $self->_reply_completed($line);
+            return 1 if $self->_reply_completed( 0 + $line );
         }
         elsif ( $self->{_parse_state} == $READ_BULK_LEN ) {
             return unless defined( my $len = $self->_read_line );

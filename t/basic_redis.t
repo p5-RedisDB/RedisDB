@@ -55,7 +55,7 @@ $redis->send_command('GET', 'key A');
 sleep 1;
 ok $redis->reply_ready, "Got some replies";
 is $redis->replies_to_fetch, 5, "5 commands in flight";
-eq_or_diff [ $redis->get_all_replies ], [ 'OK', '1', '2', [ qw(B1 B2) ], 'value A' ], "Got all replies";
+eq_or_diff [ $redis->get_all_replies ], [ 'OK', 1, 2, [ qw(B1 B2) ], 'value A' ], "Got all replies";
 
 # Test callbacks
 my @replies;
