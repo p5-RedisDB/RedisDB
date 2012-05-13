@@ -231,7 +231,7 @@ sub _parse_reply {
             elsif ( $char eq '*' ) {
                 $self->{_parse_state} = $READ_MBLK_LEN;
                 $self->{_parse_mblk_level}++;
-                $self->{_parse_mblk_store} = [ $self->{_parse_mblk_len}, $self->{_parse_reply} ];
+                push @{$self->{_parse_mblk_store}}, [ $self->{_parse_mblk_len}, $self->{_parse_reply} ];
             }
             else {
                 die "Invalid multi-bulk reply. Expected [\$:+-*] but got $char";
@@ -267,11 +267,8 @@ sub _mblk_item {
     elsif ( --$self->{_parse_mblk_level} ) {
         my $res = $self->{_parse_reply};
         ( $self->{_parse_mblk_len}, $self->{_parse_reply} ) =
-          @{ delete $self->{_parse_mblk_store} };
-        $self->{_parse_mblk_len}--;
-        push @{ $self->{_parse_reply} }, $res;
-        $self->{_parse_state} = $WAIT_BUCKS;
-        $repeat = $self->{_parse_mblk_len} > 0;
+          @{ pop @{ $self->{_parse_mblk_store} } };
+        $repeat = $self->_mblk_item($res);
     }
     else {
         $repeat = 0;
