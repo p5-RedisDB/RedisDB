@@ -1,5 +1,13 @@
 Revision history for RedisDB
 
+1.08 Sun May 13 2012 Pavel Shaydo <zwon@cpan.org>
+    * add support for deep-nested multi-bulk replies
+    * add support for SLOWLOG command
+    * return integer replies as integer numbers
+    * disable tests for QUIT command on redis < 2.0 and add
+      note into BUGS section
+    * minor test fixes
+
 1.07 Sat May  5 2012 Pavel Shaydo <zwon@cpan.org>
     * minor tweak of _connect method. Reported by Dmitry Bigunyak.
       Fixes #8
