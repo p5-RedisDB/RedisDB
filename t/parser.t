@@ -94,6 +94,8 @@ sub one_line_reply {
     @replies = ();
     $parser->add_callback( \&cb ) for 1 .. 3;
     is $parser->callbacks, 3, "Three callbacks were added";
+    my @cbs = $parser->callbacks;
+    is $#cbs, 2, "Got list of callbacks";
     $parser->add("+");
     is @replies, 0, "+";
     $parser->add("OK");
