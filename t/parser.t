@@ -127,7 +127,9 @@ sub integer_reply {
     $parser->add(":0$lf:-123$lf");
     is @replies, 2, "Got two replies";
     eq_or_diff \@replies, [ 0, -123 ], "got 0 and -123";
-    my $parser2 = RedisDB::Parse::Redis->new();
+    my $class = ref $parser;
+    # TODO: this is wrong
+    my $parser2 = $class->new();
     dies_ok { $parser2->add(":123a$lf") } "Dies on invalid integer reply";
 }
 

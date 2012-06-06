@@ -10,6 +10,7 @@ WriteMakefile(
     ABSTRACT_FROM => 'lib/RedisDB.pm',
     LICENSE       => 'perl',
     PL_FILES      => {},
+    OBJECT        => "parser.o RedisDB.o",
     PREREQ_PM     => {
         'Try::Tiny' => 0,
         Encode      => 2.10,
