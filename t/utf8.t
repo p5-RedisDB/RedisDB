@@ -28,6 +28,7 @@ subtest "utf8 disabled" => sub {
 };
 
 subtest "utf8 enabled" => sub {
+    plan skip_all => "utf8 option is not implemented";
     my $redis8 =
       RedisDB->new( host => 'localhost', port => $server->{port}, utf8 => 1, );
     dies_ok { $redis8->get("binary") } "Couldn't get binary value";
