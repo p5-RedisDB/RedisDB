@@ -2,10 +2,11 @@ package RedisDB::Parse::Redis_XS;
 use strict;
 use warnings;
 our $VERSION = "1.99_01";
+my $XS_VERSION = $VERSION;
 $VERSION = eval $VERSION;
 
 require XSLoader;
-XSLoader::load("RedisDB", $VERSION);
+XSLoader::load("RedisDB", $XS_VERSION);
 
 sub new {
     my ($class, %params) = @_;
