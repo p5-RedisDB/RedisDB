@@ -4,10 +4,17 @@ Changes
 lib/RedisDB.pm
 lib/RedisDB/Error.pm
 lib/RedisDB/Parse/Redis.pm
+lib/RedisDB/Parse/Redis_PP.pm
+lib/RedisDB/Parse/Redis_XS.pm
 Makefile.PL
 MANIFEST
 META.yml
 README
+RedisDB.xs
+parser.h
+parser.c
+ppport.h
+typemap
 t/00-load.t
 t/auth.t
 t/basic_redis.t

@@ -12,7 +12,7 @@ pod2htm*.tmp
 RedisDB-*
 RedisDB.bs
 RedisDB.c
-RedisDB.o
+*.o
 *.bak
 *.swp
 META.yml
