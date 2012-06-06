@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+1.99_01 Wed Jun  6 2012 Pavel Shaydo <zwon@cpan.org>
+    * XS implementation of the parser
+
 1.08 Sun May 13 2012 Pavel Shaydo <zwon@cpan.org>
     * add support for deep-nested multi-bulk replies
     * add support for SLOWLOG command
