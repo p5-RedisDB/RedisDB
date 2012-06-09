@@ -32,11 +32,18 @@ rdb_parser_build_request(parser, ...)
         int i;
         STRLEN len;
         char *pv;
+        SV *tmp;
     CODE:
         RETVAL = newSV(128);
         sv_setpvf(RETVAL, "*%ld\r\n", items - 1);
         for(i = 1; i < items; i++) {
-            pv = SvPV(ST(i), len);
+            if (parser->utf8) {
+                tmp = sv_mortalcopy(ST(i));
+                pv  = SvPVutf8(tmp, len);
+            }
+            else {
+                pv = SvPV(ST(i), len);
+            }
             sv_catpvf(RETVAL, "$%d\r\n", len);
             sv_catpvn(RETVAL, pv, len);
             sv_catpvn(RETVAL, "\r\n", 2);

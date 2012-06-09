@@ -315,7 +315,10 @@ int rdb_parser__parse_reply(RDB_parser *parser) {
             pv = SvPVX(parser->buffer);
             bulk = newSVpvn(pv, parser->bulk_len);
             sv_chop(parser->buffer, pv + parser->bulk_len + 2);
-            /* TODO: decode utf8 */
+            if (parser->utf8) {
+                if (!sv_utf8_decode(bulk))
+                    croak("Received invalid UTF-8 string from the server");
+            }
             if (_reply_completed(parser, bulk)) return 1;
         }
         else if (parser->state == RDBP_READ_MBLK_LEN) {
