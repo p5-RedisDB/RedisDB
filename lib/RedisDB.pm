@@ -467,7 +467,8 @@ sub get_reply {
 
 =head2 $self->get_all_replies
 
-Wait for the replies to all the commands sent and return them as a list.
+Wait for the replies to all the commands sent to server. Return a list of
+replies to the commands for which callback was not set.
 
 =cut
 
