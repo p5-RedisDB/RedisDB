@@ -655,11 +655,12 @@ constructor, module will encode all strings to UTF-8 before sending them to
 server, and will decode all strings received from server from UTF-8. This has
 following repercussions you should be aware off: first, you can't store binary
 data on server with this option on, it would be treated as a sequence of latin1
-characters, and would be converted into a corresponding sequence of UTF-8 encoded
-characters; second, if data returned by the server is not a valid UTF-8 encoded
-string, the module will croak, and you will have to reinitialize the
-connection. Generally, I would recommend to write a wrapper around L<RedisDB> instead of
-setting I<utf8> option.
+characters, and would be converted into a corresponding sequence of UTF-8
+encoded characters; second, if data returned by the server is not a valid UTF-8
+encoded string, the module will croak, and you will have to reinitialize the
+connection. The parser only checks for invalid UTF-8 byte sequences, it doesn't
+check if input contains invalid code points. Generally, using this option is
+not recommended.
 
 =cut
 
