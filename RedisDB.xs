@@ -35,7 +35,7 @@ rdb_parser_build_request(parser, ...)
         SV *tmp;
     CODE:
         RETVAL = newSV(128);
-        sv_setpvf(RETVAL, "*%ld\r\n", items - 1);
+        sv_setpvf(RETVAL, "*%ld\r\n", items - 1L);
         for(i = 1; i < items; i++) {
             if (parser->utf8) {
                 tmp = sv_mortalcopy(ST(i));
@@ -44,7 +44,7 @@ rdb_parser_build_request(parser, ...)
             else {
                 pv = SvPV(ST(i), len);
             }
-            sv_catpvf(RETVAL, "$%d\r\n", len);
+            sv_catpvf(RETVAL, "$%ld\r\n", (long)len);
             sv_catpvn(RETVAL, pv, len);
             sv_catpvn(RETVAL, "\r\n", 2);
         }
