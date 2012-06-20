@@ -1,26 +1,50 @@
 use Test::Most 0.22;
-
-use RedisDB::Parse::Redis;
 use utf8;
 
-my $parser = RedisDB::Parse::Redis->new();
-my $lf     = "\015\012";
+use Try::Tiny;
+use RedisDB::Parse::Redis;
+use RedisDB::Parse::Redis_PP;
 
-subtest "Request encoding" => \&request_encoding;
+my $lf        = "\015\012";
+my $parser_pp = RedisDB::Parse::Redis_PP->new();
 
-subtest "One line reply" => \&one_line_reply;
+subtest "Pure Perl Implementation" => sub { test_parser($parser_pp) };
 
-subtest "Integer reply" => \&integer_reply;
+my $xs = try { require RedisDB::Parse::Redis_XS; 1; };
 
-subtest "Bulk reply" => \&bulk_reply;
+my $parser_xs = RedisDB::Parse::Redis->new;
 
-subtest "Multi-bulk reply" => \&multi_bulk_reply;
-
-subtest "Deep nested multi-bulk reply" => \&nested_mb_reply;
-
-subtest "Transaction" => \&transaction;
+if ($xs) {
+    is( RedisDB::Parse::Redis->implementation,
+        "RedisDB::Parse::Redis_XS", "XS implementation loaded" );
+    isa_ok $parser_xs, "RedisDB::Parse::Redis_XS", "Got XS version of the object";
+    subtest "XS Implementation" => sub { test_parser($parser_xs) };
+}
+else {
+    diag "\n";
+    diag "#" x 40;
+    diag "\n   Could not load XS implementation,\n   Testing PP implementation only\n\n";
+    diag "#" x 40;
+    isa_ok $parser_xs, "RedisDB::Parse::Redis_PP", "Got PP version of the object";
+}
 
 done_testing;
+
+# parser test follows
+
+my $parser;
+
+sub test_parser {
+    $parser = shift;
+    subtest "Request encoding"             => \&request_encoding;
+    subtest "One line reply"               => \&one_line_reply;
+    subtest "Integer reply"                => \&integer_reply;
+    subtest "Bulk reply"                   => \&bulk_reply;
+    subtest "Multi-bulk reply"             => \&multi_bulk_reply;
+    subtest "Deep nested multi-bulk reply" => \&nested_mb_reply;
+    subtest "Transaction"                  => \&transaction;
+    done_testing;
+}
 
 sub request_encoding {
     my $command = 'test';
@@ -70,6 +94,8 @@ sub one_line_reply {
     @replies = ();
     $parser->add_callback( \&cb ) for 1 .. 3;
     is $parser->callbacks, 3, "Three callbacks were added";
+    my @cbs = $parser->callbacks;
+    is $#cbs, 2, "Got list of callbacks";
     $parser->add("+");
     is @replies, 0, "+";
     $parser->add("OK");
@@ -101,7 +127,9 @@ sub integer_reply {
     $parser->add(":0$lf:-123$lf");
     is @replies, 2, "Got two replies";
     eq_or_diff \@replies, [ 0, -123 ], "got 0 and -123";
-    my $parser2 = RedisDB::Parse::Redis->new();
+    my $class = ref $parser;
+    # TODO: this is wrong
+    my $parser2 = $class->new();
     dies_ok { $parser2->add(":123a$lf") } "Dies on invalid integer reply";
 }
 
@@ -181,11 +209,11 @@ sub transaction {
         [ 'OK', 1, 2, 3, 4, [qw(this is a list)] ],
         "Parsed with list in the end too"
     );
-    $parser->add( "*4$lf*0$lf+OK$lf*-1$lf*2$lf\$2${lf}aa$lf\$2${lf}bb$lf" );
+    $parser->add("*4$lf*0$lf+OK$lf*-1$lf*2$lf\$2${lf}aa$lf\$2${lf}bb$lf");
     is @replies, 1, 'Got a reply';
     eq_or_diff shift(@replies), [ [], 'OK', undef, [qw(aa bb)] ],
       "Parsed reply with empty list and undef";
-    $parser->add( "*3$lf*0$lf-Oops$lf+OK$lf" );
+    $parser->add("*3$lf*0$lf-Oops$lf+OK$lf");
     is @replies, 1, 'Got a reply with error inside';
     my $reply = shift @replies;
     eq_or_diff $reply->[0], [], "  has empty list";
@@ -193,4 +221,3 @@ sub transaction {
     is "$reply->[1]", "Oops", "  Oops";
     is $reply->[2], "OK", "  has OK";
 }
-

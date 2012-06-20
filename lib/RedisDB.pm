@@ -2,7 +2,7 @@ package RedisDB;
 
 use strict;
 use warnings;
-our $VERSION = "1.08";
+our $VERSION = "1.99_02";
 $VERSION = eval $VERSION;
 
 use RedisDB::Error;
@@ -29,6 +29,9 @@ RedisDB - Perl extension to access redis database
     my $value = $redis->get($key);
 
 =head1 DESCRIPTION
+
+B<WARNING: this is a development version and is not recommended for production
+use.  This version implements XS version of the parser.>
 
 This module provides interface to access redis key-value store. It
 transparently handles disconnects and forks. It supports transactions,
@@ -320,9 +323,8 @@ sub send_command {
 
     $self->_connect unless $self->{_socket} and $self->{_pid} == $$;
 
-    # Here we reading received data and parsing it,
-    # but the main purpose is to check if connection is still alive
-    # and reconnect if not
+    # Here we are reading received data and parsing it,
+    # and at the same time checking if the connection is still alive
     $self->_recv_data_nb;
 
     my $request = $self->{_parser}->build_request( $command, @_ );
@@ -462,7 +464,8 @@ sub get_reply {
 
 =head2 $self->get_all_replies
 
-Wait for the replies to all the commands sent and return them as a list.
+Wait for the replies to all the commands sent to server. Return a list of
+replies to the commands for which callback was not set.
 
 =cut
 
@@ -652,11 +655,12 @@ constructor, module will encode all strings to UTF-8 before sending them to
 server, and will decode all strings received from server from UTF-8. This has
 following repercussions you should be aware off: first, you can't store binary
 data on server with this option on, it would be treated as a sequence of latin1
-characters, and would be converted into a corresponding sequence of UTF-8 encoded
-characters; second, if data returned by the server is not a valid UTF-8 encoded
-string, the module will croak, and you will have to reinitialize the
-connection. Generally, I would recommend to write a wrapper around L<RedisDB> instead of
-setting I<utf8> option.
+characters, and would be converted into a corresponding sequence of UTF-8
+encoded characters; second, if data returned by the server is not a valid UTF-8
+encoded string, the module will croak, and you will have to reinitialize the
+connection. The parser only checks for invalid UTF-8 byte sequences, it doesn't
+check if input contains invalid code points. Generally, using this option is
+not recommended.
 
 =cut
 

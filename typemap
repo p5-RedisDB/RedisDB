@@ -1,0 +1,16 @@
+TYPEMAP
+RDB_parser *	T_REDISDB_PARSER
+
+INPUT
+T_REDISDB_PARSER
+	if(sv_derived_from($arg, \"RedisDB::Parse::Redis_XS\")) {
+		IV tmp = SvIV((SV*)SvRV($arg));
+		$var = INT2PTR($type, tmp);
+	}
+	else {
+		croak(\"$var is not of type RedisDB::Parse::Redis_XS\");
+	}
+
+OUTPUT
+T_REDISDB_PARSER
+	sv_setref_pv($arg, \"RedisDB::Parse::Redis_XS\", (void *)$var);

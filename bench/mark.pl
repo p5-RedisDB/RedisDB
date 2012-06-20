@@ -20,16 +20,26 @@ say "Redis:          ", Redis->VERSION;
 say "Redis::hiredis: ", Redis::hiredis->VERSION;
 say "Redis::Client:  ", Redis::Client->VERSION;
 
-my $srv   = RedisServer->start;
+my $srv;
+
+if ( $ENV{TEST_REDIS} ) {
+    my ( $host, $port ) = $ENV{TEST_REDIS} =~ /([^:]+):([0-9]+)/;
+    $srv = { host => $host, port => $port };
+}
+else {
+    $srv = RedisServer->start;
+    $srv->{host} = '127.0.0.1';
+}
+
 my $redis = Redis->new(
-    server   => "localhost:$srv->{port}",
+    server   => "$srv->{host}:$srv->{port}",
     encoding => undef,
 #    reconnect => 1,
 );
-my $redisdb = RedisDB->new( host => "localhost", port => $srv->{port} );
-my $rediscl = Redis::Client->new( host => "localhost", port => $srv->{port} );
+my $redisdb = RedisDB->new( host => "$srv->{host}", port => $srv->{port} );
+my $rediscl = Redis::Client->new( host => "$srv->{host}", port => $srv->{port} );
 my $hiredis = Redis::hiredis->new();
-$hiredis->connect('localhost');
+$hiredis->connect( $srv->{host}, $srv->{port} );
 
 sub sender {
     my ( $cli, $num, $data ) = @_;
