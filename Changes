@@ -1,5 +1,11 @@
 Revision history for RedisDB
 
+1.99_03 Thu Jun 21 2012 Pavel Shaydo <zwon@cpan.org>
+    * documentation fixes
+    * fix some warnings
+    * strip ppport.h
+    * add support for OBJECT, DUMP, RESTORE, and MIGRATE
+
 1.99_02 Sat Jun  9 2012 Pavel Shaydo <zwon@cpan.org>
     * implement utf8 option for XS parser
     * minor doc fix
