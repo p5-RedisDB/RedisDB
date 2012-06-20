@@ -535,14 +535,14 @@ sub version {
 }
 
 my @commands = qw(
-  append	auth	bgrewriteaof	bgsave	blpop	brpop   brpoplpush	config_get
+  append	auth	bgrewriteaof	bgsave	blpop	brpop   brpoplpush	config	config_get
   config_set	config_resetstat	dbsize	debug_object	debug_segfault
   decr	decrby	del	echo	eval    evalsha exists	expire	expireat	flushall
   flushdb	get	getbit	getrange	getset	hdel	hexists	hget	hgetall
   hincrby	hincrbyfloat	hkeys	hlen	hmget	hmset	hset	hsetnx	hvals	incr	incrby
   incrbyfloat	keys	lastsave	lindex	linsert	llen	lpop	lpush	lpushx
-  lrange	lrem	lset	ltrim	mget	move	mset	msetnx	persist
-  pexpire	pexpireat	psetex	pttl	ping
+  lrange	lrem	lset	ltrim	mget	move	mset	msetnx	object	object_refcount
+  object_encoding	object_idletime	persist	pexpire	pexpireat	psetex	pttl	ping
   publish	quit	randomkey	rename	renamenx	rpop	rpoplpush
   rpush	rpushx	sadd	save	scard	script_exists   script_flush    script_kill
   script_load   sdiff	sdiffstore	select	set

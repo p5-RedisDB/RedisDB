@@ -102,6 +102,14 @@ sub cmd_keys_strings {
         usleep 1_200_000;
         is $redis->get("pexpires"), undef, "expired";
     }
+
+    if ( $redis->version >= 2.002003 ) {
+        is $redis->set(qw(object test)), "OK", "Set object";
+        is $redis->object_refcount("object"), 1, "OBJECT REFCOUNT";
+        is $redis->object_encoding("object"), "raw", "OBJECT ENCODING";
+        my $idle = $redis->object_idletime("object");
+        ok $idle >= 0 && $idle < 11, "OBJECT IDLETIME";
+    }
 }
 
 sub cmd_lists {
