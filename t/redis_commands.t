@@ -110,6 +110,15 @@ sub cmd_keys_strings {
         my $idle = $redis->object_idletime("object");
         ok $idle >= 0 && $idle < 11, "OBJECT IDLETIME";
     }
+
+    if ( $redis->version >= 2.005011 ) {
+        is $redis->set(qw(dump test)), "OK", "Set dump";
+        my $dump = $redis->dump("dump");
+        ok $dump, "DUMP";
+        $redis->del("dump");
+        is $redis->restore("dump", 0, $dump), "OK", "RESTORE";
+        is $redis->get("dump"), "test", "Restored";
+    }
 }
 
 sub cmd_lists {
