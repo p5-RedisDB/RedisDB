@@ -323,9 +323,8 @@ sub send_command {
 
     $self->_connect unless $self->{_socket} and $self->{_pid} == $$;
 
-    # Here we reading received data and parsing it,
-    # but the main purpose is to check if connection is still alive
-    # and reconnect if not
+    # Here we are reading received data and parsing it,
+    # and at the same time checking if the connection is still alive
     $self->_recv_data_nb;
 
     my $request = $self->{_parser}->build_request( $command, @_ );
