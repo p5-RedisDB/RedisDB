@@ -1,5 +1,3 @@
-bench/mark.pl
-bench/pipeline.pl
 Changes
 lib/RedisDB.pm
 lib/RedisDB/Error.pm
@@ -28,3 +26,5 @@ t/send_command_cb.t
 t/subscribe.t
 t/transactions.t
 t/utf8.t
+util/benchmark.pl
+util/pipeline.pl
