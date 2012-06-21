@@ -534,6 +534,7 @@ sub version {
     return $self->{_server_version};
 }
 
+# don't forget to update POD
 my @commands = qw(
   append	auth	bgrewriteaof	bgsave	blpop	brpop   brpoplpush	config	config_get
   config_set	config_resetstat	dbsize	debug_object	debug_segfault
@@ -575,21 +576,22 @@ I<execute>, waits for the reply from the server, and returns it. E.g.:
     $redis->send_command("get", $key, sub { $val = $_[1] });
 
 The following wrapper methods are defined: append, auth, bgrewriteaof, bgsave,
-blpop, brpop,   brpoplpush, config_get, config_set, config_resetstat, dbsize,
-debug_object, debug_segfault, decr, decrby, del, echo, eval,    evalsha,
-exists, expire, expireat, flushall, flushdb, get, getbit, getrange, getset,
-hdel, hexists, hget, hgetall, hincrby, hincrbyfloat, hkeys, hlen, hmget, hmset,
-hset, hsetnx, hvals, incr, incrby, incrbyfloat, keys, lastsave, lindex,
-linsert, llen, lpop, lpush, lpushx, lrange, lrem, lset, ltrim, mget, move,
-mset, msetnx, persist, pexpire, pexpireat, psetex, pttl, ping, publish, quit,
-randomkey, rename, renamenx, rpop, rpoplpush, rpush, rpushx, sadd, save, scard,
-script_exists,   script_flush,    script_kill, script_load,   sdiff,
-sdiffstore, select, set, setbit, setex, setnx, setrange, sinter, sinterstore,
-sismember, slaveof, slowlog, smembers, smove, sort, spop, srandmember, srem,
-strlen, sunion, sunionstore, sync, time,    ttl, type, unwatch, watch, zadd,
-zcard, zcount, zincrby, zinterstore, zrange, zrangebyscore, zrank, zrem,
-zremrangebyrank,   zremrangebyscore, zrevrange, zrevrangebyscore, zrevrank,
-zscore, zunionstore
+blpop, brpop,   brpoplpush, config, config_get, config_set, config_resetstat,
+dbsize, debug_object, debug_segfault, decr, decrby, del, dump, echo, eval,
+evalsha, exists, expire, expireat, flushall, flushdb, get, getbit, getrange,
+getset, hdel, hexists, hget, hgetall, hincrby, hincrbyfloat, hkeys, hlen,
+hmget, hmset, hset, hsetnx, hvals, incr, incrby, incrbyfloat, keys, lastsave,
+lindex, linsert, llen, lpop, lpush, lpushx, lrange, lrem, lset, ltrim, mget,
+migrate, move, mset, msetnx, object, object_refcount, object_encoding,
+object_idletime, persist, pexpire, pexpireat, psetex, pttl, ping, publish,
+quit, randomkey, rename, renamenx, restore, rpop, rpoplpush, rpush, rpushx,
+sadd, save, scard, script_exists,   script_flush, script_kill, script_load,
+sdiff, sdiffstore, select, set, setbit, setex, setnx, setrange, sinter,
+sinterstore, sismember, slaveof, slowlog, smembers, smove, sort, spop,
+srandmember, srem, strlen, sunion, sunionstore, sync, time,    ttl, type,
+unwatch, watch, zadd, zcard, zcount, zincrby, zinterstore, zrange,
+zrangebyscore, zrank, zrem, zremrangebyrank,   zremrangebyscore, zrevrange,
+zrevrangebyscore, zrevrank, zscore, zunionstore.
 
 See description of all commands in redis documentation at
 L<http://redis.io/commands>.
