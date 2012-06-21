@@ -1,7 +1,7 @@
 package RedisDB::Parse::Redis_XS;
 use strict;
 use warnings;
-our $VERSION = "1.99_03";
+our $VERSION = "1.99_04";
 my $XS_VERSION = $VERSION;
 $VERSION = eval $VERSION;
 
