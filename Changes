@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+2.00 Mon Jun 25 2012 Pavel Shaydo <zwon@cpan.org>
+    * No changes
+
 1.99_04 Thu Jun 21 2012 Pavel Shaydo <zwon@cpan.org>
     * update list of wrappers in POD
     * rename bench/ into util/
