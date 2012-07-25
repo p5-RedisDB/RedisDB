@@ -60,7 +60,7 @@ long _line_length(char *start, size_t length) {
 
     for (i=0; i < length - 1; i++, pos++) {
         if (*pos == '\r' && pos[1] == '\n') {
-            return pos - start;
+            return (long)(pos - start);
         }
     }
 
