@@ -227,24 +227,26 @@ int _reply_completed(RDB_parser *parser, SV *value) {
 
     parser->state = RDBP_CLEAN;
 
-    dSP;
-    ENTER;
-    SAVETMPS;
-    if (av_len(parser->callbacks) >= 0) {
-        cb = av_shift(parser->callbacks);
-        sv_2mortal(cb);
+    {
+        dSP;
+        ENTER;
+        SAVETMPS;
+        if (av_len(parser->callbacks) >= 0) {
+            cb = av_shift(parser->callbacks);
+            sv_2mortal(cb);
+        }
+        else if (parser->default_cb != NULL) {
+            cb = parser->default_cb;
+        }
+        else croak("No callbacks in the queue and no default callback set");
+        PUSHMARK(SP);
+        XPUSHs(sv_2mortal(newRV_inc(parser->redisdb)));
+        XPUSHs(sv_2mortal(reply));
+        PUTBACK;
+        call_sv(cb, G_VOID|G_DISCARD);
+        FREETMPS;
+        LEAVE;
     }
-    else if (parser->default_cb != NULL) {
-        cb = parser->default_cb;
-    }
-    else croak("No callbacks in the queue and no default callback set");
-    PUSHMARK(SP);
-    XPUSHs(sv_2mortal(newRV_inc(parser->redisdb)));
-    XPUSHs(sv_2mortal(reply));
-    PUTBACK;
-    call_sv(cb, G_VOID|G_DISCARD);
-    FREETMPS;
-    LEAVE;
 
     return 1;
 }
