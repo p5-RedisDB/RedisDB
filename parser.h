@@ -3,7 +3,7 @@
 
 struct rdbp_mblk_store {
     AV* mblk_reply;
-    long mblk_len;
+    unsigned long mblk_len;
     struct rdbp_mblk_store *next;
 };
 
@@ -17,8 +17,8 @@ struct redisdb_parser {
     int mblk_level;
     AV* mblk_reply;
     struct rdbp_mblk_store* mblk_store;
-    long mblk_len;
-    long bulk_len;
+    unsigned long mblk_len;
+    unsigned long bulk_len;
 };
 
 typedef struct redisdb_parser RDB_parser;
