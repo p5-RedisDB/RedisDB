@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+2.02 Thu Jul 26 2012 Pavel Shaydo <zwon@cpan.org>
+    * try to fix another bunch of errors from
+      Activestate build logs
+
 2.01 Wed Jul 25 2012 Pavel Shaydo <zwon@cpan.org>
     * try to fix build failures on Window based on
       build logs from http://code.activestate.com/ppm/RedisDB/
