@@ -28,7 +28,7 @@ rdb_parser_DESTROY(parser)
 SV*
 rdb_parser_build_request(parser, ...)
         RDB_parser *parser;
-    INIT:
+    PREINIT:
         int i;
         STRLEN len;
         char *pv;
@@ -78,7 +78,7 @@ rdb_parser_set_default_callback(parser, cb)
 void
 rdb_parser_callbacks(parser)
         RDB_parser *parser;
-    INIT:
+    PREINIT:
         int i, len;
         SV **ptr;
     PPCODE:
