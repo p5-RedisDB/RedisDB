@@ -1,5 +1,12 @@
 Revision history for RedisDB
 
+2.03 Sat Jul 28 2012 Pavel Shaydo <zwon@cpan.org>
+    * fix double-free problem with threads and fork
+      emulation on Windows. Now parser structure is
+      only destroyed by the same interpreter it was
+      created.
+    * try to make tests more Windows friendly
+
 2.02 Thu Jul 26 2012 Pavel Shaydo <zwon@cpan.org>
     * try to fix another bunch of errors from
       Activestate build logs
