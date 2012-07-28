@@ -32,8 +32,8 @@ unless ( my $pid = fork ) {
     sleep 1;
     $redis->publish( "quit", "quit" );
 
-    require POSIX;
-    POSIX::_exit( 0 );
+    $redis = 0;
+    exit 0;
 }
 
 my %counts;

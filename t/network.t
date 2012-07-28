@@ -20,7 +20,7 @@ subtest "Restore connection" => sub {
         while (@replies) {
             my $cli = $srv->accept;
             $conn++;
-            { local $/ = "\r\n"; $cli->getline; }
+            $cli->recv( my $buf, 1024 );
             $cli->send( shift(@replies), 0 );
             close $cli;
         }
@@ -52,10 +52,9 @@ subtest "No _connect recursion" => sub {
     if ( $pid == 0 ) {
         $SIG{ALRM} = sub { exit 0 };
         alarm 5;
-        while () {
-            my $cli = $srv->accept;
-            close $cli;
-        }
+        my $cli = $srv->accept;
+        close $cli;
+        exit 0;
     }
 
     my $port = $srv->sockport;
@@ -89,6 +88,7 @@ subtest "socket timeout" => sub {
 
 # Check that we can connect to UNIX socket
 subtest "UNIX socket" => sub {
+    plan skip_all => "OS $^O doesn't support UNIX sockets" if $^O =~ /MSWin32/;
     my $sock_path = File::Spec->catfile( tempdir( CLEANUP => 1 ), "test_redis" );
     my $srv =
       try { IO::Socket::UNIX->new( Type => SOCK_STREAM, Local => $sock_path, Listen => 1 ) };
