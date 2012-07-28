@@ -16,6 +16,7 @@ rdb_parser__new(redisdb, utf8)
         int utf8;
     CODE:
         RETVAL = rdb_parser__init(redisdb, utf8);
+        RETVAL->thx = (IV)PERL_GET_THX;
     OUTPUT:
         RETVAL
 
@@ -23,7 +24,9 @@ void
 rdb_parser_DESTROY(parser)
         RDB_parser *parser;
     CODE:
-        rdb_parser__free(parser);
+        if (parser->thx == (IV)PERL_GET_THX) {
+            rdb_parser__free(parser);
+        }
 
 SV*
 rdb_parser_build_request(parser, ...)
@@ -36,7 +39,7 @@ rdb_parser_build_request(parser, ...)
     CODE:
         RETVAL = newSV(128);
         sv_setpvf(RETVAL, "*%ld\r\n", items - 1L);
-        for(i = 1; i < items; i++) {
+        for (i = 1; i < items; i++) {
             if (parser->utf8) {
                 tmp = sv_mortalcopy(ST(i));
                 pv  = SvPVutf8(tmp, len);

@@ -19,6 +19,7 @@ struct redisdb_parser {
     struct rdbp_mblk_store* mblk_store;
     unsigned long mblk_len;
     unsigned long bulk_len;
+    IV thx;
 };
 
 typedef struct redisdb_parser RDB_parser;
