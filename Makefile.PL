@@ -60,8 +60,9 @@ WriteMakefile(
     CONFIGURE => sub {
         my $hash = $_[1];
         unless ($make_xs) {
-            $hash->{XS} = {};
-            $hash->{C}  = [];
+            $hash->{XS}     = {};
+            $hash->{C}      = [];
+            $hash->{OBJECT} = '';
         }
         return $hash;
     },
