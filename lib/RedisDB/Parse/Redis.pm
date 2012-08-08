@@ -2,7 +2,7 @@ package RedisDB::Parse::Redis;
 
 use strict;
 use warnings;
-our $VERSION = "2.03";
+our $VERSION = "2.04";
 $VERSION = eval $VERSION;
 
 use Try::Tiny;

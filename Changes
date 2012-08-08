@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+2.04 Wed Aug  8 2012 Pavel Shaydo <zwon@cpan.org>
+    * fix Makefile.PL -pm option
+
 2.03 Sat Jul 28 2012 Pavel Shaydo <zwon@cpan.org>
     * fix double-free problem with threads and fork
       emulation on Windows. Now parser structure is
