@@ -37,10 +37,10 @@ subtest "Restore connection" => sub {
     sleep 1;
     lives_ok { $ret = $redis->set( 'key', 'value' ) } "Connection restored";
     is $ret, 'OK', "key is set";
+    sleep 1;
     dies_ok { $redis->get('key') } "Died on unclean disconnect";
     wait;
     dies_ok { RedisDB->new( host => '127.0.0.1', port => $port ) } "Dies on conection failure";
-    kill 9, $pid;
 };
 
 # Check what will happen if server immediately closes connection
@@ -61,7 +61,6 @@ subtest "No _connect recursion" => sub {
     close $srv;
     my $redis = RedisDB->new( host => '127.0.0.1', port => $port, lazy => 1, database => 1 );
     dies_ok { $redis->set( 'key', 'value' ); } "dies on recursive _connect";
-    kill 9, $pid;
 };
 
 # Check that IO timeout is working
@@ -83,7 +82,6 @@ subtest "socket timeout" => sub {
     my $redis = RedisDB->new( host => '127.0.0.1', port => $srv->sockport, timeout => 3 );
     lives_ok { $redis->send_command('PING') } "Sent command without problems";
     dies_ok { $redis->get_reply } "Dies on timeout while receiving reply";
-    kill 9, $pid;
 };
 
 # Check that we can connect to UNIX socket
@@ -118,7 +116,6 @@ subtest "UNIX socket" => sub {
     my $redis;
     lives_ok { $redis = RedisDB->new( path => $sock_path ) } "Connected to UNIX socket";
     is $redis->get("ping"), "PONG", "Got PONG via UNIX socket";
-    kill 9, $pid;
 };
 
 done_testing;
