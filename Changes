@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+2.06 Tue Oct  2 2012 Pavel Shaydo <zwon@cpan.org>
+    * allow p?(un)?subscribe outside of subscription_loop
+
 2.05 Fri Aug 24 2012 Pavel Shaydo <zwon@cpan.org>
     * attempt to fix hanging tests on Win32
 
