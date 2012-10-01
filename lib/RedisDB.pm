@@ -901,7 +901,10 @@ default callback will be used.
 
 sub subscribe {
     my ( $self, $channel, $callback ) = @_;
-    croak "Must be in subscription loop to subscribe" unless $self->{_subscription_loop};
+    unless ( $self->{subscription_loop} ) {
+        $self->{_subscription_loop} = -1;
+        $self->{_parser}->set_default_callback( \&_queue );
+    }
     croak "Subscribe to what channel?" unless length $channel;
     $callback ||= $self->{_subscription_cb}
       or croak "Callback for $channel not specified, neither default callback defined";
@@ -919,7 +922,10 @@ callback will be used.
 
 sub psubscribe {
     my ( $self, $channel, $callback ) = @_;
-    croak "Must be in subscription loop to subscribe" unless $self->{_subscription_loop};
+    unless ( $self->{subscription_loop} ) {
+        $self->{_subscription_loop} = -1;
+        $self->{_parser}->set_default_callback( \&_queue );
+    }
     croak "Subscribe to what channel?" unless length $channel;
     $callback ||= $self->{_subscription_cb}
       or croak "Callback for $channel not specified, neither default callback defined";
@@ -943,7 +949,7 @@ sub unsubscribe {
     else {
         $self->{_subscribed} = {};
     }
-    if( %{ $self->{_subscribed} } or %{ $self->{_psubscribed} }) {
+    if ( %{ $self->{_subscribed} } or %{ $self->{_psubscribed} } ) {
         return $self->send_command( "UNSUBSCRIBE", @_ );
     }
     else {

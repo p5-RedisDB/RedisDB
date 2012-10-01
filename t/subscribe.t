@@ -113,5 +113,25 @@ sub def_cb {
     return;
 }
 
+my $pub = RedisDB->new( host => 'localhost', port => $server->{port} );
+$redis->subscribe('baz', sub { $_[0]->unsubscribe('baz') });
+$redis->psubscribe('un*', sub { $_[0]->punsubscribe });
+my $rep =$redis->get_reply;
+is $rep->[0], 'subscribe', "got subscribe reply";
+$rep =$redis->get_reply;
+is $rep->[0], 'psubscribe', "got psubscribe reply";
+dies_ok { $redis->get('key') } "get is not allowed in subscription mode";
+
+$pub->publish('unexpected', 'msg 1');
+$pub->publish('baz', 'msg 2');
+
+$rep = $redis->get_reply;
+eq_or_diff $rep, ['pmessage', 'un*', 'unexpected', 'msg 1'], "got msg 1 on unexpected channel";
+$rep = $redis->get_reply;
+eq_or_diff $rep, ['message', 'baz', 'msg 2'], "got msg 2 on baz channel";
+
+$redis->unsubscribe;
+$redis->punsubscribe;
+
 done_testing;
 END { $redis->shutdown if $redis; }
