@@ -894,20 +894,26 @@ sub subscription_loop {
 
 =head2 $self->subscribe($channel[, $callback])
 
-Subscribe to the additional I<$channel>. If I<$callback> is not specified,
-default callback will be used.
+Subscribe to the I<$channel>. If I<$callback> is not specified, default
+callback will be used. If you are invoking I<subscribe> outside of subscription
+loop, I<$callback> is ignored.
 
 =cut
 
 sub subscribe {
     my ( $self, $channel, $callback ) = @_;
-    unless ( $self->{subscription_loop} ) {
+    unless ( $self->{_subscription_loop} ) {
         $self->{_subscription_loop} = -1;
         $self->{_parser}->set_default_callback( \&_queue );
     }
     croak "Subscribe to what channel?" unless length $channel;
-    $callback ||= $self->{_subscription_cb}
-      or croak "Callback for $channel not specified, neither default callback defined";
+    if ( $self->{_subscription_loop} > 0 ) {
+        $callback ||= $self->{_subscription_cb}
+          or croak "Callback for $channel not specified, neither default callback defined";
+    }
+    else {
+        $callback = 1;
+    }
     $self->{_subscribed}{$channel} = $callback;
     $self->send_command( "SUBSCRIBE", $channel );
     return;
@@ -915,20 +921,26 @@ sub subscribe {
 
 =head2 $self->psubscribe($pattern[, $callback])
 
-Subscribe to additional channels matching I<$pattern>. If I<$callback> is not specified, default
-callback will be used.
+Subscribe to channels matching I<$pattern>. If I<$callback> is not specified,
+default callback will be used. If you are invoking I<psubscribe> outside of
+subscription loop, I<$callback> is ignored.
 
 =cut
 
 sub psubscribe {
     my ( $self, $channel, $callback ) = @_;
-    unless ( $self->{subscription_loop} ) {
+    unless ( $self->{_subscription_loop} ) {
         $self->{_subscription_loop} = -1;
         $self->{_parser}->set_default_callback( \&_queue );
     }
     croak "Subscribe to what channel?" unless length $channel;
-    $callback ||= $self->{_subscription_cb}
-      or croak "Callback for $channel not specified, neither default callback defined";
+    if ( $self->{_subscription_loop} > 0 ) {
+        $callback ||= $self->{_subscription_cb}
+          or croak "Callback for $channel not specified, neither default callback defined";
+    }
+    else {
+        $callback = 1;
+    }
     $self->{_psubscribed}{$channel} = $callback;
     $self->send_command( "PSUBSCRIBE", $channel );
     return;
@@ -937,7 +949,8 @@ sub psubscribe {
 =head2 $self->unsubscribe([@channels])
 
 Unsubscribe from the listed I<@channels>. If no channels was specified,
-unsubscribe from all the channels.
+unsubscribe from all the channels to which you have subscribed using
+I<subscribe>.
 
 =cut
 
@@ -962,7 +975,8 @@ sub unsubscribe {
 =head2 $self->punsubscribe([@patterns])
 
 Unsubscribe from the listed I<@patterns>. If no patterns was specified,
-unsubscribe from all the channels to which you subscribed using I<psubscribe>.
+unsubscribe from all the channels to which you have subscribed using
+I<psubscribe>.
 
 =cut
 
