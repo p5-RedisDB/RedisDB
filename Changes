@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+2.08 Thu Oct 11 2012 Pavel Shaydo <zwon@cpan.org>
+    * workaround bug in perls before 5.14 that causes recv set $! to
+      0 instead of EINTR if interrupted by alarm
+
 2.07 Thu Oct 11 2012 Pavel Shaydo <zwon@cpan.org>
     * fix p?subscribe outside of subscription_loop
     * do not require callback for channel outside of subscription_loop
