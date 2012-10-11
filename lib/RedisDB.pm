@@ -439,7 +439,7 @@ sub get_reply {
     while ( not @{ $self->{_replies} } ) {
         my $ret = $self->{_socket}->recv( my $buffer, 131072 );
         unless ( defined $ret ) {
-            next if $! == EINTR;
+            next if $! == EINTR or $! == 0;
             confess "Error reading reply from server: $!";
         }
         if ( $buffer ne '' ) {
