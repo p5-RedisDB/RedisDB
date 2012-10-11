@@ -127,9 +127,18 @@ $pub->publish('unexpected', 'msg 1');
 $pub->publish('baz', 'msg 2');
 
 $rep = $sub->get_reply;
-eq_or_diff $rep, ['pmessage', 'un*', 'unexpected', 'msg 1'], "got msg 1 on unexpected channel";
+eq_or_diff $rep, ['pmessage', 'un*', 'unexpected', 'msg 1'], "got msg 1 from the unexpected channel";
 $rep = $sub->get_reply;
-eq_or_diff $rep, ['message', 'baz', 'msg 2'], "got msg 2 on baz channel";
+eq_or_diff $rep, ['message', 'baz', 'msg 2'], "got msg 2 from the baz channel";
+
+{
+    # this also checks how recv in get_reply deals with interrupts
+    local $SIG{ALRM} = sub { $pub->publish( 'baz', 'msg 3' ); delete $SIG{ALRM}; alarm 3; };
+    alarm 1;
+    $rep = $sub->get_reply;
+    alarm 0;
+    eq_or_diff $rep, [ 'message', 'baz', 'msg 3' ], "got msg 3 from the baz channel";
+}
 
 $sub->unsubscribe;
 $sub->punsubscribe;
