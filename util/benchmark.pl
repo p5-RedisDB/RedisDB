@@ -74,7 +74,7 @@ $redisdb->set( "RDB$_", "0123456789abcdef", RedisDB::IGNORE_REPLY ) for 1 .. 100
 say '';
 say "Testing setting/getting 16 bytes values";
 
-cmpthese 150, {
+cmpthese 50, {
     Redis => sub {
         sender( $redis, 1000, "0123456789abcdef" );
     },
