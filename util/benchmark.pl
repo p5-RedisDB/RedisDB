@@ -5,6 +5,8 @@ use warnings;
 use Redis;
 use RedisDB;
 use Redis::hiredis;
+use AnyEvent::Redis;
+use AnyEvent::Redis::RipeRedis;
 use lib qw(t ../t);
 use RedisServer;
 use Redis::Client;
@@ -15,10 +17,12 @@ use Benchmark qw( cmpthese );
 # results in different environments, need to review this thing.
 
 say "Testing against";
-say "RedisDB:        ", RedisDB->VERSION;
-say "Redis:          ", Redis->VERSION;
-say "Redis::hiredis: ", Redis::hiredis->VERSION;
-say "Redis::Client:  ", Redis::Client->VERSION;
+say "RedisDB:         ",            RedisDB->VERSION;
+say "Redis:           ",            Redis->VERSION;
+say "Redis::hiredis:  ",            Redis::hiredis->VERSION;
+say "Redis::Client:   ",            Redis::Client->VERSION;
+say "AnyEvent::Redis: ",            AnyEvent::Redis->VERSION;
+say "AnyEvent::Redis::RipeRedis: ", AnyEvent::Redis::RipeRedis->VERSION;
 
 my $srv;
 
@@ -34,12 +38,28 @@ else {
 my $redis = Redis->new(
     server   => "$srv->{host}:$srv->{port}",
     encoding => undef,
-#    reconnect => 1,
+
+    #    reconnect => 1,
 );
 my $redisdb = RedisDB->new( host => "$srv->{host}", port => $srv->{port} );
 my $rediscl = Redis::Client->new( host => "$srv->{host}", port => $srv->{port} );
 my $hiredis = Redis::hiredis->new();
 $hiredis->connect( $srv->{host}, $srv->{port} );
+
+my $ae_redis = AnyEvent::Redis->new( host => "$srv->{host}", port => $srv->{port} );
+my $cv = $ae_redis->set( "RDB_AE_TEST", 1 );
+$cv->recv;
+
+$cv = AnyEvent::CondVar->new;
+my $ripe = AnyEvent::Redis::RipeRedis->new( host => "$srv->{host}", port => $srv->{port} );
+$ripe->set(
+    "RDB_RIPE_TEST",
+    1,
+    {
+        on_done => sub { $cv->broadcast }
+    }
+);
+$cv->recv;
 
 sub sender {
     my ( $cli, $num, $data ) = @_;
@@ -52,6 +72,7 @@ sub sender {
 $redisdb->set( "RDB$_", "0123456789abcdef", RedisDB::IGNORE_REPLY ) for 1 .. 1000;
 
 say '';
+say "Testing setting/getting 16 bytes values";
 
 cmpthese 150, {
     Redis => sub {
@@ -90,9 +111,33 @@ cmpthese 150, {
             $res{ $hiredis->get_reply }++;
         }
     },
+    "AE::Redis" => sub {
+        my $done = AnyEvent::CondVar->new;
+        my $cnt;
+        for ( 1 .. 1000 ) {
+            $ae_redis->set( "RDB$_", "0123456789abcdef", sub { } );
+            $ae_redis->get( "RDB$_", sub { $done->broadcast if ++$cnt == 1000 } );
+        }
+        $done->recv;
+    },
+    "AE::R::RipeRedis" => sub {
+        my $done = AnyEvent::CondVar->new;
+        my $cnt;
+        for ( 1 .. 1000 ) {
+            $ripe->set( "RDB$_", "0123456789abcdef" );
+            $ripe->get(
+                "RDB$_",
+                {
+                    on_done => sub { $done->broadcast if ++$cnt == 1000 }
+                }
+            );
+        }
+        $done->recv;
+    },
 };
 
 say '';
+say "Testing setting/getting 2K values";
 
 cmpthese 150, {
     Redis => sub {
@@ -110,6 +155,7 @@ cmpthese 150, {
 };
 
 say '';
+say "Testing setting/getting 16K values";
 
 cmpthese 150, {
     Redis => sub {
