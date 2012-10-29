@@ -103,7 +103,9 @@ sub new {
     $self->{host} ||= 'localhost';
     $self->{_replies}       = [];
     $self->{_to_be_fetched} = 0;
-    $self->{database} ||= 0;
+    $self->{database}            ||= 0;
+    $self->{reconnect_attempts}  ||= 5;
+    $self->{reconnect_delay_max} ||= 8;
     $self->_init_parser;
     $self->_connect unless $self->{lazy};
     return $self;
@@ -154,6 +156,7 @@ sub _connect {
 
     $self->{_pid} = $$;
 
+    delete $self->{_socket};
     if ( $self->{path} ) {
         $self->{_socket} = IO::Socket::UNIX->new(
             Type => SOCK_STREAM,
@@ -161,12 +164,24 @@ sub _connect {
         ) or croak "Can't connect to redis server socket at `$self->{path}': $!";
     }
     else {
-        $self->{_socket} = IO::Socket::INET->new(
-            PeerAddr => $self->{host},
-            PeerPort => $self->{port},
-            Proto    => 'tcp',
-            ( $self->{timeout} ? ( Timeout => $self->{timeout} ) : () ),
-        ) or croak "Can't connect to redis server $self->{host}:$self->{port}: $!";
+        my $attempts = $self->{reconnect_attempts};
+        my $delay;
+        my $err;
+        while ( not $self->{_socket} and $attempts ) {
+            sleep $delay if $delay;
+            $self->{_socket} = IO::Socket::INET->new(
+                PeerAddr => $self->{host},
+                PeerPort => $self->{port},
+                Proto    => 'tcp',
+                ( $self->{timeout} ? ( Timeout => $self->{timeout} ) : () ),
+            ) or $err = $!;
+            $delay = $delay ? ( 1 + rand ) * $delay : 1;
+            $delay = $self->{reconnect_delay_max} if $delay > $self->{reconnect_delay_max};
+            $attempts--;
+        }
+        unless ( $self->{_socket} ) {
+            croak "Can't connect to redis server $self->{host}:$self->{port}: $err";
+        }
     }
 
     if ( $self->{timeout} ) {
@@ -246,7 +261,7 @@ sub _recv_data_nb {
             # if there are some replies lost
             confess "Server closed connection. Some data was lost."
               if $self->{_parser}->callbacks
-                  or $self->{_in_multi};
+              or $self->{_in_multi};
 
             # clean disconnect, try to reconnect
             $self->{warnings} and warn "Disconnected, trying to reconnect";
@@ -433,8 +448,8 @@ sub get_reply {
 
     croak "We are not waiting for reply"
       unless @{ $self->{_replies} }
-          or $self->{_to_be_fetched}
-          or $self->{_subscription_loop};
+      or $self->{_to_be_fetched}
+      or $self->{_subscription_loop};
     croak "You can't read reply in child process" unless $self->{_pid} == $$;
     while ( not @{ $self->{_replies} } ) {
         my $ret = $self->{_socket}->recv( my $buffer, 131072 );
@@ -846,7 +861,7 @@ sub subscription_loop {
     croak "Already in subscription loop" if $self->{_subscribtion_loop};
     croak "You can't start subscription loop while in pipelining mode."
       if $self->{_parser}->callbacks
-          or @{ $self->{_replies} };
+      or @{ $self->{_replies} };
     $self->{_subscribed}        = {};
     $self->{_psubscribed}       = {};
     $self->{_subscription_cb}   = $args{default_callback};
