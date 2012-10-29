@@ -1,5 +1,10 @@
 Revision history for RedisDB
 
+2.09_1 Mon Oct 29 2012 Pavel Shaydo <zwon@cpan.org>
+    * implement reconnect to retry to connect several times before
+      throwing an error.
+    * add AnyEvent::Redis and AE::R::RipeRedis to benchmark script
+
 2.08 Thu Oct 11 2012 Pavel Shaydo <zwon@cpan.org>
     * workaround bug in perls before 5.14 that causes recv set $! to
       0 instead of EINTR if interrupted by alarm
