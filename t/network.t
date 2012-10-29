@@ -5,21 +5,41 @@ use IO::Socket::UNIX;
 use File::Temp qw(tempdir);
 use File::Spec;
 use Try::Tiny;
+use Time::HiRes qw(usleep);
 
 # Check that module is able to restore connection
 subtest "Restore connection" => sub {
-    my $srv = IO::Socket::INET->new( LocalAddr => '127.0.0.1', Proto => 'tcp', Listen => 1 );
+    my $srv = IO::Socket::INET->new(
+        LocalAddr => '127.0.0.1',
+        Proto     => 'tcp',
+        Listen    => 1,
+        ReuseAddr => 1,
+    );
     plan skip_all => "Can't start server" unless $srv;
 
-    my $pid = fork;
+    my $port = $srv->sockport;
+    my $pid  = fork;
     if ( $pid == 0 ) {
-        my $conn = 0;
-        $SIG{ALRM} = sub { die "Died on timeout. $conn connections accepted" };
+        $SIG{ALRM} = sub { die "Died on timeout." };
         alarm 10;
-        my @replies = ( "+PONG\015\012", "+OK\015\012", "+OK" );
+        my $cli = $srv->accept;
+        $cli->recv( my $buf, 1024 );
+        $cli->send( "+PONG\015\012", 0 );
+        $cli->close;
+
+        # simulate restart of the redis-server
+        $srv->close;
+        usleep 1_000_000;
+        $srv = IO::Socket::INET->new(
+            LocalAddr => '127.0.0.1',
+            LocalPort => $port,
+            Proto     => 'tcp',
+            Listen    => 1,
+            ReuseAddr => 1,
+        ) or die $!;
+        my @replies = ( "+OK\015\012", "+OK" );
         while (@replies) {
             my $cli = $srv->accept;
-            $conn++;
             $cli->recv( my $buf, 1024 );
             $cli->send( shift(@replies), 0 );
             close $cli;
@@ -27,20 +47,32 @@ subtest "Restore connection" => sub {
         exit 0;
     }
 
-    my $port = $srv->sockport;
     close $srv;
-    my $redis = RedisDB->new( host => '127.0.0.1', port => $port, lazy => 1 );
+    my $redis = RedisDB->new(
+        host                => '127.0.0.1',
+        port                => $port,
+        lazy                => 1,
+        reconnect_delay_max => 2,
+    );
     my $ret;
     lives_ok { $ret = $redis->ping } "Ping";
     is $ret, 'PONG', "pong";
     undef $ret;
-    sleep 1;
+    usleep 200_000;
     lives_ok { $ret = $redis->set( 'key', 'value' ) } "Connection restored";
     is $ret, 'OK', "key is set";
-    sleep 1;
+    usleep 200_000;
     dies_ok { $redis->get('key') } "Died on unclean disconnect";
     wait;
-    dies_ok { RedisDB->new( host => '127.0.0.1', port => $port ) } "Dies on conection failure";
+    dies_ok {
+        RedisDB->new(
+            host                => '127.0.0.1',
+            port                => $port,
+            reconnect_attempts  => 3,
+            reconnect_delay_max => 2,
+          )
+    }
+    "Dies on conection failure";
 };
 
 # Check what will happen if server immediately closes connection
