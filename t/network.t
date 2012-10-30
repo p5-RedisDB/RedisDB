@@ -113,7 +113,7 @@ subtest "socket timeout" => sub {
 
     my $redis = RedisDB->new( host => '127.0.0.1', port => $srv->sockport, timeout => 3 );
     lives_ok { $redis->send_command('PING') } "Sent command without problems";
-    dies_ok { $redis->get_reply } "Dies on timeout while receiving reply";
+    throws_ok { $redis->get_reply } 'RedisDB::Error::EAGAIN', "Dies on timeout while receiving reply";
 };
 
 # Check that we can connect to UNIX socket

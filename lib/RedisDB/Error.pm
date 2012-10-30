@@ -50,6 +50,9 @@ sub as_string {
     return shift->{message};
 }
 
+package RedisDB::Error::EAGAIN;
+our @ISA = qw(RedisDB::Error);
+
 1;
 
 __END__

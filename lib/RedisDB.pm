@@ -78,9 +78,10 @@ will return error object instead.
 =item timeout
 
 IO timeout. With this option set, if IO operation has taken more than specified
-number of seconds, module will croak. Note, that some OSes do not support
-SO_RCVTIMEO, and SO_SNDTIMEO socket options, in this case timeout will not
-work.
+number of seconds, module will croak or return L<RedisDB::Error::EAGAIN> error
+object depending on L</raise_error> setting. Note, that some OSes do not
+support SO_RCVTIMEO, and SO_SNDTIMEO socket options, in this case timeout will
+not work.
 
 =item utf8
 
@@ -465,6 +466,15 @@ sub get_reply {
         my $ret = $self->{_socket}->recv( my $buffer, 131072 );
         unless ( defined $ret ) {
             next if $! == EINTR or $! == 0;
+            if ( $! == EINTR or $! == EWOULDBLOCK ) {
+                my $err = RedisDB::Error::EAGAIN->new("$!");
+                if ( $self->{raise_error} ) {
+                    die $err;
+                }
+                else {
+                    return $err;
+                }
+            }
             confess "Error reading reply from server: $!";
         }
         if ( $buffer ne '' ) {
