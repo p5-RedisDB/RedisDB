@@ -332,5 +332,3 @@ sub cmd_scripts {
 }
 
 done_testing;
-
-END { $redis->shutdown if $redis; }

@@ -45,7 +45,3 @@ subtest "utf8 enabled" => sub {
 };
 
 done_testing;
-
-END {
-    $redis->shutdown if $redis;
-}

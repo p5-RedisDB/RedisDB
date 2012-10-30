@@ -112,4 +112,3 @@ is $redis->selected_database, 0, "selected_database 0";
 is $redis->get("DB_number"), 0,    "DB number 0";
 
 done_testing;
-END { $redis->shutdown if $redis; }

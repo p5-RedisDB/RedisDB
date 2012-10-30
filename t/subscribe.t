@@ -144,4 +144,3 @@ $sub->unsubscribe;
 $sub->punsubscribe;
 
 done_testing;
-END { $redis->shutdown if $redis; }

@@ -26,8 +26,3 @@ else {
 }
 
 done_testing;
-
-END {
-    RedisDB->new( host => 'localhost', port => $server->{port}, password => 'test' )->shutdown
-      if $server
-}

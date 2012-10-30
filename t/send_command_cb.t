@@ -36,4 +36,3 @@ eq_or_diff \@replies,
 is $redis->replies_to_fetch, 0, "No replies to fetch";
 
 done_testing;
-END { $redis->shutdown if $redis; }

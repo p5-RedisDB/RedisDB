@@ -46,12 +46,3 @@ dies_ok { $redis->set( "key2", "43" ) } "Not reconnecting when in transaction";
 $redis = undef;
 
 done_testing;
-
-END {
-    if ($redis) {
-        $redis->shutdown;
-    }
-    elsif ($redis2) {
-        $redis2->shutdown;
-    }
-}
