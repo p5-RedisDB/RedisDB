@@ -44,6 +44,7 @@ WriteMakefile(
         'Test::More'        => 0.96,
         'Test::Most'        => 0.22,
         'Test::Differences' => 0.61,
+        'Test::TCP'         => 1.17,
         'Digest::SHA'       => 0,
     },
     dist       => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },

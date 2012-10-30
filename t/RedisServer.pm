@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use POSIX qw(SIGTERM);
 use File::Spec;
+use Test::TCP;
 
 my $REDIS_SERVER = 'redis-server';
 $REDIS_SERVER .= '.exe' if $^O eq 'MSWin32';
@@ -15,7 +16,7 @@ sub start {
     # check if we have redis-server
     return unless grep { -x } map { File::Spec->catfile( $_, $REDIS_SERVER ) } File::Spec->path;
 
-    $args{port} ||= $ENV{TEST_REDIS_PORT} || 6380;
+    $args{port} ||= $ENV{TEST_REDIS_PORT} || empty_port;
     my $requirepass = $args{password} ? "requirepass $args{password}" : "";
     unless ( $args{dir} ) {
         require File::Temp;
@@ -38,39 +39,21 @@ EOC
     }
 
     my $self = bless \%args, $class;
-    $self->_start;
+    $self->{_t_tcp} = Test::TCP->new(
+        port => $self->{port},
+        code => sub { exec $REDIS_SERVER, File::Spec->catfile( $self->{dir}, "redis.cfg" ); },
+    );
     return $self;
 }
 
-sub _start {
-    my $self = shift;
-    $self->{pid} = fork;
-    if ( $self->{pid} == 0 ) {
-        exec $REDIS_SERVER, File::Spec->catfile( $self->{dir}, "redis.cfg" )
-          or die "Couldn't start redis server: $!";
-    }
-    $self->{mypid} = $$;
-    sleep 2;
-}
-
 sub stop {
-    my $self = shift;
-
-    return if $^O eq 'MSWin32';
-
-    # do not kill server from the child process
-    if ( $self->{pid} and $self->{mypid} == $$ ) {
-        kill SIGTERM, $self->{pid};
-        waitpid $self->{pid}, 0;
-        delete $self->{pid};
-    }
-    return;
+    shift->{_t_tcp}->stop;
 }
 
 sub restart {
     my $self = shift;
-    $self->stop;
-    $self->_start;
+    $self->{_t_tcp}->stop;
+    $self->{_t_tcp}->start;
     return;
 }
 
