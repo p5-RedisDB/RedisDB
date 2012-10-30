@@ -111,4 +111,12 @@ is $redis->select(0),        'OK', "selected DB 0";
 is $redis->selected_database, 0, "selected_database 0";
 is $redis->get("DB_number"), 0,    "DB number 0";
 
+subtest "Error handling" => sub {
+    $redis->set( "scalar", "scalar" );
+    dies_ok { $redis->hget( "scalar", "scalar" ); } "dies on error from redis if raise_error is on";
+    my $redis2 = RedisDB->new( host => 'localhost', port => $server->{port}, raise_error => undef );
+    my $res = $redis2->hget( "scalar", "scalar" );
+    isa_ok $res, "RedisDB::Error", "with raise_error off returns RedisDB::Error object";
+};
+
 done_testing;

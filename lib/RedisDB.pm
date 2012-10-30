@@ -69,6 +69,12 @@ connecting to the server. Database changes when you sending I<select> command
 to the server. You can get current database using I<selected_database> method.
 Default value is 0.
 
+=item raise_error
+
+By default if redis-server returned error reply, I<get_reply> method throws
+an exception of L<RedisDB::Error> type, if you set this parameter to false it
+will return error object instead.
+
 =item timeout
 
 IO timeout. With this option set, if IO operation has taken more than specified
@@ -101,6 +107,7 @@ sub new {
     }
     $self->{port} ||= 6379;
     $self->{host} ||= 'localhost';
+    $self->{raise_error}    = 1 unless exists $self->{raise_error};
     $self->{_replies}       = [];
     $self->{_to_be_fetched} = 0;
     $self->{database}            ||= 0;
@@ -118,9 +125,10 @@ sub _init_parser {
 
 =head2 $self->execute($command, @arguments)
 
-send a command to the server and return the result. It will throw the exception
-if the server returns an error. It may be more convenient to use instead of
-this method wrapper named after the corresponding redis command. E.g.:
+send a command to the server and return the result. It will throw an exception
+if the server returns an error or return L<RedisDB::Error> depending on
+L</raise_error> parameter. It may be more convenient to use instead of this
+method wrapper named after the corresponding redis command. E.g.:
 
     $redis->execute('set', key => 'value');
     # is the same as
@@ -439,7 +447,9 @@ sub mainloop {
 
 =head2 $self->get_reply
 
-receive reply from the server. Method croaks if the server returns an error.
+Receive and return reply from the server. If the server returned an error,
+method throws L<RedisDB::Error> exception or returns L<RedisDB::Error> object,
+depending on I<raise_error> parameter, see I<new>.
 
 =cut
 
@@ -470,7 +480,7 @@ sub get_reply {
     }
 
     my $res = shift @{ $self->{_replies} };
-    croak "$res" if ref $res eq 'RedisDB::Error';
+    croak "$res" if ref $res eq 'RedisDB::Error' and $self->{raise_error};
     return $res;
 }
 
@@ -680,16 +690,18 @@ not recommended.
 
 =head1 ERROR HANDLING
 
-If an error happens which the module can't handle, it will croak. It may
-happen as a result of a network error, or invalid data encoding, or if the
-server returned an error reply. In some cases the RedisDB object after throwing
-an exception will be left in inconsistant state. If you want to continue using
-the object after getting an exception, you should invoke the
-L</reset_connection> method on it. This will drop current connection and all
-outstanding requests, so the object will return to the same state it was just
-after creation with the L</new> method. If the connection was in subscription
-mode, you will have to restore all the subscriptions, if it was in the middle
-of transaction, you will have to start the transaction again.
+If an error happens which the module can't handle, it will throw an exception.
+It may happen as a result of a network error or invalid data encoding. Also
+module will throw an exception of the L<RedisDB::Error> type if the server
+returned an error reply and I<raise_error> parameter is set to true in the
+constructor (which is by default). After throwing an exception other than the
+L<RedisDB::Error> the RedisDB object will be left in inconsistant state. If you
+want to continue using the object after getting such an exception, you should
+invoke the L</reset_connection> method on it. This will drop current connection
+and all outstanding requests, so the object will return to the same state it
+was just after creation with the L</new> method. If the connection was in
+subscription mode, you will have to restore all the subscriptions, if it was in
+the middle of transaction, you will have to start the transaction again.
 
 =cut
 
