@@ -1075,11 +1075,11 @@ Transactions allow you to execute a sequence of commands in a single step. In
 order to start a transaction you should use the I<multi> method.  After you
 have entered a transaction all the commands you issue are queued, but not
 executed till you call the I<exec> method. Tipically these commands return
-string "QUEUED" as result, but if there is an error in e.g. number of
+string "QUEUED" as a result, but if there is an error in e.g. number of
 arguments, they may croak. When you call exec, all the queued commands will be
 executed and exec will return a list of results for every command in the
-transaction. If any command has failed, exec will croak. If instead of I<exec>
-you call I<discard>, all scheduled commands will be canceled.
+transaction. If instead of I<exec> you call I<discard>, all scheduled commands
+will be canceled.
 
 You can set some keys as watched. If any whatched key has been changed by
 another client before you called exec, the transaction will be discarded and
@@ -1139,7 +1139,7 @@ __END__
 
 =head1 SEE ALSO
 
-L<Redis>, L<Redis::hiredis>, L<AnyEvent::Redis>
+L<Redis>, L<Redis::hiredis>, L<Redis::Client>, L<AnyEvent::Redis>, L<AnyEvent::Redis::RipeRedis>
 
 =head1 WHY ANOTHER ONE
 
