@@ -95,6 +95,18 @@ by default I<new> establishes connection to the server. If this parameter is
 set, then connection will be established when you will send a command to the
 server.
 
+=item reconnect_attempts
+
+this parameter allows you to specify how many attempts to (re)connect to the
+server should be made before returning error. Default value is 1, set to -1 if
+module should try to reconnect indefinetely.
+
+=item reconnect_delay_max
+
+module makes a delay before each new attempt to connect. Delay increases with
+each new attempt. This parameter allows you to specify maximum delay between
+attempts to reconnect. Default value is 10.
+
 =back
 
 =cut
@@ -112,8 +124,8 @@ sub new {
     $self->{_replies}       = [];
     $self->{_to_be_fetched} = 0;
     $self->{database}            ||= 0;
-    $self->{reconnect_attempts}  ||= 5;
-    $self->{reconnect_delay_max} ||= 8;
+    $self->{reconnect_attempts}  ||= 1;
+    $self->{reconnect_delay_max} ||= 10;
     $self->_init_parser;
     $self->_connect unless $self->{lazy};
     return $self;
@@ -721,12 +733,12 @@ Redis server may close a connection if it was idle for some time, also the
 connection may be closed in case when redis-server was restarted. RedisDB
 restores a connection to the server, but only if no data was lost as a result
 of the disconnect. E.g. if the client was idle for some time and the redis
-server closed the connection, it will be transparently restored on sending next
-command. If you sent a command and the server has closed the connection without
-sending a complete reply, the connection will not be restored and the module
-will throw an exception. Also the module will throw an exception if the
-connection was closed in the middle of a transaction or while you're in a
-subscription loop.
+server closed the connection, it will be transparently restored when you send a
+command next time.  If you sent a command and the server has closed the
+connection without sending a complete reply, the connection will not be
+restored and the module will throw an exception. Also the module will throw an
+exception if the connection was closed in the middle of a transaction or while
+you're in a subscription loop.
 
 =cut
 

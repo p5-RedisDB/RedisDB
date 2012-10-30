@@ -52,6 +52,7 @@ subtest "Restore connection" => sub {
         host                => '127.0.0.1',
         port                => $port,
         lazy                => 1,
+        reconnect_attempts  => 3,
         reconnect_delay_max => 2,
     );
     my $ret;
