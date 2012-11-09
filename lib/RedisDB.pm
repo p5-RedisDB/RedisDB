@@ -624,6 +624,10 @@ my @commands = qw(
   zscore	zunionstore
 );
 
+sub _simple_commands {
+    return @commands;
+}
+
 =head1 WRAPPER METHODS
 
 Instead of using I<execute> and I<send_command> methods directly, it may be
