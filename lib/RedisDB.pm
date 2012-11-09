@@ -30,9 +30,10 @@ RedisDB - Perl extension to access redis database
 
 =head1 DESCRIPTION
 
-This module provides interface to access redis key-value store. It
-transparently handles disconnects and forks. It supports transactions,
-pipelining, and subscription mode.
+This module provides interface to access redis key-value store, it
+transparently handles disconnects and forks, supports transactions,
+pipelining, and subscription mode. Module includes XS and pure Perl
+versions of the parser.
 
 =head1 METHODS
 
@@ -99,7 +100,7 @@ server.
 
 this parameter allows you to specify how many attempts to (re)connect to the
 server should be made before returning error. Default value is 1, set to -1 if
-module should try to reconnect indefinetely.
+module should try to reconnect indefinitely.
 
 =item reconnect_delay_max
 
@@ -116,7 +117,7 @@ connection attempt. First argument to callback is a reference to the RedisDB
 object, and second is the error description. You must not invoke any methods on
 the object, but you can change I<port> and I<host>, or I<path> attributes.
 After callback returned, module tries to establish connection again. Default
-calback confesses. This may be useful to fallback to reserve server if primary
+callback confesses. This may be useful to fallback to reserve server if primary
 is down.
 
 =end comment
@@ -328,7 +329,7 @@ sub _queue {
 =head2 $self->send_command($command[, @arguments][, \&callback])
 
 send a command to the server. Returns true if the command was successfully
-sent, or dies if an error occured. Note, that it does not return reply from
+sent, or dies if an error occurred. Note, that it does not return reply from
 the server, you should retrieve it using the I<get_reply> method, or if I<callback>
 has been specified, it will be invoked upon receiving the reply with two
 arguments: the RedisDB object, and the reply from the server.  If the server
@@ -740,7 +741,7 @@ It may happen as a result of a network error or invalid data encoding. Also
 module will throw an exception of the L<RedisDB::Error> type if the server
 returned an error reply and I<raise_error> parameter is set to true in the
 constructor (which is by default). After throwing an exception other than the
-L<RedisDB::Error> the RedisDB object will be left in inconsistant state. If you
+L<RedisDB::Error> the RedisDB object will be left in inconsistent state. If you
 want to continue using the object after getting such an exception, you should
 invoke the L</reset_connection> method on it. This will drop current connection
 and all outstanding requests, so the object will return to the same state it
@@ -781,7 +782,7 @@ will never be invoked:
     $redis->send_command( "ping", sub { $pong = $_[1] } );
     sleep 1 while not $pong;    # this will never return
 
-Therefore you need perriodically trigger check for the replies. The check is
+Therefore you need periodically trigger check for the replies. The check is
 triggered when you call the following methods: I<send_command>, I<reply_ready>,
 I<get_reply>, I<get_all_replies>.  Calling wrapper method, like
 C<< $redis->get('key') >>, will also trigger check as internally wrapper methods
@@ -872,7 +873,7 @@ You can publish messages into the channels using the I<publish> method. This
 method should be called when you in the normal mode, and can't be used while
 you're in the subscription mode.
 
-Following methods can be used in subscribtion mode:
+Following methods can be used in subscription mode:
 
 =cut
 
@@ -908,14 +909,14 @@ same as subscribe, but you specify patterns for channels' names.
 =back
 
 All parameters are optional, but you must subscribe at least to one channel. Also
-if default_callback is not specified, you have to explicitely specify a callback
+if default_callback is not specified, you have to explicitly specify a callback
 for every channel you are going to subscribe.
 
 =cut
 
 sub subscription_loop {
     my ( $self, %args ) = @_;
-    croak "Already in subscription loop" if $self->{_subscribtion_loop};
+    croak "Already in subscription loop" if $self->{_subscription_loop};
     croak "You can't start subscription loop while in pipelining mode."
       if $self->{_parser}->callbacks
       or @{ $self->{_replies} };
@@ -1097,14 +1098,14 @@ sub psubscribed {
 Transactions allow you to execute a sequence of commands in a single step. In
 order to start a transaction you should use the I<multi> method.  After you
 have entered a transaction all the commands you issue are queued, but not
-executed till you call the I<exec> method. Tipically these commands return
+executed till you call the I<exec> method. Typically these commands return
 string "QUEUED" as a result, but if there is an error in e.g. number of
 arguments, they may croak. When you call exec, all the queued commands will be
 executed and exec will return a list of results for every command in the
 transaction. If instead of I<exec> you call I<discard>, all scheduled commands
 will be canceled.
 
-You can set some keys as watched. If any whatched key has been changed by
+You can set some keys as watched. If any watched key has been changed by
 another client before you called exec, the transaction will be discarded and
 exec will return false value.
 
@@ -1170,9 +1171,9 @@ I was in need of the client for redis database. L<AnyEvent::Redis> didn't suite
 me as it requires an event loop, and it didn't fit into the existing code. The
 problem with L<Redis> is that it didn't (at the time I started this) reconnect
 to the server if connection was closed after timeout or as result of the server
-restart, and it does not support pipelining. After analizing what I need to
+restart, and it does not support pipelining. After analyzing what I need to
 change in L<Redis> in order to get all I want, I decided that it will be
-simplier to write the new module from scratch. This also solves the problem of
+simpler to write the new module from scratch. This also solves the problem of
 backward compatibility.
 
 =head1 BUGS
