@@ -107,6 +107,20 @@ module makes a delay before each new attempt to connect. Delay increases with
 each new attempt. This parameter allows you to specify maximum delay between
 attempts to reconnect. Default value is 10.
 
+=begin comment
+
+=item on_connect_error
+
+this allows you to specify callback that will be invoked in the case of failed
+connection attempt. First argument to callback is a reference to the RedisDB
+object, and second is the error description. You must not invoke any methods on
+the object, but you can change I<port> and I<host>, or I<path> attributes.
+After callback returned, module tries to establish connection again. Default
+calback confesses. This may be useful to fallback to reserve server if primary
+is down.
+
+=end comment
+
 =back
 
 =cut
@@ -126,6 +140,7 @@ sub new {
     $self->{database}            ||= 0;
     $self->{reconnect_attempts}  ||= 1;
     $self->{reconnect_delay_max} ||= 10;
+    $self->{on_connect_error}    ||= \&_on_connect_error;
     $self->_init_parser;
     $self->_connect unless $self->{lazy};
     return $self;
@@ -165,6 +180,12 @@ sub execute {
     return $self->get_reply;
 }
 
+sub _on_connect_error {
+    my ( $self, $err ) = @_;
+    my $server = $self->{path} || ("$self->{host}:$self->{port}");
+    confess "Couldn't connect to the redis server at $server: $!";
+}
+
 # establish connection to the server.
 
 sub _connect {
@@ -178,31 +199,33 @@ sub _connect {
     $self->{_pid} = $$;
 
     delete $self->{_socket};
-    if ( $self->{path} ) {
-        $self->{_socket} = IO::Socket::UNIX->new(
-            Type => SOCK_STREAM,
-            Peer => $self->{path},
-        ) or croak "Can't connect to redis server socket at `$self->{path}': $!";
+    my $error;
+    while ( not $self->{_socket} ) {
+        if ( $self->{path} ) {
+            $self->{_socket} = IO::Socket::UNIX->new(
+                Type => SOCK_STREAM,
+                Peer => $self->{path},
+            ) or $error = $!;
+        }
+        else {
+            my $attempts = $self->{reconnect_attempts};
+            my $delay;
+            while ( not $self->{_socket} and $attempts ) {
+                sleep $delay if $delay;
+                $self->{_socket} = IO::Socket::INET->new(
+                    PeerAddr => $self->{host},
+                    PeerPort => $self->{port},
+                    Proto    => 'tcp',
+                    ( $self->{timeout} ? ( Timeout => $self->{timeout} ) : () ),
+                ) or $error = $!;
+                $delay = $delay ? ( 1 + rand ) * $delay : 1;
+                $delay = $self->{reconnect_delay_max} if $delay > $self->{reconnect_delay_max};
+                $attempts--;
+            }
+        }
     }
-    else {
-        my $attempts = $self->{reconnect_attempts};
-        my $delay;
-        my $err;
-        while ( not $self->{_socket} and $attempts ) {
-            sleep $delay if $delay;
-            $self->{_socket} = IO::Socket::INET->new(
-                PeerAddr => $self->{host},
-                PeerPort => $self->{port},
-                Proto    => 'tcp',
-                ( $self->{timeout} ? ( Timeout => $self->{timeout} ) : () ),
-            ) or $err = $!;
-            $delay = $delay ? ( 1 + rand ) * $delay : 1;
-            $delay = $self->{reconnect_delay_max} if $delay > $self->{reconnect_delay_max};
-            $attempts--;
-        }
-        unless ( $self->{_socket} ) {
-            croak "Can't connect to redis server $self->{host}:$self->{port}: $err";
-        }
+    continue {
+        $self->{on_connect_error}->( $self, $error ) unless $self->{_socket};
     }
 
     if ( $self->{timeout} ) {

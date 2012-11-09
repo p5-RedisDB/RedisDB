@@ -16,6 +16,12 @@ subtest "Restore connection" => sub {
         ReuseAddr => 1,
     );
     plan skip_all => "Can't start server" unless $srv;
+    my $empty_port = IO::Socket::INET->new(
+        LocalAddr => '127.0.0.1',
+        Proto     => 'tcp',
+        Listen    => 1,
+    )->sockport;
+    die "Couldn't get empty port" unless $empty_port;
 
     my $port = $srv->sockport;
     my $pid  = fork;
@@ -37,7 +43,7 @@ subtest "Restore connection" => sub {
             Listen    => 1,
             ReuseAddr => 1,
         ) or die $!;
-        my @replies = ( "+OK\015\012", "+OK" );
+        my @replies = ( "+OK\015\012", "+OK", ":42\015\012" );
         while (@replies) {
             my $cli = $srv->accept;
             $cli->recv( my $buf, 1024 );
@@ -64,8 +70,16 @@ subtest "Restore connection" => sub {
     is $ret, 'OK', "key is set";
     usleep 200_000;
     dies_ok { $redis->get('key') } "Died on unclean disconnect";
+    my $invoked_callback;
+    my $fourty_two = RedisDB->new(
+        host             => '127.0.0.1',
+        port             => $empty_port,
+        on_connect_error => sub { shift->{port} = $port; $invoked_callback++; },
+    )->get('forty_two');
+    ok $invoked_callback, "Invoked 'on_connect_error' callback";
+    is $fourty_two, 42, "Restored connection after invoking 'on_connect_error'";
     wait;
-    dies_ok {
+    throws_ok {
         RedisDB->new(
             host                => '127.0.0.1',
             port                => $port,
@@ -73,7 +87,7 @@ subtest "Restore connection" => sub {
             reconnect_delay_max => 2,
           )
     }
-    "Dies on conection failure";
+    qr/on_connect_error/, "Dies on conection failure";
 };
 
 # Check what will happen if server immediately closes connection
@@ -114,7 +128,8 @@ subtest "socket timeout" => sub {
 
     my $redis = RedisDB->new( host => '127.0.0.1', port => $srv->sockport, timeout => 3 );
     lives_ok { $redis->send_command('PING') } "Sent command without problems";
-    throws_ok { $redis->get_reply } 'RedisDB::Error::EAGAIN', "Dies on timeout while receiving reply";
+    throws_ok { $redis->get_reply } 'RedisDB::Error::EAGAIN',
+      "Dies on timeout while receiving reply";
 };
 
 # Check that we can connect to UNIX socket
