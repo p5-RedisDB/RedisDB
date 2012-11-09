@@ -6,7 +6,6 @@ lib/RedisDB/Parse/Redis_PP.pm
 lib/RedisDB/Parse/Redis_XS.pm
 Makefile.PL
 MANIFEST
-META.yml
 README
 RedisDB.xs
 parser.h
@@ -19,7 +18,6 @@ t/basic_redis.t
 t/network.t
 t/no-leak.t
 t/parser.t
-t/pod.t
 t/redis_commands.t
 t/RedisServer.pm
 t/send_command_cb.t
@@ -28,3 +26,6 @@ t/transactions.t
 t/utf8.t
 util/benchmark.pl
 util/pipeline.pl
+xt/podspell.t
+xt/manifest.t
+xt/pod.t
