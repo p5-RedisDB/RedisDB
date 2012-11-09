@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+2.09_3 Fri Nov  9 2012 Pavel Shaydo <zwon@cpan.org>
+    * add on_connect_error callback
+
 2.09_2 Tue Oct 30 2012 Pavel Shaydo <zwon@cpan.org>
     * add raise_error setting
     * fix documentation
