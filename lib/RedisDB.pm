@@ -108,8 +108,6 @@ module makes a delay before each new attempt to connect. Delay increases with
 each new attempt. This parameter allows you to specify maximum delay between
 attempts to reconnect. Default value is 10.
 
-=begin comment
-
 =item on_connect_error
 
 this allows you to specify callback that will be invoked in the case of failed
@@ -117,10 +115,8 @@ connection attempt. First argument to callback is a reference to the RedisDB
 object, and second is the error description. You must not invoke any methods on
 the object, but you can change I<port> and I<host>, or I<path> attributes.
 After callback returned, module tries to establish connection again. Default
-callback confesses. This may be useful to fallback to reserve server if primary
+callback confesses. This may be useful to switch to reserve server if primary
 is down.
-
-=end comment
 
 =back
 
