@@ -226,7 +226,25 @@ sub _connect {
     }
 
     if ( $self->{timeout} ) {
-        my $timeout = pack( 'L!L!', $self->{timeout}, 0 );
+        my $timeout;
+        if ( $Config{osname} eq 'netbsd' and $Config{osvers} >= 6.0 and $Config{longsize} == 4 ) {
+            if ( defined $Config{use64bitint} ) {
+                $timeout = pack( 'QL', $self->{timeout}, 0 );
+            }
+            else {
+                $timeout = pack(
+                    'LLL',
+                    (
+                        $Config{byteorder} eq '1234'
+                        ? ( $self->{timeout}, 0, 0 )
+                        : ( 0, $self->{timeout}, 0 )
+                    )
+                );
+            }
+        }
+        else {
+            $timeout = pack( 'L!L!', $self->{timeout}, 0 );
+        }
         try {
             defined $self->{_socket}->sockopt( SO_RCVTIMEO, $timeout )
               or die "Can't set timeout: $!";
