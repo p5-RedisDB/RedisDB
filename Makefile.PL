@@ -57,6 +57,7 @@ WriteMakefile(
             repository => 'git://github.com/trinitum/RedisDB',
             license    => 'http://dev.perl.org/licenses/',
         },
+        keywords => ['redis'],
     },
     CONFIGURE => sub {
         my $hash = $_[1];
