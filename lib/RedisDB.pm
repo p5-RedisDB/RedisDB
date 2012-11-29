@@ -9,7 +9,7 @@ use RedisDB::Error;
 use RedisDB::Parse::Redis;
 use IO::Socket::INET;
 use IO::Socket::UNIX;
-use Socket qw(MSG_DONTWAIT SO_RCVTIMEO SO_SNDTIMEO);
+use Socket qw(MSG_DONTWAIT MSG_NOSIGNAL SO_RCVTIMEO SO_SNDTIMEO);
 use POSIX qw(:errno_h);
 use Config;
 use Carp;
@@ -341,6 +341,8 @@ I<reply_ready>, I<get_reply>, or I<get_all_replies>.
 
 =cut
 
+my $NOSIGNAL = try { MSG_NOSIGNAL } || 0;
+
 sub send_command {
     my $self = shift;
 
@@ -381,7 +383,11 @@ sub send_command {
     $self->_recv_data_nb;
 
     my $request = $self->{_parser}->build_request( $command, @_ );
-    defined $self->{_socket}->send($request) or confess "Can't send request to server: $!";
+    {
+        local $SIG{PIPE} = 'IGNORE' unless $NOSIGNAL;
+        defined $self->{_socket}->send( $request, $NOSIGNAL )
+          or confess "Can't send request to server: $!";
+    }
     $self->{_parser}->add_callback($callback);
     return 1;
 }
