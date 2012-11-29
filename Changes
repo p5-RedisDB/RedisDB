@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+2.11 Fri Nov 30 2012 Pavel Shaydo <zwon@cpan.org>
+    * use MSG_NOSIGNAL on sending or ignore SIGPIPE
+    * fix socket timeout on NetBSD 6.0
+
 2.10 Sat Nov 10 2012 Pavel Shaydo <zwon@cpan.org>
     * release as stable
 
