@@ -64,6 +64,15 @@ sub callbacks {
     @{ shift->{_callbacks} };
 }
 
+sub propagate_reply {
+    my ( $self, $reply ) = @_;
+    $self->{_default_cb}->( $self->{redisdb}, $reply ) if $self->{_default_cb};
+    while ( my $cb = shift @{ $self->{_callbacks} } ) {
+        $cb->( $self->{redisdb}, $reply );
+    }
+    return;
+}
+
 sub add {
     my ( $self, $data ) = @_;
     $self->{_buffer} .= $data;

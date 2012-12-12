@@ -82,6 +82,11 @@ Used by subscription loop.
 
 Returns true if there are callbacks in queue
 
+=head2 $self->propagate_reply($reply)
+
+Invoke every callback from queue and the default callback with the given
+I<$reply>.
+
 =head2 $self->add($data)
 
 Process new data received from the server. For every reply found callback from
