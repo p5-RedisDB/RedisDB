@@ -233,6 +233,30 @@ sub cmd_server {
         my ( $sec, $ms ) = @{ $redis->time };
         ok time - $sec < 2, "Server time is correct";
     }
+    if ( $redis->version ge 2.006009 ) {
+        my $redis2 =
+          RedisDB->new( host => 'localhost', port => $server->{port}, connection_name => 'bar', );
+        is $redis->client_getname, undef, "Name for connection is not set";
+        is $redis->client_setname("foo"), "OK", "Set it to 'foo'";
+        is $redis->client_getname, "foo", "Now connection name is 'foo'";
+        my $clients = $redis->client_list;
+        is 0 + @$clients, 2, "Two clients connected to the server";
+        unless ( $clients->[0]{name} eq 'foo' ) {
+            @$clients = reverse @$clients;
+        }
+        is $clients->[0]{name}, "foo", "First client's name 'foo'";
+        is $clients->[1]{name}, "bar", "Another's is 'bar'";
+        is $redis->client_kill( $clients->[1]{addr} ), "OK", "Killed 'bar' connection ($clients->[1]{addr})";
+        sleep 1;
+        $redis->client_list(sub {$clients = $_[1]});
+        $redis->mainloop;
+        is 0 + @$clients, 1, "Only one client is connected";
+        is $redis2->client_getname, "bar", "Second connection is restored with name 'bar'";
+    }
+    else {
+        diag $redis->version;
+        diag "Skipped tests for redis >= 2.6.9";
+    }
 }
 
 sub cmd_sets {

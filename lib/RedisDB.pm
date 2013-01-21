@@ -90,6 +90,11 @@ Assume that all data on the server encoded in UTF-8. As result all strings will
 be converted to UTF-8 before sending to server, and all results will be decoded
 from UTF-8. See L</"UTF-8 SUPPORT">.
 
+=item connection_name
+
+After establishing connection set its name. See "CLIENT SETNAME" command
+description in the redis documentation.
+
 =item lazy
 
 by default I<new> establishes connection to the server. If this parameter is
@@ -273,6 +278,11 @@ sub _connect {
         );
     }
 
+    # connection name
+    if ( $self->{connection_name} ) {
+        $self->send_command( qw(CLIENT SETNAME), $self->{connection_name}, IGNORE_REPLY() );
+    }
+
     # select database
     if ( $self->{database} ) {
         $self->send_command( "SELECT", $self->{database}, IGNORE_REPLY() );
@@ -385,13 +395,18 @@ sub send_command {
     }
 
     # if SELECT has been successful, we should update database
-    if ( $command eq 'SELECT' ) {
+    elsif ( $command eq 'SELECT' ) {
         my $cb    = $callback;
         my $dbnum = $_[0];
         $callback = sub {
             $_[0]->{database} = $dbnum unless ref $_[1];
             $cb->(@_);
         };
+    }
+
+    # if CLIENT SETNAME we should remember the name
+    elsif ( $command eq 'CLIENT' && uc $_[0] eq 'SETNAME' ) {
+        $self->{connection_name} = $_[1];
     }
 
     $self->_connect unless $self->{_socket} and $self->{_pid} == $$;
@@ -625,8 +640,9 @@ sub version {
 # don't forget to update POD
 my @commands = qw(
   append	auth	bgrewriteaof	bgsave	bitcount	bitop
-  blpop	brpop   brpoplpush	config	config_get
-  config_set	config_resetstat	dbsize	debug_object	debug_segfault
+  blpop	brpop   brpoplpush	client	client_kill	client_getname	client_setname
+  config	config_get	config_set	config_resetstat
+  dbsize	debug_object	debug_segfault
   decr	decrby	del	dump	echo	eval    evalsha exists	expire	expireat	flushall
   flushdb	get	getbit	getrange	getset	hdel	hexists	hget	hgetall
   hincrby	hincrbyfloat	hkeys	hlen	hmget	hmset	hset	hsetnx	hvals	incr	incrby
@@ -669,22 +685,23 @@ I<execute>, waits for the reply from the server, and returns it. E.g.:
     $redis->send_command("get", $key, sub { $val = $_[1] });
 
 The following wrapper methods are defined: append, auth, bgrewriteaof, bgsave,
-blpop, brpop,   brpoplpush, config, config_get, config_set, config_resetstat,
-dbsize, debug_object, debug_segfault, decr, decrby, del, dump, echo, eval,
-evalsha, exists, expire, expireat, flushall, flushdb, get, getbit, getrange,
-getset, hdel, hexists, hget, hgetall, hincrby, hincrbyfloat, hkeys, hlen,
-hmget, hmset, hset, hsetnx, hvals, incr, incrby, incrbyfloat, keys, lastsave,
-lindex, linsert, llen, lpop, lpush, lpushx, lrange, lrem, lset, ltrim, mget,
-migrate, move, mset, msetnx, object, object_refcount, object_encoding,
-object_idletime, persist, pexpire, pexpireat, ping, psetex, pttl, publish,
-quit, randomkey, rename, renamenx, restore, rpop, rpoplpush, rpush, rpushx,
-sadd, save, scard, script, script_exists,   script_flush, script_kill,
-script_load, sdiff, sdiffstore, select, set, setbit, setex, setnx, setrange,
-sinter, sinterstore, sismember, slaveof, slowlog, smembers, smove, sort, spop,
-srandmember, srem, strlen, sunion, sunionstore, sync, time,    ttl, type,
-unwatch, watch, zadd, zcard, zcount, zincrby, zinterstore, zrange,
-zrangebyscore, zrank, zrem, zremrangebyrank,   zremrangebyscore, zrevrange,
-zrevrangebyscore, zrevrank, zscore, zunionstore.
+bitcount, bitop, blpop, brpop, brpoplpush, client, client_kill, client_getname,
+client_setname, config, config_get, config_set, config_resetstat, dbsize,
+debug_object, debug_segfault, decr, decrby, del, dump, echo, eval, evalsha,
+exists, expire, expireat, flushall, flushdb, get, getbit, getrange, getset,
+hdel, hexists, hget, hgetall, hincrby, hincrbyfloat, hkeys, hlen, hmget, hmset,
+hset, hsetnx, hvals, incr, incrby, incrbyfloat, keys, lastsave, lindex,
+linsert, llen, lpop, lpush, lpushx, lrange, lrem, lset, ltrim, mget, migrate,
+move, mset, msetnx, object, object_refcount, object_encoding, object_idletime,
+persist, pexpire, pexpireat, ping, psetex, pttl, publish, quit, randomkey,
+rename, renamenx, restore, rpop, rpoplpush, rpush, rpushx, sadd, save, scard,
+script, script_exists, script_flush, script_kill, script_load, sdiff,
+sdiffstore, select, set, setbit, setex, setnx, setrange, sinter, sinterstore,
+sismember, slaveof, slowlog, smembers, smove, sort, spop, srandmember, srem,
+strlen, sunion, sunionstore, sync, time, ttl, type, unwatch, watch, zadd,
+zcard, zcount, zincrby, zinterstore, zrange, zrangebyscore, zrank, zrem,
+zremrangebyrank, zremrangebyscore, zrevrange, zrevrangebyscore, zrevrank,
+zscore, zunionstore.
 
 See description of all commands in redis documentation at
 L<http://redis.io/commands>.
@@ -707,7 +724,7 @@ for my $command (@commands) {
 
 =pod
 
-The following commands implement some additional postprocessing of results:
+The following commands implement some additional postprocessing of the results:
 
 =cut
 
@@ -725,6 +742,41 @@ sub info {
     my $info = $self->execute('INFO');
     my %info = map { /^([^:]+):(.*)$/ } split /\r\n/, $info;
     return \%info;
+}
+
+=head2 $self->client_list([$callback])
+
+return list of clients connected to the server. This method parses server
+output and returns result as reference to array of hashes.
+
+=cut
+
+sub client_list {
+    my $self = shift;
+    my $orig = $_[-1];
+    if ( $orig && ref $orig eq 'CODE' ) {
+        my $cb = sub {
+            my ( $redis, $list ) = @_;
+            $orig->( $redis, _parse_client_list($list) );
+        };
+        return $self->send_command( qw(CLIENT LIST), $cb );
+    }
+    else {
+        my $list = $self->execute(qw(CLIENT LIST));
+        return _parse_client_list($list);
+    }
+}
+
+sub _parse_client_list {
+    my $list = shift;
+    return $list if !$list || ref $list;
+    my @clients = split /\015?\012/, $list;
+    my $res = [];
+    for (@clients) {
+        my %cli = map { /^([^=]+)=(.*)$/ ? ( $1, $2 ) : () } split / /;
+        push @$res, \%cli;
+    }
+    return $res;
 }
 
 =head2 $self->shutdown
