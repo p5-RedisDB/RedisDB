@@ -631,9 +631,9 @@ my @commands = qw(
   hincrby	hincrbyfloat	hkeys	hlen	hmget	hmset	hset	hsetnx	hvals	incr	incrby
   incrbyfloat	keys	lastsave	lindex	linsert	llen	lpop	lpush	lpushx
   lrange	lrem	lset	ltrim	mget	migrate	move	mset	msetnx	object	object_refcount
-  object_encoding	object_idletime	persist	pexpire	pexpireat	psetex	pttl	ping
+  object_encoding	object_idletime	persist	pexpire	pexpireat	ping	psetex	pttl
   publish	quit	randomkey	rename	renamenx	restore	rpop	rpoplpush
-  rpush	rpushx	sadd	save	scard	script_exists   script_flush    script_kill
+  rpush	rpushx	sadd	save	scard	script	script_exists   script_flush    script_kill
   script_load   sdiff	sdiffstore	select	set
   setbit	setex	setnx	setrange	sinter	sinterstore
   sismember	slaveof	slowlog smembers	smove	sort	spop	srandmember
@@ -675,11 +675,11 @@ getset, hdel, hexists, hget, hgetall, hincrby, hincrbyfloat, hkeys, hlen,
 hmget, hmset, hset, hsetnx, hvals, incr, incrby, incrbyfloat, keys, lastsave,
 lindex, linsert, llen, lpop, lpush, lpushx, lrange, lrem, lset, ltrim, mget,
 migrate, move, mset, msetnx, object, object_refcount, object_encoding,
-object_idletime, persist, pexpire, pexpireat, psetex, pttl, ping, publish,
+object_idletime, persist, pexpire, pexpireat, ping, psetex, pttl, publish,
 quit, randomkey, rename, renamenx, restore, rpop, rpoplpush, rpush, rpushx,
-sadd, save, scard, script_exists,   script_flush, script_kill, script_load,
-sdiff, sdiffstore, select, set, setbit, setex, setnx, setrange, sinter,
-sinterstore, sismember, slaveof, slowlog, smembers, smove, sort, spop,
+sadd, save, scard, script, script_exists,   script_flush, script_kill,
+script_load, sdiff, sdiffstore, select, set, setbit, setex, setnx, setrange,
+sinter, sinterstore, sismember, slaveof, slowlog, smembers, smove, sort, spop,
 srandmember, srem, strlen, sunion, sunionstore, sync, time,    ttl, type,
 unwatch, watch, zadd, zcard, zcount, zincrby, zinterstore, zrange,
 zrangebyscore, zrank, zrem, zremrangebyrank,   zremrangebyscore, zrevrange,
