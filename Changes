@@ -1,5 +1,10 @@
 Revision history for RedisDB
 
+2.12 Mon Jan 21 2013 Pavel Shaydo <zwon@cpan.org>
+    * add support for BITCOUNT, BITOP, and CLIENT commands
+    * info method now supports asynchronous mode
+    * fix test for cygwin
+
 2.11 Fri Nov 30 2012 Pavel Shaydo <zwon@cpan.org>
     * use MSG_NOSIGNAL on sending or ignore SIGPIPE
     * fix socket timeout on NetBSD 6.0
