@@ -22,6 +22,7 @@ Redis
 RedisDB
 utf
 UTF
+SETNAME
 unwatch
 unsubscribe
 Unsubscribe
