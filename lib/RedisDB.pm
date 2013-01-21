@@ -728,7 +728,7 @@ The following commands implement some additional postprocessing of the results:
 
 =cut
 
-=head2 $self->info
+=head2 $self->info([$callback])
 
 return information and statistics about the server. Redis-server returns
 information in form of I<field:value>, the I<info> method parses result and
@@ -738,8 +738,23 @@ returns it as a hash reference.
 
 sub info {
     my $self = shift;
+    my $orig = $_[-1];
+    if ( $orig && ref $orig eq 'CODE' ) {
+        my $cb = sub {
+            my ( $redis, $info ) = @_;
+            $orig->( $redis, _parse_info($info) );
+        };
+        return $self->send_command( 'INFO', $cb );
+    }
+    else {
+        my $info = $self->execute('INFO');
+        return _parse_info($info);
+    }
+}
 
-    my $info = $self->execute('INFO');
+sub _parse_info {
+    my $info = shift;
+    return $info if !$info || ref $info;
     my %info = map { /^([^:]+):(.*)$/ } split /\r\n/, $info;
     return \%info;
 }

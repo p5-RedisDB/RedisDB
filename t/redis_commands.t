@@ -225,6 +225,11 @@ sub cmd_server {
     ok( ( $1 and $2 ), "Looks like a version" );
     my $version = 0 + $1 + 0.001 * $2 + ( $3 ? 0.000001 * $3 : 0 );
     is '' . $redis->version, "$version", "Correct server version: $version";
+    my $info2;
+    $redis->info(sub { $info2 = $_[1] });
+    $redis->mainloop;
+    is ref($info2), "HASH", "Got hashref in info callback";
+    is $info2->{redis_version}, $info->{redis_version}, "Same info as from synchronous call";
 
     if ( $redis->version >= 2.0 ) {
         eq_or_diff $redis->config_get("dbfilename"), [qw(dbfilename dump_test.rdb)], "CONFIG GET";
@@ -247,7 +252,6 @@ sub cmd_server {
         is $clients->[0]{name}, "foo", "First client's name 'foo'";
         is $clients->[1]{name}, "bar", "Another's is 'bar'";
         is $redis->client_kill( $clients->[1]{addr} ), "OK", "Killed 'bar' connection ($clients->[1]{addr})";
-        sleep 1;
         $redis->client_list(sub {$clients = $_[1]});
         $redis->mainloop;
         is 0 + @$clients, 1, "Only one client is connected";
