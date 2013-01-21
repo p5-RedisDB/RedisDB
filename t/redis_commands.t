@@ -58,10 +58,30 @@ sub cmd_keys_strings {
         is $redis->getbit( "bits", 1 ), 1, "GETBIT 1";
         is $redis->setbit( "bits", 2, 1 ), 0, "SETBIT 2";
         is $redis->getbit( "bits", 2 ), 1, "GETBIT 2";
+        if ( $redis->version >= 2.006 ) {
+            is $redis->bitcount("bits"), 5, "BITCOUNT";
+            is $redis->bitop( "NOT", "bits", "bits" ), 1, "BITOP NOT";
+            is $redis->bitcount("bits"), 3, "BITCOUNT";
+            is $redis->set( "bits1", "\x75" ),     "OK", "set bits1 to \\x75";
+            is $redis->set( "bits2", "\000\x55" ), "OK", "set bits2 to \\000\\x55";
+            is $redis->bitop( "OR", "bits3", "bits1", "bits2" ), 2, "BITOP OR";
+            is $redis->get("bits3"), "\x75\x55", "bits3 == bits1 | bits2";
+            is $redis->set( "bits4", "\xf0\xf0" ), "OK", "set bits4 to \\xf0\\xf0";
+            is $redis->bitop( "AND", "bits5", "bits3", "bits4" ), 2, "BITOP AND";
+            is $redis->get("bits5"), "\x70\x50", "bits5 == bits3 & bits4";
+            is $redis->bitop( "XOR", "bits6", "bits3", "bits4" ), 2, "BITOP XOR";
+            is $redis->get("bits6"), "\x85\xa5", "bits6 == bits3 ^ bits4";
+        }
+        else {
+            diag "Skipped tests for redis >= 2.6";
+        }
         $redis->set( "range_test", "test getrange" );
         is $redis->getrange( "range_test", 5, -1 ), "getrange", "GETRANGE";
         is $redis->setrange( "range_test", 5, "set" ), 13, "SETRANGE";
         is $redis->get("range_test"), "test setrange", "SETRANGE result is correct";
+    }
+    else {
+        diag "Skipped tests for redis >= 2.1.8";
     }
 
     if ( $redis->version >= 1.001 ) {

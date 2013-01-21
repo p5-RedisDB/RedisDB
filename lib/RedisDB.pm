@@ -624,7 +624,8 @@ sub version {
 
 # don't forget to update POD
 my @commands = qw(
-  append	auth	bgrewriteaof	bgsave	blpop	brpop   brpoplpush	config	config_get
+  append	auth	bgrewriteaof	bgsave	bitcount	bitop
+  blpop	brpop   brpoplpush	config	config_get
   config_set	config_resetstat	dbsize	debug_object	debug_segfault
   decr	decrby	del	dump	echo	eval    evalsha exists	expire	expireat	flushall
   flushdb	get	getbit	getrange	getset	hdel	hexists	hget	hgetall
