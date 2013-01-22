@@ -123,6 +123,14 @@ After callback returned, module tries to establish connection again. Default
 callback confesses. This may be useful to switch to reserve server if primary
 is down.
 
+=begin comment
+
+=item on_disconnect
+
+callback to invoke when server closed connection
+
+=end comment
+
 =back
 
 =cut
@@ -143,6 +151,7 @@ sub new {
     $self->{reconnect_attempts}  ||= 1;
     $self->{reconnect_delay_max} ||= 10;
     $self->{on_connect_error}    ||= \&_on_connect_error;
+    $self->{on_disconnect}       ||= \&_on_disconnect;
     $self->_init_parser;
     $self->_connect unless $self->{lazy};
     return $self;
@@ -186,6 +195,28 @@ sub _on_connect_error {
     my ( $self, $err ) = @_;
     my $server = $self->{path} || ("$self->{host}:$self->{port}");
     confess "Couldn't connect to the redis server at $server: $!";
+}
+
+sub _on_disconnect {
+    my ( $self, $err ) = @_;
+
+    if ($err) {
+        my $msg = "Server unexpectedly closed connection. Some data might have been lost.";
+        if ( $self->{raise_error} || $self->{_in_multi} ) {
+            confess $msg;
+        }
+        else {
+
+            # parser may be in inconsistent state, so we just replace it with a new one
+            my $parser = delete $self->{_parser};
+            $self->_init_parser;
+
+            $parser->propagate_reply( RedisDB::Error::DISCONNECTED->new($msg) );
+        }
+    }
+    else {
+        $self->{warnings} and warn "Server closed connection, reconnecting...";
+    }
 }
 
 # establish connection to the server.
@@ -326,15 +357,18 @@ sub _recv_data_nb {
             $self->{_parser}->add($buf);
         }
         else {
+            delete $self->{_socket};
 
-            # if there are some replies lost
-            confess "Server closed connection. Some data was lost."
-              if $self->{_parser}->callbacks
-              or $self->{_in_multi};
+            if($self->{_parser}->callbacks or $self->{_in_multi}) {
+                # there are some replies lost
+                $self->{on_disconnect}->($self, 1);
+            }
+            else {
+                # clean disconnect, try to reconnect
+                $self->{on_disconnect}->($self, 0);
+            }
 
-            # clean disconnect, try to reconnect
-            $self->{warnings} and warn "Disconnected, trying to reconnect";
-            $self->_connect;
+            $self->_connect unless $self->{_socket};
             last;
         }
     }
@@ -555,8 +589,8 @@ sub get_reply {
         }
         else {
 
-            # disconnected
-            confess "Server unexpectedly closed connection before sending full reply";
+            # disconnected, should die unless raise_error is unset
+            $self->{on_disconnect}->($self, 1);
         }
     }
 

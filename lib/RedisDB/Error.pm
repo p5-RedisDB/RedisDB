@@ -53,6 +53,9 @@ sub as_string {
 package RedisDB::Error::EAGAIN;
 our @ISA = qw(RedisDB::Error);
 
+package RedisDB::Error::DISCONNECTED;
+our @ISA = qw(RedisDB::Error);
+
 1;
 
 __END__
