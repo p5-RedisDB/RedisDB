@@ -2,7 +2,7 @@ package RedisDB::Parse::Redis_PP;
 
 use strict;
 use warnings;
-our $VERSION = "2.12";
+our $VERSION = "2.13_01";
 $VERSION = eval $VERSION;
 
 =head1 NAME
