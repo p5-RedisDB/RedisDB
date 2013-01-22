@@ -13,8 +13,13 @@ use Redis::Client;
 
 use Benchmark qw( cmpthese );
 
-# benchmark some redis clients.  Note, that I'm getting quite a different
-# results in different environments, need to review this thing.
+say <<EOT;
+************************************************************
+Please be careful with results that this script gives you.
+It doesn't really test what it supposed to, and results
+may vary drastically depending on the environment.
+************************************************************
+EOT
 
 say "Testing against";
 say "RedisDB:         ",            RedisDB->VERSION;
