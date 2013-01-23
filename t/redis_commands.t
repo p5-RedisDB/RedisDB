@@ -9,7 +9,7 @@ my $server = RedisServer->start;
 plan( skip_all => "Can't start redis-server" ) unless $server;
 
 my $redis = RedisDB->new( host => 'localhost', port => $server->{port} );
-plan( skip_all => "Test requires redis-server at least 1.2" ) unless $server->version ge 1.003015;
+plan( skip_all => "Test requires redis-server at least 1.2" ) unless $redis->version ge 1.003015;
 
 subtest "Keys and strings commands" => \&cmd_keys_strings;
 subtest "Lists commands"            => \&cmd_lists;
