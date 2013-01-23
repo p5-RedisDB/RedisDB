@@ -9,6 +9,7 @@ my $server = RedisServer->start;
 plan( skip_all => "Can't start redis-server" ) unless $server;
 
 my $redis = RedisDB->new( host => 'localhost', port => $server->{port} );
+plan( skip_all => "Test requires redis-server at least 1.2" ) unless $server->version ge 1.003015;
 
 subtest "Keys and strings commands" => \&cmd_keys_strings;
 subtest "Lists commands"            => \&cmd_lists;
@@ -28,13 +29,11 @@ sub cmd_keys_strings {
     is $redis->rename( "mykey1", "my first key" ), "OK", "RENAME";
     is $redis->get("my first key"), "my new value", "GET my new value";
 
-    if ( $redis->version >= 1.003003 ) {
-        my $expected = "my new value with appendix";
-        is $redis->append( "my first key", " with appendix" ), length($expected), "APPEND";
-        is $redis->get("my first key"), $expected, "GOT value with appendix";
-        if ( $redis->version >= 2.001002 ) {
-            is $redis->strlen("my first key"), length($expected), "STRLEN";
-        }
+    my $expected = "my new value with appendix";
+    is $redis->append( "my first key", " with appendix" ), length($expected), "APPEND";
+    is $redis->get("my first key"), $expected, "GOT value with appendix";
+    if ( $redis->version >= 2.001002 ) {
+        is $redis->strlen("my first key"), length($expected), "STRLEN";
     }
 
     is $redis->set( "delme", 123 ), "OK", "SET delme";
@@ -84,16 +83,13 @@ sub cmd_keys_strings {
         diag "Skipped tests for redis >= 2.1.8";
     }
 
-    if ( $redis->version >= 1.001 ) {
-        is $redis->mset( aaa => 1, bbb => 2, ccc => 3 ), "OK", "MSET";
-        is $redis->msetnx( ddd => 4, eee => 5, fff => 6 ), 1, "MSETNX 1";
-        is $redis->msetnx( fff => 7, ggg => 8, hhh => 9 ), 0, "MSETNX 0";
-        eq_or_diff $redis->mget(qw(aaa bbb eee fff hhh)), [ qw(1 2 5 6), undef ], "MGET";
-        is $redis->renamenx( eee => 'iii' ), 1, "RENAMENX 1";
-        is $redis->renamenx( ddd => 'fff' ), 0, "RENAMENX 0";
-        eq_or_diff $redis->mget(qw(eee iii ddd fff)), [ undef, qw(5 4 6) ],
-          "RENAMENX works correctly";
-    }
+    is $redis->mset( aaa => 1, bbb => 2, ccc => 3 ), "OK", "MSET";
+    is $redis->msetnx( ddd => 4, eee => 5, fff => 6 ), 1, "MSETNX 1";
+    is $redis->msetnx( fff => 7, ggg => 8, hhh => 9 ), 0, "MSETNX 0";
+    eq_or_diff $redis->mget(qw(aaa bbb eee fff hhh)), [ qw(1 2 5 6), undef ], "MGET";
+    is $redis->renamenx( eee => 'iii' ), 1, "RENAMENX 1";
+    is $redis->renamenx( ddd => 'fff' ), 0, "RENAMENX 0";
+    eq_or_diff $redis->mget(qw(eee iii ddd fff)), [ undef, qw(5 4 6) ], "RENAMENX works correctly";
 
     if ( $redis->version >= 2.001002 ) {
         is $redis->setex( "expires", 2, "in two seconds" ), "OK", "SETEX";
@@ -125,7 +121,7 @@ sub cmd_keys_strings {
 
     if ( $redis->version >= 2.002003 ) {
         is $redis->set(qw(object test)), "OK", "Set object";
-        is $redis->object_refcount("object"), 1, "OBJECT REFCOUNT";
+        is $redis->object_refcount("object"), 1,     "OBJECT REFCOUNT";
         is $redis->object_encoding("object"), "raw", "OBJECT ENCODING";
         my $idle = $redis->object_idletime("object");
         ok $idle >= 0 && $idle < 11, "OBJECT IDLETIME";
@@ -136,7 +132,7 @@ sub cmd_keys_strings {
         my $dump = $redis->dump("dump");
         ok $dump, "DUMP";
         $redis->del("dump");
-        is $redis->restore("dump", 0, $dump), "OK", "RESTORE";
+        is $redis->restore( "dump", 0, $dump ), "OK", "RESTORE";
         is $redis->get("dump"), "test", "Restored";
     }
 }
@@ -165,26 +161,22 @@ sub cmd_lists {
     is $redis->ltrim( "list1", 2, -3 ), "OK", "LTRIM";
     eq_or_diff $redis->lrange( "list1", 0, -1 ), [qw(VVI V7 V8)], "LTREAM result is correct";
 
-    if ( $redis->version >= 1.001 ) {
-        is $redis->rpoplpush( "list1", "list2" ), "V8", "RPOPLPUSH";
-        is $redis->llen("list1"), 2, "list1 len is 2";
+    is $redis->rpoplpush( "list1", "list2" ), "V8", "RPOPLPUSH";
+    is $redis->llen("list1"), 2, "list1 len is 2";
 
-        if ( $redis->version >= 1.003001 ) {
-            eq_or_diff $redis->blpop( "list1", "list2", 0 ), [qw(list1 VVI)], "BLPOP";
-            eq_or_diff $redis->brpop( "list2", "list1", 0 ), [qw(list2 V8)], "BRPOP";
+    eq_or_diff $redis->blpop( "list1", "list2", 0 ), [qw(list1 VVI)], "BLPOP";
+    eq_or_diff $redis->brpop( "list2", "list1", 0 ), [qw(list2 V8)], "BRPOP";
 
-            if ( $redis->version >= 2.001001 ) {
-                is $redis->linsert( "list1", "BEFORE", "V7", "V1" ), 2, "LINSERT BEFORE";
-                is $redis->linsert( "list1", "AFTER",  "V1", "V3" ), 3, "LINSERT AFTER";
-                is $redis->rpushx( "list1", "V8" ), 4, "RPUSHX";
-                is $redis->lpushx( "list3", "V0" ), 0, "LPUSHX";
-                eq_or_diff $redis->lrange( "list1", 0, -1 ), [qw(V1 V3 V7 V8)],
-                  "list1 contains expected values";
+    if ( $redis->version >= 2.001001 ) {
+        is $redis->linsert( "list1", "BEFORE", "V7", "V1" ), 2, "LINSERT BEFORE";
+        is $redis->linsert( "list1", "AFTER",  "V1", "V3" ), 3, "LINSERT AFTER";
+        is $redis->rpushx( "list1", "V8" ), 4, "RPUSHX";
+        is $redis->lpushx( "list3", "V0" ), 0, "LPUSHX";
+        eq_or_diff $redis->lrange( "list1", 0, -1 ), [qw(V1 V3 V7 V8)],
+          "list1 contains expected values";
 
-                if ( $redis->version >= 2.001007 ) {
-                    is $redis->brpoplpush( "list1", "list3", 0 ), "V8", "BRPOPLPUSH";
-                }
-            }
+        if ( $redis->version >= 2.001007 ) {
+            is $redis->brpoplpush( "list1", "list3", 0 ), "V8", "BRPOPLPUSH";
         }
     }
 }
@@ -226,7 +218,7 @@ sub cmd_server {
     my $version = 0 + $1 + 0.001 * $2 + ( $3 ? 0.000001 * $3 : 0 );
     is '' . $redis->version, "$version", "Correct server version: $version";
     my $info2;
-    $redis->info(sub { $info2 = $_[1] });
+    $redis->info( sub { $info2 = $_[1] } );
     $redis->mainloop;
     is ref($info2), "HASH", "Got hashref in info callback";
     is $info2->{redis_version}, $info->{redis_version}, "Same info as from synchronous call";
@@ -251,20 +243,19 @@ sub cmd_server {
         }
         is $clients->[0]{name}, "foo", "First client's name 'foo'";
         is $clients->[1]{name}, "bar", "Another's is 'bar'";
-        is $redis->client_kill( $clients->[1]{addr} ), "OK", "Killed 'bar' connection ($clients->[1]{addr})";
-        $redis->client_list(sub {$clients = $_[1]});
+        is $redis->client_kill( $clients->[1]{addr} ), "OK",
+          "Killed 'bar' connection ($clients->[1]{addr})";
+        $redis->client_list( sub { $clients = $_[1] } );
         $redis->mainloop;
         is 0 + @$clients, 1, "Only one client is connected";
         is $redis2->client_getname, "bar", "Second connection is restored with name 'bar'";
     }
     else {
-        diag $redis->version;
         diag "Skipped tests for redis >= 2.6.9";
     }
 }
 
 sub cmd_sets {
-    die "redis-server too old" unless $redis->version >= 0.1;
     $redis->flushdb;
     is $redis->sadd( "set1", "A" ), 1, "SADD set1 A";
     is $redis->sadd( "set1", "B" ), 1, "SADD set1 B";
@@ -310,7 +301,6 @@ sub cut_precision {
 }
 
 sub cmd_zsets {
-    die "redis-server too old" unless $redis->version >= 1.003015;
     $redis->flushdb;
     is $redis->zadd( "zset1", 1.24, "one" ), 1, "ZADD add";
     is $redis->zadd( "zset1", 1,    "one" ), 0, "ZADD update";
