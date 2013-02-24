@@ -23,6 +23,7 @@ RedisDB
 utf
 UTF
 SETNAME
+mainloop
 unwatch
 unsubscribe
 Unsubscribe

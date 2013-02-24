@@ -532,7 +532,9 @@ sub reply_ready {
 
 =head2 $self->mainloop
 
-this method blocks till all replies from the server will be received
+this method blocks till all replies from the server will be received. Note,
+that callbacks for some replies may send new requests to the server and so this
+method may block for indefinite time.
 
 =cut
 
@@ -608,8 +610,10 @@ sub get_reply {
 
 =head2 $self->get_all_replies
 
-Wait for the replies to all the commands sent to server. Return a list of
-replies to the commands for which callback was not set.
+Wait till replies to all the commands without callback set will be received.
+Return a list of replies to these commands. For commands with callback set
+replies are processed as usual. Unlike I<mainloop> this method block only till
+replies to all commands for which callback was NOT set will be received.
 
 =cut
 
@@ -625,7 +629,8 @@ sub get_all_replies {
 =head2 $self->replies_to_fetch
 
 Return the number of commands sent to the server replies to which wasn't yet
-retrieved with I<get_reply> or I<get_all_replies>.
+retrieved with I<get_reply> or I<get_all_replies>. This number only includes
+commands for which callback was not set.
 
 =cut
 
