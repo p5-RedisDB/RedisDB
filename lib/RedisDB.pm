@@ -72,9 +72,11 @@ Default value is 0.
 
 =item raise_error
 
-By default if redis-server returned error reply, I<get_reply> method throws
-an exception of L<RedisDB::Error> type, if you set this parameter to false it
-will return error object instead.
+By default if redis-server returned error reply, or there was a connection
+error I<get_reply> method throws an exception of L<RedisDB::Error> type, if
+you set this parameter to false it will return an error object instead. Note,
+that if you have set this to false you must always check if the result you've
+got from RedisDB is a L<RedisDB::Error> object.
 
 =item timeout
 
