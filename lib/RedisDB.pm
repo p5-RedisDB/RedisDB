@@ -473,6 +473,8 @@ sub _ignore {
 
 sub IGNORE_REPLY { return \&_ignore; }
 
+=begin comment
+
 =head2 $self->send_command_cb($command[, @arguments][, \&callback])
 
 send a command to the server, invoke specified I<callback> on reply. The
@@ -501,6 +503,8 @@ I<send_command>:
     $redis->send_command_cb("GET", "Key", \&process_reply);
     # may be replaced with
     $redis->send_command("GET", "Key", \&process_reply);
+
+=end comment
 
 =cut
 
