@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+2.13_2 Sun Feb 24 2013 Pavel Shaydo <zwon@cpan.org>
+    * use on_disconnect callback to handle connection errors
+    * improve documentation
+
 2.13_1 Wed Jan 23 2013 Pavel Shaydo <zwon@cpan.org>
     * add propagate_reply method to parser, so error
       can be propagated to all callbacks
