@@ -874,18 +874,25 @@ not recommended.
 
 =head1 ERROR HANDLING
 
-If an error happens which the module can't handle, it will throw an exception.
-It may happen as a result of a network error or invalid data encoding. Also
-module will throw an exception of the L<RedisDB::Error> type if the server
-returned an error reply and I<raise_error> parameter is set to true in the
-constructor (which is by default). After throwing an exception other than the
-L<RedisDB::Error> the RedisDB object will be left in inconsistent state. If you
-want to continue using the object after getting such an exception, you should
-invoke the L</reset_connection> method on it. This will drop current connection
-and all outstanding requests, so the object will return to the same state it
-was just after creation with the L</new> method. If the connection was in
-subscription mode, you will have to restore all the subscriptions, if it was in
-the middle of transaction, you will have to start the transaction again.
+If I<raise_error> parameter was set to true in the constructor (which is
+default setting), then module will throw an exception in case network IO
+function returned an error, or if redis-server returned an error reply. Network
+exceptions belong to L<RedisDB::Error::EAGAIN> or
+L<RedisDB::Error::DISCONNECTED> class, if redis-server returned an error
+exception will be L<RedisDB::Error> class. After network error object may be
+left in inconsistent state, so you should invoke I<reset_connection> method on
+it before using again, it will drop current connection and all outstanding
+requests, so the object will return to the same state it was just after
+creation with the L</new> method. If the connection was in subscription mode,
+you will have to restore all the subscriptions, if it was in the middle of
+transaction, you will have to start the transaction again.
+
+If I<raise_error> parameter was set to false, then instead of throwing an
+exception, module will return exception object and also pass this exception
+object to every callback waiting for the reply from the server. Object will not
+be left in inconsistent state, but you will have to restore all subscriptions
+if object was in subscription mode, and if the object was in the middle of
+transaction you will have to start it again.
 
 =cut
 
