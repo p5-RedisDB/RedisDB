@@ -198,24 +198,26 @@ sub _on_connect_error {
 }
 
 sub _on_disconnect {
-    my ( $self, $err ) = @_;
+    my ( $self, $err, $error_obj ) = @_;
 
     if ($err) {
-        my $msg = "Server unexpectedly closed connection. Some data might have been lost.";
+        $error_obj ||= RedisDB::Error::DISCONNECTED->new(
+            "Server unexpectedly closed connection. Some data might have been lost.");
         if ( $self->{raise_error} || $self->{_in_multi} ) {
-            confess $msg;
+            confess $error_obj;
         }
         else {
 
             # parser may be in inconsistent state, so we just replace it with a new one
             my $parser = delete $self->{_parser};
             $self->_init_parser;
+            delete $self->{_socket};
 
-            $parser->propagate_reply( RedisDB::Error::DISCONNECTED->new($msg) );
+            $parser->propagate_reply($error_obj);
         }
     }
     else {
-        $self->{warnings} and warn "Server closed connection, reconnecting...";
+        $self->{warnings} and warn( $error_obj || "Server closed connection, reconnecting..." );
     }
 }
 
@@ -359,13 +361,14 @@ sub _recv_data_nb {
         else {
             delete $self->{_socket};
 
-            if($self->{_parser}->callbacks or $self->{_in_multi}) {
+            if ( $self->{_parser}->callbacks or $self->{_in_multi} ) {
+
                 # there are some replies lost
-                $self->{on_disconnect}->($self, 1);
+                $self->{on_disconnect}->( $self, 1 );
             }
             else {
                 # clean disconnect, try to reconnect
-                $self->{on_disconnect}->($self, 0);
+                $self->{on_disconnect}->( $self, 0 );
             }
 
             $self->_connect unless $self->{_socket};
@@ -571,16 +574,14 @@ sub get_reply {
         my $ret = $self->{_socket}->recv( my $buffer, 131072 );
         unless ( defined $ret ) {
             next if $! == EINTR or $! == 0;
-            if ( $! == EINTR or $! == EWOULDBLOCK ) {
-                my $err = RedisDB::Error::EAGAIN->new("$!");
-                if ( $self->{raise_error} ) {
-                    die $err;
-                }
-                else {
-                    return $err;
-                }
+            my $err;
+            if ( $! == EAGAIN or $! == EWOULDBLOCK ) {
+                $err = RedisDB::Error::EAGAIN->new("$!");
             }
-            confess "Error reading reply from server: $!";
+            else {
+                $err = RedisDB::Error::DISCONNECTED->new("Connection error: $!");
+            }
+            $self->{on_disconnect}->( $self, 1, $err );
         }
         if ( $buffer ne '' ) {
 
@@ -590,7 +591,7 @@ sub get_reply {
         else {
 
             # disconnected, should die unless raise_error is unset
-            $self->{on_disconnect}->($self, 1);
+            $self->{on_disconnect}->( $self, 1 );
         }
     }
 
