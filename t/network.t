@@ -43,7 +43,7 @@ subtest "Restore connection" => sub {
             Listen    => 1,
             ReuseAddr => 1,
         ) or die $!;
-        my @replies = ( "+OK\015\012", "+OK", ":42\015\012" );
+        my @replies = ( "+OK\015\012", "+OK", "+PONG\015\012", ":42\015\012" );
         while (@replies) {
             my $cli = $srv->accept;
             $cli->recv( my $buf, 1024 );
@@ -70,6 +70,7 @@ subtest "Restore connection" => sub {
     is $ret, 'OK', "key is set";
     usleep 200_000;
     dies_ok { $redis->get('key') } "Died on unclean disconnect";
+    is $redis->ping, 'PONG', "Restored connection after exception";
     my $invoked_callback;
     my $fourty_two = RedisDB->new(
         host             => '127.0.0.1',

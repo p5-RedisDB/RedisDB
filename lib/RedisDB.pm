@@ -206,16 +206,17 @@ sub _on_disconnect {
         $error_obj ||= RedisDB::Error::DISCONNECTED->new(
             "Server unexpectedly closed connection. Some data might have been lost.");
         if ( $self->{raise_error} || $self->{_in_multi} ) {
+            $self->reset_connection;
             confess $error_obj;
         }
         else {
 
             # parser may be in inconsistent state, so we just replace it with a new one
             my $parser = delete $self->{_parser};
-            $self->_init_parser;
-            delete $self->{_socket};
+            $self->reset_connection;
 
             $parser->propagate_reply($error_obj);
+
         }
     }
     else {
