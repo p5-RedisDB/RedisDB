@@ -353,8 +353,9 @@ sub _recv_data_nb {
             last if $! == EAGAIN or $! == EWOULDBLOCK;
             next if $! == EINTR;
 
-            # die on any other error
-            confess "Error reading from server: $!";
+            # on any other error close connection
+            $self->{on_disconnect}
+              ->( $self, 1, RedisDB::Error::DISCONNECTED->new("Error reading from server: $!") );
         }
         elsif ( $buf ne '' ) {
 
@@ -456,12 +457,13 @@ sub send_command {
     $self->_recv_data_nb;
 
     my $request = $self->{_parser}->build_request( $command, @_ );
+    $self->{_parser}->add_callback($callback);
     {
         local $SIG{PIPE} = 'IGNORE' unless $NOSIGNAL;
         defined $self->{_socket}->send( $request, $NOSIGNAL )
-          or confess "Can't send request to server: $!";
+          or $self->{on_disconnect}
+          ->( $self, 1, RedisDB::Error::DISCONNECTED->new("Can't send request to server: $!") );
     }
-    $self->{_parser}->add_callback($callback);
     return 1;
 }
 
@@ -547,6 +549,7 @@ sub mainloop {
         my $ret = $self->{_socket}->recv( my $buffer, 131072 );
         unless ( defined $ret ) {
             next if $! == EINTR;
+            # TODO: if not EAGAIN then invoke on_disconnect
             confess "Error reading reply from server: $!";
         }
         if ( $buffer ne '' ) {
@@ -557,7 +560,11 @@ sub mainloop {
         else {
 
             # disconnected
-            confess "Server unexpectedly closed connection before sending full reply";
+            $self->{on_disconnect}->(
+                $self, 1,
+                RedisDB::Error::DISCONNECTED->new(
+                    "Server unexpectedly closed connection before sending full reply")
+            );
         }
     }
     return;
