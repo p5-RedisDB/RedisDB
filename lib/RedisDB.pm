@@ -213,10 +213,8 @@ sub _on_disconnect {
 
             # parser may be in inconsistent state, so we just replace it with a new one
             my $parser = delete $self->{_parser};
-            $self->reset_connection;
-
+            delete $self->{_socket};
             $parser->propagate_reply($error_obj);
-
         }
     }
     else {
@@ -549,6 +547,7 @@ sub mainloop {
         my $ret = $self->{_socket}->recv( my $buffer, 131072 );
         unless ( defined $ret ) {
             next if $! == EINTR;
+
             # TODO: if not EAGAIN then invoke on_disconnect
             confess "Error reading reply from server: $!";
         }
@@ -588,7 +587,7 @@ sub get_reply {
     croak "You can't read reply in child process" unless $self->{_pid} == $$;
     while ( not @{ $self->{_replies} } ) {
         my $ret = $self->{_socket}->recv( my $buffer, 131072 );
-        unless ( defined $ret ) {
+        if ( not defined $ret ) {
             next if $! == EINTR or $! == 0;
             my $err;
             if ( $! == EAGAIN or $! == EWOULDBLOCK ) {
@@ -599,7 +598,7 @@ sub get_reply {
             }
             $self->{on_disconnect}->( $self, 1, $err );
         }
-        if ( $buffer ne '' ) {
+        elsif ( $buffer ne '' ) {
 
             # received some data
             $self->{_parser}->add($buffer);
