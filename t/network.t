@@ -116,7 +116,6 @@ subtest "Restore connection without raise_error" => sub {
         $cli->close;
 
         $srv->close;
-        usleep 1_000_000;
         $srv = IO::Socket::INET->new(
             LocalAddr => '127.0.0.1',
             LocalPort => $port,
