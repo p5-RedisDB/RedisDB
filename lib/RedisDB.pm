@@ -208,6 +208,25 @@ sub _on_disconnect {
             $self->reset_connection;
             confess $error_obj;
         }
+        elsif ( my $loop_type = $self->{_subscription_loop} ) {
+            my $subscribed  = delete $self->{_subscribed};
+            my $psubscribed = delete $self->{_psubscribed};
+            my $callback    = delete $self->{_subscription_cb};
+            $self->reset_connection;
+            $self->_connect;
+            $self->{_subscription_loop} = $loop_type;
+            $self->{_subscription_cb}   = $callback;
+            $self->{_parser}->set_default_callback($callback);
+            $self->{_subscribed}  = $subscribed;
+            $self->{_psubscribed} = $psubscribed;
+
+            for ( keys %$subscribed ) {
+                $self->send_command( 'subscribe', $_ );
+            }
+            for ( keys %$psubscribed ) {
+                $self->send_command( 'psubscribe', $_ );
+            }
+        }
         else {
 
             # parser may be in inconsistent state, so we just replace it with a new one
@@ -1128,6 +1147,7 @@ sub subscribe {
     my ( $self, $channel, $callback ) = @_;
     unless ( $self->{_subscription_loop} ) {
         $self->{_subscription_loop} = -1;
+        $self->{_subscription_cb}   = \&_queue;
         $self->{_parser}->set_default_callback( \&_queue );
     }
     croak "Subscribe to what channel?" unless length $channel;
@@ -1155,6 +1175,7 @@ sub psubscribe {
     my ( $self, $channel, $callback ) = @_;
     unless ( $self->{_subscription_loop} ) {
         $self->{_subscription_loop} = -1;
+        $self->{_subscription_cb}   = \&_queue;
         $self->{_parser}->set_default_callback( \&_queue );
     }
     croak "Subscribe to what channel?" unless length $channel;
