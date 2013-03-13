@@ -153,7 +153,6 @@ sub new {
     $self->{reconnect_attempts}  ||= 1;
     $self->{reconnect_delay_max} ||= 10;
     $self->{on_connect_error}    ||= \&_on_connect_error;
-    $self->{on_disconnect}       ||= \&_on_disconnect;
     $self->_init_parser;
     $self->_connect unless $self->{lazy};
     return $self;
@@ -352,8 +351,8 @@ sub _recv_data_nb {
             next if $! == EINTR;
 
             # on any other error close connection
-            $self->{on_disconnect}
-              ->( $self, 1, RedisDB::Error::DISCONNECTED->new("Error reading from server: $!") );
+            $self->_on_disconnect( 1,
+                RedisDB::Error::DISCONNECTED->new("Error reading from server: $!") );
         }
         elsif ( $buf ne '' ) {
 
@@ -366,11 +365,11 @@ sub _recv_data_nb {
             if ( $self->{_parser}->callbacks or $self->{_in_multi} ) {
 
                 # there are some replies lost
-                $self->{on_disconnect}->( $self, 1 );
+                $self->_on_disconnect(1);
             }
             else {
                 # clean disconnect, try to reconnect
-                $self->{on_disconnect}->( $self, 0 );
+                $self->_on_disconnect(0);
             }
 
             $self->_connect unless $self->{_socket};
@@ -459,8 +458,8 @@ sub send_command {
     {
         local $SIG{PIPE} = 'IGNORE' unless $NOSIGNAL;
         defined $self->{_socket}->send( $request, $NOSIGNAL )
-          or $self->{on_disconnect}
-          ->( $self, 1, RedisDB::Error::DISCONNECTED->new("Can't send request to server: $!") );
+          or $self->_on_disconnect( 1,
+            RedisDB::Error::DISCONNECTED->new("Can't send request to server: $!") );
     }
     return 1;
 }
@@ -548,7 +547,7 @@ sub mainloop {
         unless ( defined $ret ) {
             next if $! == EINTR;
 
-            # TODO: if not EAGAIN then invoke on_disconnect
+            # TODO: if not EAGAIN then invoke _on_disconnect
             confess "Error reading reply from server: $!";
         }
         if ( $buffer ne '' ) {
@@ -559,8 +558,8 @@ sub mainloop {
         else {
 
             # disconnected
-            $self->{on_disconnect}->(
-                $self, 1,
+            $self->_on_disconnect(
+                1,
                 RedisDB::Error::DISCONNECTED->new(
                     "Server unexpectedly closed connection before sending full reply")
             );
@@ -596,7 +595,7 @@ sub get_reply {
             else {
                 $err = RedisDB::Error::DISCONNECTED->new("Connection error: $!");
             }
-            $self->{on_disconnect}->( $self, 1, $err );
+            $self->_on_disconnect( 1, $err );
         }
         elsif ( $buffer ne '' ) {
 
@@ -606,7 +605,7 @@ sub get_reply {
         else {
 
             # disconnected, should die unless raise_error is unset
-            $self->{on_disconnect}->( $self, 1 );
+            $self->_on_disconnect(1);
         }
     }
 
