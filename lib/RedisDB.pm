@@ -904,40 +904,50 @@ not recommended.
 
 =head1 ERROR HANDLING
 
-If I<raise_error> parameter was set to true in the constructor (which is
+If L</raise_error> parameter was set to true in the constructor (which is
 default setting), then module will throw an exception in case network IO
 function returned an error, or if redis-server returned an error reply. Network
 exceptions belong to L<RedisDB::Error::EAGAIN> or
 L<RedisDB::Error::DISCONNECTED> class, if redis-server returned an error
-exception will be L<RedisDB::Error> class. After network error object may be
-left in inconsistent state, so you should invoke I<reset_connection> method on
-it before using again, it will drop current connection and all outstanding
-requests, so the object will return to the same state it was just after
-creation with the L</new> method. If the connection was in subscription mode,
-you will have to restore all the subscriptions, if it was in the middle of
-transaction, you will have to start the transaction again.
+exception will be of L<RedisDB::Error> class. If the object was in subscription
+mode, you will have to restore all the subscriptions. If the object was in the
+middle of transaction, when after network error you will have to start the
+transaction again.
 
-If I<raise_error> parameter was set to false, then instead of throwing an
+If L</raise_error> parameter was disabled, then instead of throwing an
 exception, module will return exception object and also pass this exception
-object to every callback waiting for the reply from the server. Object will not
-be left in inconsistent state, but you will have to restore all subscriptions
-if object was in subscription mode, and if the object was in the middle of
-transaction you will have to start it again.
+object to every callback waiting for the reply from the server. If the object
+is in subscription mode, then module will automatically restore all
+subscriptions after reconnect. Note, that during transaction L</raise_error> is
+always enabled, so any error will throw an exception.
 
 =cut
 
 =head1 HANDLING OF SERVER DISCONNECTS
 
 Redis server may close a connection if it was idle for some time, also the
-connection may be closed in case when redis-server was restarted. RedisDB
-restores a connection to the server, but only if no data was lost as a result
-of the disconnect. E.g. if the client was idle for some time and the redis
-server closed the connection, it will be transparently restored when you send a
-command next time.  If you sent a command and the server has closed the
-connection without sending a complete reply, the connection will not be
-restored and the module will throw an exception. Also the module will throw an
-exception if the connection was closed in the middle of a transaction or while
-you're in a subscription loop.
+connection may be closed in case when redis-server was restarted, or just
+because of the network problem. RedisDB always tries to restore connection to
+the server if no data has been lost as a result of disconnect, and if
+L</raise_error> parameter disabled it will try to reconnect even if disconnect
+happened during data transmission.  E.g. if the client was idle for some time
+and the redis server closed the connection, it will be transparently restored
+when you send a command next time no matter if L</raise_error> enabled or not.
+If you sent a command and the server has closed the connection without sending
+a complete reply, then module will act differently depending on L</raise_error>
+value.  If L</raise_error> enabled, the module will cancel all current
+callbacks, reset the object to the initial state, and throw an exception of
+L<RedisDB::Error::DISCONNECTED> class, next time you use the object it will
+establish a new connection. If L</raise_error> disabled, the module will pass
+L<RedisDB::Error::DISCONNECTED> object to all outstanding callbacks and will
+try to reconnect to the server; it will also automatically restore
+subscriptions if object was in subscription mode.
+
+Module makes several attempts to reconnect each time increasing interval before
+the next attempt, depending on the values of L</reconnect_attempts> and
+L</reconnect_delay_max>. After each failed attempt to connect module will
+invoke L</on_connect_error> callback which for example may change redis-server
+hostname, so on next attempt module will try to connect to different server.
 
 =cut
 
