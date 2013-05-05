@@ -629,7 +629,7 @@ sub get_reply {
     }
 
     my $res = shift @{ $self->{_replies} };
-    croak "$res" if ref $res eq 'RedisDB::Error' and $self->{raise_error};
+    croak $res if ref $res eq 'RedisDB::Error' and $self->{raise_error};
     return $res;
 }
 
