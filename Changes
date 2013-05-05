@@ -1,5 +1,11 @@
 Revision history for RedisDB
 
+2.13_4 Sun May  5 2013 Pavel Shaydo <zwon@cpan.org>
+    * fix on_disconnect when raise_error disabled
+    * turn on_disconnect into internal callback
+    * handle disconnects in subscription mode
+    * add transactions support when raise_error disabled
+
 2.13_3 Thu Mar  7 2013 Pavel Shaydo <zwon@cpan.org>
     * use on_disconnect callback in more places. It means that
       object will be automatically reset before throwing exception.
