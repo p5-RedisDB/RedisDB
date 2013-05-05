@@ -629,7 +629,12 @@ sub get_reply {
     }
 
     my $res = shift @{ $self->{_replies} };
-    croak $res if ref $res eq 'RedisDB::Error' and $self->{raise_error};
+    if ( ref $res eq 'RedisDB::Error'
+        and ( $self->{raise_error} or $self->{_in_multi} ) )
+    {
+        croak $res;
+    }
+
     return $res;
 }
 
@@ -1293,6 +1298,7 @@ all the commands will be queued but not executed.
 sub multi {
     my $self = shift;
 
+    die "Multi calls can not be nested!" if $self->{_in_multi};
     my $res = $self->execute('MULTI');
     $self->{_in_multi} = 1;
     return $res;
