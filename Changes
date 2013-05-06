@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+2.13_6 Tue May  7 2013 Pavel Shaydo <zwon@cpan.org>
+    * fix race condition in network.t
+
 2.13_5 Mon May  6 2013 Pavel Shaydo <zwon@cpan.org>
     * add Test::FailWarnings dependency
     * add x_contributors
