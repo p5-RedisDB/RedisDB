@@ -30,13 +30,13 @@ subtest "Restore connection" => sub {
         $SIG{ALRM} = sub { die "Died on timeout." };
         alarm 10;
         my $cli = $srv->accept;
+        $srv->close;
         $cli->recv( my $buf, 1024 );
         $cli->send( "+PONG\015\012", 0 );
         $cli->close;
 
         # simulate restart of the redis-server
-        $srv->close;
-        usleep 1_000_000;
+        usleep 100_000;
         $srv = IO::Socket::INET->new(
             LocalAddr => '127.0.0.1',
             LocalPort => $port,
@@ -66,10 +66,10 @@ subtest "Restore connection" => sub {
     lives_ok { $ret = $redis->ping } "Ping";
     is $ret, 'PONG', "pong";
     undef $ret;
-    usleep 200_000;
+    usleep 100_000;    # wait for FIN
     lives_ok { $ret = $redis->set( 'key', 'value' ) } "Connection restored";
     is $ret, 'OK', "key is set";
-    usleep 200_000;
+    usleep 100_000;    # wait for FIN
     dies_ok { $redis->get('key') } "Died on unclean disconnect";
     is $redis->ping, 'PONG', "Restored connection after exception";
     my $invoked_callback;
@@ -116,6 +116,7 @@ subtest "Restore connection without raise_error" => sub {
         $cli->send( "+PONG", 0 );
         $cli->close;
 
+        usleep 100_000;
         $srv = IO::Socket::INET->new(
             LocalAddr => '127.0.0.1',
             LocalPort => $port,
