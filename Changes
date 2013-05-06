@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+2.13_5 Mon May  6 2013 Pavel Shaydo <zwon@cpan.org>
+    * add Test::FailWarnings dependency
+    * add x_contributors
+
 2.13_4 Sun May  5 2013 Pavel Shaydo <zwon@cpan.org>
     * fix on_disconnect when raise_error disabled
     * turn on_disconnect into internal callback
