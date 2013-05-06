@@ -58,8 +58,13 @@ WriteMakefile(
             repository => 'git://github.com/trinitum/RedisDB',
             license    => 'http://dev.perl.org/licenses/',
         },
-        keywords => ['redis'],
-    },
+        keywords       => ['redis'],
+        x_contributors => [
+            'Pavel Shaydo <zwon@cpan.org>',
+            'HIROSE Masaaki <hirose31@gmail.com>',
+            'Uwe Voelker <uwe.voelker@xing.com>',
+        ],
+      },
     CONFIGURE => sub {
         my $hash = $_[1];
         unless ($make_xs) {
