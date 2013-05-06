@@ -108,6 +108,7 @@ subtest "Restore connection without raise_error" => sub {
         $SIG{ALRM} = sub { die "Died on timeout." };
         alarm 10;
         my $cli = $srv->accept;
+        $srv->close;
         my $buf = '';
         while ( $buf !~ /foo/ ) {
             $cli->recv( $buf, 1024 );
@@ -115,7 +116,6 @@ subtest "Restore connection without raise_error" => sub {
         $cli->send( "+PONG", 0 );
         $cli->close;
 
-        $srv->close;
         $srv = IO::Socket::INET->new(
             LocalAddr => '127.0.0.1',
             LocalPort => $port,
