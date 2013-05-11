@@ -36,5 +36,6 @@ typedef struct redisdb_parser RDB_parser;
 RDB_parser* rdb_parser__init(SV *redisdb, int utf8);
 void rdb_parser__free(RDB_parser *parser);
 int rdb_parser__parse_reply(RDB_parser *parser);
+void rdb_parser__propagate_reply(RDB_parser *parser, SV *reply);
 
 #endif

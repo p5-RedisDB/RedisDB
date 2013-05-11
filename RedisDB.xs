@@ -100,8 +100,15 @@ rdb_parser_callbacks(parser)
             }
         }
 
+void
+rdb_parser_propagate_reply(parser, reply)
+        RDB_parser *parser;
+        SV *reply;
+    CODE:
+        rdb_parser__propagate_reply(parser, reply);
+
 int
-add(parser, data)
+rdb_parser_add(parser, data)
         RDB_parser *parser;
         SV* data;
     CODE:

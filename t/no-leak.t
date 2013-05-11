@@ -67,4 +67,13 @@ no_leaks_ok {
 }
 "callback throws an exception";
 
+no_leaks_ok {
+    my $redisdb = {};
+    my $parser = RedisDB::Parse::Redis->new( redisdb => $redisdb );
+    $redisdb->{parser} = $parser;
+    $parser->add_callback( sub { 1 } );
+    $parser->propagate_reply( RedisDB::Error->new("Oops") );
+}
+"propagate_reply haven't leaked anything";
+
 done_testing;

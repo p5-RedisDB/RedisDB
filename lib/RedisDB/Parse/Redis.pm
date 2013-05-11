@@ -2,7 +2,7 @@ package RedisDB::Parse::Redis;
 
 use strict;
 use warnings;
-our $VERSION = "2.12";
+our $VERSION = "2.13_06";
 $VERSION = eval $VERSION;
 
 use Try::Tiny;
@@ -81,6 +81,11 @@ Used by subscription loop.
 =head2 $self->callbacks
 
 Returns true if there are callbacks in queue
+
+=head2 $self->propagate_reply($reply)
+
+Invoke every callback from queue and the default callback with the given
+I<$reply>.
 
 =head2 $self->add($data)
 

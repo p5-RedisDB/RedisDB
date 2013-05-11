@@ -13,7 +13,7 @@ RDB_parser* rdb_parser__init(SV* redisdb, int utf8) {
 
     Newx(parser, 1, RDB_parser);
     if (parser == NULL) {
-        croak("Couldn't allocate memory for RETVAL");
+        croak("Couldn't allocate memory for parser");
     }
 
     if (SvROK(redisdb)) {
@@ -51,6 +51,35 @@ void rdb_parser__free(RDB_parser *parser) {
     }
 
     Safefree(parser);
+}
+
+void rdb_parser__propagate_reply(RDB_parser *parser, SV *reply) {
+    SV *cb;
+
+    while (1) {
+        if(av_len(parser->callbacks) >= 0) {
+            cb = av_shift(parser->callbacks);
+            sv_2mortal(cb);
+        }
+        else if (parser->default_cb != NULL) {
+            cb = parser->default_cb;
+            parser->default_cb = NULL;
+        }
+        else {
+            break;
+        }
+
+        dSP;
+        ENTER;
+        SAVETMPS;
+        PUSHMARK(SP);
+        XPUSHs(sv_2mortal(newRV_inc(parser->redisdb)));
+        XPUSHs(sv_2mortal(newSVsv(reply)));
+        PUTBACK;
+        call_sv(cb, G_VOID|G_DISCARD);
+        FREETMPS;
+        LEAVE;
+    }
 }
 
 static

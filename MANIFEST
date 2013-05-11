@@ -20,6 +20,7 @@ t/no-leak.t
 t/parser.t
 t/redis_commands.t
 t/RedisServer.pm
+t/restore_subscriptions.t
 t/send_command_cb.t
 t/subscribe.t
 t/transactions.t

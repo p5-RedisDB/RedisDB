@@ -43,6 +43,7 @@ sub test_parser {
     subtest "Multi-bulk reply"             => \&multi_bulk_reply;
     subtest "Deep nested multi-bulk reply" => \&nested_mb_reply;
     subtest "Transaction"                  => \&transaction;
+    subtest "Propagate reply"              => \&propagate_reply;
     done_testing;
 }
 
@@ -220,4 +221,15 @@ sub transaction {
     isa_ok $reply->[1], "RedisDB::Error", "  has error object";
     is "$reply->[1]", "Oops", "  Oops";
     is $reply->[2], "OK", "  has OK";
+}
+
+sub propagate_reply {
+    @replies = ();
+    for my $var ( 1 .. 3 ) {
+        $parser->add_callback( sub { push @replies, [ $var, "$_[1]" ] } );
+    }
+    $parser->set_default_callback( sub { push @replies, [ 0, "$_[1]" ] } );
+    $parser->propagate_reply( RedisDB::Error->new("Oops") );
+    ok ! $parser->callbacks, "No callbacks in the queue";
+    eq_or_diff [ sort { $a->[0] <=> $b->[0] } @replies ], [ map { [ $_, "Oops" ] } 0 .. 3 ], "All callbacks got the error";
 }

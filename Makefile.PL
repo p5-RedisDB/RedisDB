@@ -41,12 +41,13 @@ WriteMakefile(
         'ExtUtils::CBuilder'  => 0.27,
     },
     BUILD_REQUIRES => {
-        'Test::More'        => 0.96,
-        'Test::Most'        => 0.22,
-        'Test::Differences' => 0.61,
-        'Test::TCP'         => 1.17,
-        'Digest::SHA'       => 0,
-    },
+        'Test::More'         => 0.96,
+        'Test::Most'         => 0.22,
+        'Test::Differences'  => 0.61,
+        'Test::FailWarnings' => 0,
+        'Test::TCP'          => 1.17,
+        'Digest::SHA'        => 0,
+      },
     dist       => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean      => { FILES    => 'RedisDB-*' },
     META_MERGE => {
@@ -57,8 +58,13 @@ WriteMakefile(
             repository => 'git://github.com/trinitum/RedisDB',
             license    => 'http://dev.perl.org/licenses/',
         },
-        keywords => ['redis'],
-    },
+        keywords       => ['redis'],
+        x_contributors => [
+            'Pavel Shaydo <zwon@cpan.org>',
+            'HIROSE Masaaki <hirose31@gmail.com>',
+            'Uwe Voelker <uwe.voelker@xing.com>',
+        ],
+      },
     CONFIGURE => sub {
         my $hash = $_[1];
         unless ($make_xs) {

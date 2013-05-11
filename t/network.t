@@ -6,6 +6,7 @@ use File::Temp qw(tempdir);
 use File::Spec;
 use Try::Tiny;
 use Time::HiRes qw(usleep);
+use Test::FailWarnings;
 
 # Check that module is able to restore connection
 subtest "Restore connection" => sub {
@@ -29,13 +30,13 @@ subtest "Restore connection" => sub {
         $SIG{ALRM} = sub { die "Died on timeout." };
         alarm 10;
         my $cli = $srv->accept;
+        $srv->close;
         $cli->recv( my $buf, 1024 );
         $cli->send( "+PONG\015\012", 0 );
         $cli->close;
 
         # simulate restart of the redis-server
-        $srv->close;
-        usleep 1_000_000;
+        usleep 100_000;
         $srv = IO::Socket::INET->new(
             LocalAddr => '127.0.0.1',
             LocalPort => $port,
@@ -43,7 +44,7 @@ subtest "Restore connection" => sub {
             Listen    => 1,
             ReuseAddr => 1,
         ) or die $!;
-        my @replies = ( "+OK\015\012", "+OK", ":42\015\012" );
+        my @replies = ( "+OK\015\012", "+OK", "+PONG\015\012", ":42\015\012" );
         while (@replies) {
             my $cli = $srv->accept;
             $cli->recv( my $buf, 1024 );
@@ -65,11 +66,12 @@ subtest "Restore connection" => sub {
     lives_ok { $ret = $redis->ping } "Ping";
     is $ret, 'PONG', "pong";
     undef $ret;
-    usleep 200_000;
+    usleep 100_000;    # wait for FIN
     lives_ok { $ret = $redis->set( 'key', 'value' ) } "Connection restored";
     is $ret, 'OK', "key is set";
-    usleep 200_000;
+    usleep 100_000;    # wait for FIN
     dies_ok { $redis->get('key') } "Died on unclean disconnect";
+    is $redis->ping, 'PONG', "Restored connection after exception";
     my $invoked_callback;
     my $fourty_two = RedisDB->new(
         host             => '127.0.0.1',
@@ -88,6 +90,66 @@ subtest "Restore connection" => sub {
           )
     }
     qr/on_connect_error/, "Dies on conection failure";
+};
+
+# Check functionality if raise_error is disabled
+subtest "Restore connection without raise_error" => sub {
+    my $srv = IO::Socket::INET->new(
+        LocalAddr => '127.0.0.1',
+        Proto     => 'tcp',
+        Listen    => 1,
+        ReuseAddr => 1,
+    );
+    plan skip_all => "Can't start server" unless $srv;
+
+    my $port = $srv->sockport;
+    my $pid  = fork;
+    if ( $pid == 0 ) {
+        $SIG{ALRM} = sub { die "Died on timeout." };
+        alarm 10;
+        my $cli = $srv->accept;
+        $srv->close;
+        my $buf = '';
+        while ( $buf !~ /foo/ ) {
+            $cli->recv( $buf, 1024 );
+        }
+        $cli->send( "+PONG", 0 );
+        $cli->close;
+
+        usleep 100_000;
+        $srv = IO::Socket::INET->new(
+            LocalAddr => '127.0.0.1',
+            LocalPort => $port,
+            Proto     => 'tcp',
+            Listen    => 1,
+            ReuseAddr => 1,
+        ) or die $!;
+        my @replies = ("+OK\015\012");
+        while (@replies) {
+            my $cli = $srv->accept;
+            $cli->recv( my $buf, 1024 );
+            $cli->send( shift(@replies), 0 );
+            close $cli;
+        }
+        exit 0;
+    }
+
+    close $srv;
+    my $redis = RedisDB->new(
+        host                => '127.0.0.1',
+        port                => $port,
+        raise_error         => undef,
+        reconnect_attempts  => 3,
+        reconnect_delay_max => 2,
+    );
+    my $cb_res;
+    $redis->set( "baz", "bar", sub { $cb_res = $_[1] } );
+    my $res = $redis->get("foo");
+    isa_ok $res,    "RedisDB::Error::DISCONNECTED", "get returned an error";
+    ok $cb_res,     "Callback has been invoked";
+    isa_ok $cb_res, "RedisDB::Error::DISCONNECTED", "  with an error object";
+
+    is $redis->set( "key", "value" ), "OK", "reconnected and set the key";
 };
 
 # Check what will happen if server immediately closes connection

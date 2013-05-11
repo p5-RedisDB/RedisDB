@@ -2,7 +2,7 @@ package RedisDB::Error;
 
 use strict;
 use warnings;
-our $VERSION = "2.12";
+our $VERSION = "2.13_06";
 $VERSION = eval $VERSION;
 
 =head1 NAME
@@ -51,6 +51,9 @@ sub as_string {
 }
 
 package RedisDB::Error::EAGAIN;
+our @ISA = qw(RedisDB::Error);
+
+package RedisDB::Error::DISCONNECTED;
 our @ISA = qw(RedisDB::Error);
 
 1;
