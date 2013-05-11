@@ -4,11 +4,11 @@
 /*
 ----------------------------------------------------------------------
 
-    ppport.h -- Perl/Pollution/Portability Version 3.19
+    ppport.h -- Perl/Pollution/Portability Version 3.20
 
-    Automatically created by Devel::PPPort running under perl 5.014002.
+    Automatically created by Devel::PPPort running under perl 5.016003.
 
-    Version 3.x, Copyright (c) 2004-2009, Marcus Holland-Moritz.
+    Version 3.x, Copyright (c) 2004-2010, Marcus Holland-Moritz.
 
     Version 2.x, Copyright (C) 2001, Paul Marquess.
 
@@ -23,8 +23,8 @@ SKIP
 if (@ARGV && $ARGV[0] eq '--unstrip') {
   eval { require Devel::PPPort };
   $@ and die "Cannot require Devel::PPPort, please install.\n";
-  if (eval $Devel::PPPort::VERSION < 3.19) {
-    die "ppport.h was originally generated with Devel::PPPort 3.19.\n"
+  if (eval $Devel::PPPort::VERSION < 3.2) {
+    die "ppport.h was originally generated with Devel::PPPort 3.2.\n"
       . "Your Devel::PPPort is only version $Devel::PPPort::VERSION.\n"
       . "Please install a newer version, or --unstrip will not work.\n";
   }
@@ -454,6 +454,13 @@ sv_setnv(sv, (double)TeMpUv); \
 #define memEQ(s1,s2,l) (!bcmp(s1,s2,l))
 #endif
 #endif
+#ifndef memEQs
+#define memEQs(s1, l, s2) \
+(sizeof(s2)-1 == l && memEQ(s1, (s2 ""), (sizeof(s2)-1)))
+#endif
+#ifndef memNEs
+#define memNEs(s1, l, s2) !memEQs(s1, l, s2)
+#endif
 #ifndef MoveD
 #define MoveD(s,d,n,t) memmove((char*)(d),(char*)(s), (n) * sizeof(t))
 #endif
@@ -752,10 +759,10 @@ typedef OP* (CPERLscope(*Perl_check_t)) (pTHX_ OP*);
 #define isALNUMC(c) (isALPHA(c) || isDIGIT(c))
 #endif
 #ifndef isASCII
-#define isASCII(c) ((c) <= 127)
+#define isASCII(c) ((U8) (c) <= 127)
 #endif
 #ifndef isCNTRL
-#define isCNTRL(c) ((c) < ' ' || (c) == 127)
+#define isCNTRL(c) ((U8) (c) < ' ' || (c) == 127)
 #endif
 #ifndef isGRAPH
 #define isGRAPH(c) (isALNUM(c) || isPUNCT(c))
@@ -1774,6 +1781,15 @@ return sv;
 #ifndef isGV_with_GP
 #define isGV_with_GP(gv) isGV(gv)
 #endif
+#ifndef gv_fetchpvn_flags
+#define gv_fetchpvn_flags(name, len, flags, svt) gv_fetchpv(name, flags, svt)
+#endif
+#ifndef gv_fetchsv
+#define gv_fetchsv(name, flags, svt) gv_fetchpv(SvPV_nolen_const(name), flags, svt)
+#endif
+#ifndef get_cvn_flags
+#define get_cvn_flags(name, namelen, flags) get_cv(name, flags)
+#endif
 #ifndef WARN_ALL
 #define WARN_ALL 0
 #endif
@@ -1959,6 +1975,9 @@ warn("%s", SvPV_nolen(sv));
 #ifndef newSVpvs_flags
 #define newSVpvs_flags(str, flags) newSVpvn_flags(str "", sizeof(str) - 1, flags)
 #endif
+#ifndef newSVpvs_share
+#define newSVpvs_share(str) newSVpvn_share(str "", sizeof(str) - 1, 0)
+#endif
 #ifndef sv_catpvs
 #define sv_catpvs(sv, str) sv_catpvn(sv, str "", sizeof(str) - 1)
 #endif
@@ -1971,14 +1990,14 @@ warn("%s", SvPV_nolen(sv));
 #ifndef hv_stores
 #define hv_stores(hv, key, val) hv_store(hv, key "", sizeof(key) - 1, val, 0)
 #endif
-#ifndef gv_fetchpvn_flags
-#define gv_fetchpvn_flags(name, len, flags, svt) gv_fetchpv(name, flags, svt)
-#endif
 #ifndef gv_fetchpvs
 #define gv_fetchpvs(name, flags, svt) gv_fetchpvn_flags(name "", sizeof(name) - 1, flags, svt)
 #endif
 #ifndef gv_stashpvs
 #define gv_stashpvs(name, flags) gv_stashpvn(name "", sizeof(name) - 1, flags)
+#endif
+#ifndef get_cvs
+#define get_cvs(name, flags) get_cvn_flags(name "", sizeof(name)-1, flags)
 #endif
 #ifndef SvGETMAGIC
 #define SvGETMAGIC(x) STMT_START { if (SvGMAGICAL(x)) mg_get(x); } STMT_END
