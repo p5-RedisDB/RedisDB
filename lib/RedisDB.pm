@@ -565,9 +565,14 @@ sub mainloop {
         my $ret = $self->{_socket}->recv( my $buffer, 131072 );
         unless ( defined $ret ) {
             next if $! == EINTR;
-
-            # TODO: if not EAGAIN then invoke _on_disconnect
-            confess "Error reading reply from server: $!";
+            if ( $! == EAGAIN ) {
+                confess "Timed out waiting reply from the server";
+            }
+            else {
+                $self->_on_disconnect( 1,
+                    RedisDB::Error::DISCONNECTED->new("Error reading reply from the server: $!") );
+                next;
+            }
         }
         if ( $buffer ne '' ) {
 
