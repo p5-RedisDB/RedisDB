@@ -69,16 +69,18 @@ void rdb_parser__propagate_reply(RDB_parser *parser, SV *reply) {
             break;
         }
 
-        dSP;
-        ENTER;
-        SAVETMPS;
-        PUSHMARK(SP);
-        XPUSHs(sv_2mortal(newRV_inc(parser->redisdb)));
-        XPUSHs(sv_2mortal(newSVsv(reply)));
-        PUTBACK;
-        call_sv(cb, G_VOID|G_DISCARD);
-        FREETMPS;
-        LEAVE;
+        {
+            dSP;
+            ENTER;
+            SAVETMPS;
+            PUSHMARK(SP);
+            XPUSHs(sv_2mortal(newRV_inc(parser->redisdb)));
+            XPUSHs(sv_2mortal(newSVsv(reply)));
+            PUTBACK;
+            call_sv(cb, G_VOID|G_DISCARD);
+            FREETMPS;
+            LEAVE;
+        }
     }
 }
 
