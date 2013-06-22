@@ -38,9 +38,11 @@ void rdb_parser__free(RDB_parser *parser) {
     struct rdbp_mblk_store *store, *next;
 
     SvREFCNT_dec(parser->callbacks);
-    SvREFCNT_dec(parser->default_cb);
     SvREFCNT_dec(parser->buffer);
-    SvREFCNT_dec(parser->mblk_reply);
+    if (parser->default_cb != NULL)
+        SvREFCNT_dec(parser->default_cb);
+    if (parser->mblk_reply != NULL)
+        SvREFCNT_dec(parser->mblk_reply);
 
     store = parser->mblk_store;
     while (store != NULL) {
