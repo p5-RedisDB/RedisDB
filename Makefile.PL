@@ -8,19 +8,24 @@ use ExtUtils::CBuilder 0.27;
 my $make_xs = undef;
 $make_xs = 1 if ExtUtils::CBuilder->new( quiet => 1 )->have_compiler;
 foreach (@ARGV) {
-    /^-pm/ and $make_xs = 0;
+    if (/^-pm/) {
+        $make_xs = 0;
+    }
+    elsif (/^PUREPERL_ONLY=(.*)/) {
+        $make_xs = !$1;
+    }
 }
 
 if ($make_xs) {
     print <<EOM;
-**************************************
-* Building XS version of the parser. *
-* If build failed, you can try to    *
-* build PP version by running        *
-*                                    *
-*     perl Makefile.PL -pm           *
-*     make                           *
-**************************************
+*****************************************
+* Building XS version of the parser.    *
+* If build failed, you can try to       *
+* build PP version by running           *
+*                                       *
+*   perl Makefile.PL PUREPERL_ONLY = 1  *
+*   make                                *
+*****************************************
 EOM
 }
 
