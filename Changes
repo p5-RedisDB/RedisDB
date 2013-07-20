@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+2.16 Sat Jul 20 2013 Pavel Shaydo <zwon@cpan.org>
+    * Fix for NetBSD with non-numeric osvers. Thanks to Jeff Lavallee
+      for http://www.cpantesters.org/cpan/report/6f1bd3f8-f006-11e2-b34e-ea5fbc6e940b
+
 2.15 Sat Jun 22 2013 Pavel Shaydo <zwon@cpan.org>
     * support PUREPERL_ONLY option in Makefile.PL
     * check if SV* is NULL before decrementing refcounter
