@@ -1117,8 +1117,7 @@ sub subscription_loop {
     my ( $self, %args ) = @_;
     croak "Already in subscription loop" if $self->{_subscription_loop};
     croak "You can't start subscription loop while in pipelining mode."
-      if $self->{_parser}->callbacks
-      or @{ $self->{_replies} };
+      if $self->replies_to_fetch;
     $self->{_subscribed}        = {};
     $self->{_psubscribed}       = {};
     $self->{_subscription_cb}   = $args{default_callback};

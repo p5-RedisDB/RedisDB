@@ -39,6 +39,7 @@ unless ( my $pid = fork ) {
 my %counts;
 
 is $redis->set( "running test", "subscribe.t" ), "OK", "Successfully set value in DB";
+$redis->set("__test__", "__test__", RedisDB::IGNORE_REPLY);
 
 $SIG{ALRM} = sub { die "subscription loop didn't exit" };
 alarm 7;
