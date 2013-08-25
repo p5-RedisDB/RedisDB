@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+2.17 Sun Aug 25 2013 Pavel Shaydo <zwon@cpan.org>
+    * Fix the problem with subscription_loop refusing to start when
+      there are some pipelined commands. Reported by Paul Cameron.
+
 2.16 Sat Jul 20 2013 Pavel Shaydo <zwon@cpan.org>
     * Fix for NetBSD with non-numeric osvers. Thanks to Jeff Lavallee
       for http://www.cpantesters.org/cpan/report/6f1bd3f8-f006-11e2-b34e-ea5fbc6e940b
