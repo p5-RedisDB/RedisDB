@@ -1,291 +1,296 @@
 Revision history for RedisDB
 
+2.18 Thu Oct 24 2013 Pavel Shaydo <zwon@cpan.org>
+    - fix mainloop when parser was not initialized.
+      Patch by Andrew O'Brien
+    - change format of Changes
+
 2.17 Sun Aug 25 2013 Pavel Shaydo <zwon@cpan.org>
-    * Fix the problem with subscription_loop refusing to start when
+    - fix the problem with subscription_loop refusing to start when
       there are some pipelined commands. Reported by Paul Cameron.
 
 2.16 Sat Jul 20 2013 Pavel Shaydo <zwon@cpan.org>
-    * Fix for NetBSD with non-numeric osvers. Thanks to Jeff Lavallee
+    - fix for NetBSD with non-numeric osvers. Thanks to Jeff Lavallee
       for http://www.cpantesters.org/cpan/report/6f1bd3f8-f006-11e2-b34e-ea5fbc6e940b
 
 2.15 Sat Jun 22 2013 Pavel Shaydo <zwon@cpan.org>
-    * support PUREPERL_ONLY option in Makefile.PL
-    * check if SV* is NULL before decrementing refcounter
-    * fix XS to build on Windows with whatever compiler ActiveState
+    - support PUREPERL_ONLY option in Makefile.PL
+    - check if SV* is NULL before decrementing refcounter
+    - fix XS to build on Windows with whatever compiler ActiveState
       using
-    * use _on_disconnect to handle recv errors in mainloop
+    - use _on_disconnect to handle recv errors in mainloop
 
 2.14 Sat May 11 2013 Pavel Shaydo <zwon@cpan.org>
-    * add propagate_reply method to the parser, so an error could be
+    - add propagate_reply method to the parser, so an error could be
       propagated to all callbacks
-    * handle server disconnects in a more robust way, so object could
+    - handle server disconnects in a more robust way, so object could
       be reused after throwing exception
-    * automatically restore subscriptions after disconnect
-    * documentation fixes
-    * tests improvements
-    * add x_contributors
-    * update ppport.h
+    - automatically restore subscriptions after disconnect
+    - documentation fixes
+    - tests improvements
+    - add x_contributors
+    - update ppport.h
 
 2.12 Mon Jan 21 2013 Pavel Shaydo <zwon@cpan.org>
-    * add support for BITCOUNT, BITOP, and CLIENT commands
-    * info method now supports asynchronous mode
-    * fix test for cygwin
+    - add support for BITCOUNT, BITOP, and CLIENT commands
+    - info method now supports asynchronous mode
+    - fix test for cygwin
 
 2.11 Fri Nov 30 2012 Pavel Shaydo <zwon@cpan.org>
-    * use MSG_NOSIGNAL on sending or ignore SIGPIPE
-    * fix socket timeout on NetBSD 6.0
+    - use MSG_NOSIGNAL on sending or ignore SIGPIPE
+    - fix socket timeout on NetBSD 6.0
 
 2.10 Sat Nov 10 2012 Pavel Shaydo <zwon@cpan.org>
-    * implement reconnect to retry to connect several times before
+    - implement reconnect to retry to connect several times before
       throwing an error.
-    * add on_connect_error callback
-    * add raise_error setting
-    * fix documentation
-    * use Test::TCP for testing
-    * add AnyEvent::Redis and AE::R::RipeRedis to benchmark script
+    - add on_connect_error callback
+    - add raise_error setting
+    - fix documentation
+    - use Test::TCP for testing
+    - add AnyEvent::Redis and AE::R::RipeRedis to benchmark script
 
 2.08 Thu Oct 11 2012 Pavel Shaydo <zwon@cpan.org>
-    * workaround bug in perls before 5.14 that causes recv set $! to
+    - workaround bug in perls before 5.14 that causes recv set $! to
       0 instead of EINTR if interrupted by alarm
 
 2.07 Thu Oct 11 2012 Pavel Shaydo <zwon@cpan.org>
-    * fix p?subscribe outside of subscription_loop
-    * do not require callback for channel outside of subscription_loop
+    - fix p?subscribe outside of subscription_loop
+    - do not require callback for channel outside of subscription_loop
 
 2.06 Tue Oct  2 2012 Pavel Shaydo <zwon@cpan.org>
-    * allow p?(un)?subscribe outside of subscription_loop
+    - allow p?(un)?subscribe outside of subscription_loop
 
 2.05 Fri Aug 24 2012 Pavel Shaydo <zwon@cpan.org>
-    * attempt to fix hanging tests on Win32
+    - attempt to fix hanging tests on Win32
 
 2.04 Wed Aug  8 2012 Pavel Shaydo <zwon@cpan.org>
-    * fix Makefile.PL -pm option
+    - fix Makefile.PL -pm option
 
 2.03 Sat Jul 28 2012 Pavel Shaydo <zwon@cpan.org>
-    * fix double-free problem with threads and fork
+    - fix double-free problem with threads and fork
       emulation on Windows. Now parser structure is
       only destroyed by the same interpreter it was
       created.
-    * try to make tests more Windows friendly
+    - try to make tests more Windows friendly
 
 2.02 Thu Jul 26 2012 Pavel Shaydo <zwon@cpan.org>
-    * try to fix another bunch of errors from
+    - try to fix another bunch of errors from
       Activestate build logs
 
 2.01 Wed Jul 25 2012 Pavel Shaydo <zwon@cpan.org>
-    * try to fix build failures on Window based on
+    - try to fix build failures on Window based on
       build logs from http://code.activestate.com/ppm/RedisDB/
 
 2.00 Mon Jun 25 2012 Pavel Shaydo <zwon@cpan.org>
-    * No changes
+    - No changes
 
 1.99_04 Thu Jun 21 2012 Pavel Shaydo <zwon@cpan.org>
-    * update list of wrappers in POD
-    * rename bench/ into util/
+    - update list of wrappers in POD
+    - rename bench/ into util/
 
 1.99_03 Thu Jun 21 2012 Pavel Shaydo <zwon@cpan.org>
-    * documentation fixes
-    * fix some warnings
-    * strip ppport.h
-    * add support for OBJECT, DUMP, RESTORE, and MIGRATE
+    - documentation fixes
+    - fix some warnings
+    - strip ppport.h
+    - add support for OBJECT, DUMP, RESTORE, and MIGRATE
 
 1.99_02 Sat Jun  9 2012 Pavel Shaydo <zwon@cpan.org>
-    * implement utf8 option for XS parser
-    * minor doc fix
-    * improve no-leak.t test
+    - implement utf8 option for XS parser
+    - minor doc fix
+    - improve no-leak.t test
 
 1.99_01 Wed Jun  6 2012 Pavel Shaydo <zwon@cpan.org>
-    * XS implementation of the parser
+    - XS implementation of the parser
 
 1.08 Sun May 13 2012 Pavel Shaydo <zwon@cpan.org>
-    * add support for deep-nested multi-bulk replies
-    * add support for SLOWLOG command
-    * return integer replies as integer numbers
-    * disable tests for QUIT command on redis < 2.0 and add
+    - add support for deep-nested multi-bulk replies
+    - add support for SLOWLOG command
+    - return integer replies as integer numbers
+    - disable tests for QUIT command on redis < 2.0 and add
       note into BUGS section
-    * minor test fixes
+    - minor test fixes
 
 1.07 Sat May  5 2012 Pavel Shaydo <zwon@cpan.org>
-    * minor tweak of _connect method. Reported by Dmitry Bigunyak.
+    - minor tweak of _connect method. Reported by Dmitry Bigunyak.
       Fixes #8
 
 1.06 Sat Apr 14 2012 Pavel Shaydo <zwon@cpan.org>
-    * fix memory leak due to circular references,
+    - fix memory leak due to circular references,
       reported by vovpov@github
 
 1.05 Thu Mar 29 2012 Pavel Shaydo <zwon@cpan.org>
-    * fix SHUTDOWN
-    * add support for EVAL and SCRIPT commands
-    * add support for millisecond expires
-    * add support for INCRBYFLOAT
+    - fix SHUTDOWN
+    - add support for EVAL and SCRIPT commands
+    - add support for millisecond expires
+    - add support for INCRBYFLOAT
 
 1.04 Tue Mar 27 2012 Pavel Shaydo <zwon@cpan.org>
-    * fix handling of commands with whitespace.
+    - fix handling of commands with whitespace.
       Thanks to HIROSE Masaaki for the patch.
 
 1.03 Mon Mar 19 2012 Pavel Shaydo <zwon@cpan.org>
-    * require Encode 2.10
+    - require Encode 2.10
 
 1.02_3 Sun Mar 18 2012 Pavel Shaydo <zwon@cpan.org>
-    * require EU::MM 6.3002 to build
+    - require EU::MM 6.3002 to build
 
 1.02_2 Sat Mar 17 2012 Pavel Shaydo <zwon@cpan.org>
-    * switch to plain EU::MM
-    * remove manifest.t
+    - switch to plain EU::MM
+    - remove manifest.t
 
 1.02_1 Thu Mar 15 2012 Pavel Shaydo <zwon@cpan.org>
-    * extract parser into separate module
-    * fix handling of error replies in transactions
-    * increase read buffer size
-    * update bench/mark.pl script
+    - extract parser into separate module
+    - fix handling of error replies in transactions
+    - increase read buffer size
+    - update bench/mark.pl script
 
 1.01 Wed Mar  7 2012 Pavel Shaydo <zwon@cpan.org>
-    * re-authenticate on reconnect
+    - re-authenticate on reconnect
 
 1.00 Mon Mar  5 2012 Pavel Shaydo <zwon@cpan.org>
-    * no changes
+    - no changes
 
 0.32_2 Mon Mar  5 2012 Pavel Shaydo <zwon@cpan.org>
-    * document error handling
+    - document error handling
 
 0.32_1 Sat Mar  3 2012 Pavel Shaydo <zwon@cpan.org>
-    * add UTF-8 support
-    * add reset_connection method
+    - add UTF-8 support
+    - add reset_connection method
 
 0.31 Tue Feb  7 2012 Pavel Shaydo <zwon@cpan.org>
-    * no changes
+    - no changes
 
 0.30_3 Sun Feb  5 2012 Pavel Shaydo <zwon@cpan.org>
-    * replace accidentally used //= with ||=
+    - replace accidentally used //= with ||=
 
 0.30_2 Thu Feb  2 2012 Pavel Shaydo <zwon@cpan.org>
-    * add database parameter to the constructor
-    * add selected_database method
+    - add database parameter to the constructor
+    - add selected_database method
 
 0.30_1 Wed Feb  1 2012 Pavel Shaydo <zwon@cpan.org>
-    * restore selected database on reconnect
-    * do not invoke _connect recursively
-    * refactor network.t
+    - restore selected database on reconnect
+    - do not invoke _connect recursively
+    - refactor network.t
 
 0.29 Sun Jan 15 2012 Pavel Shaydo <zwon@cpan.org>
-    * implement mainloop method
-    * documentation improvements
+    - implement mainloop method
+    - documentation improvements
 
 0.28_1 Fri Jan 13 2012 Pavel Shaydo <zwon@cpan.org>
-    * reworking piplening support
-    * send_command now accept callback argument
-    * wrapper methods now accept callback as the last argument
-    * deprecate send_command_cb method
-    * make _ignore callback warn on errors from server
+    - reworking piplening support
+    - send_command now accept callback argument
+    - wrapper methods now accept callback as the last argument
+    - deprecate send_command_cb method
+    - make _ignore callback warn on errors from server
 
 0.27 Thu Jan 12 2012 Pavel Shaydo <zwon@cpan.org>
-    * fix bug with parsing empty list in transaction result,
+    - fix bug with parsing empty list in transaction result,
       thanks to @vovpov for reporting the problem
 
 0.26 Fri Dec 30 2011 Pavel Shaydo <zwon@cpan.org>
-    * require perl 5.8.4
-    * added some error logging to network.t
+    - require perl 5.8.4
+    - added some error logging to network.t
 
 0.25 Tue Dec 27 2011 Pavel Shaydo <zwon@cpan.org>
-    * fixed tests to pass with Test::More 1.005
+    - fixed tests to pass with Test::More 1.005
 
 0.24 Tue Oct 18 2011 Pavel Shaydo <zwon@cpan.org>
-    * as cpantester went offline I didn't see reports about failing
+    - as cpantester went offline I didn't see reports about failing
     tests for nearly two months...
 
 0.23 Thu Sep  1 2011 Pavel Shaydo <zwon@cpan.org>
-    * allow exec while there are still some replies with
+    - allow exec while there are still some replies with
       callbacks in flight
 
 0.22 Tue Aug 30 2011 Pavel Shaydo <zwon@cpan.org>
-    * tests improvements
+    - tests improvements
 
 0.21 Wed Aug 17 2011 Pavel Shaydo <zwon@cpan.org>
-    * Fix bug in subscription_loop, it was failing if you only use
+    - Fix bug in subscription_loop, it was failing if you only use
     subscribe option and not psubscribe
 
 0.20 Thu Aug  4 2011 Pavel Shaydo <zwon@cpan.org>
-    * Add zrem command, thanks to Uwe Voelker for patch
+    - Add zrem command, thanks to Uwe Voelker for patch
 
 0.19 Tue Aug  2 2011 Pavel Shaydo <zwon@cpan.org>
-    * improved tests' coverage
-    * added tests for sets commands
-    * fixed replies_to_fetch
+    - improved tests' coverage
+    - added tests for sets commands
+    - fixed replies_to_fetch
 
 0.18_2 Tue Jul 26 2011 Pavel Shaydo <zwon@cpan.org>
-    * fixed random test hanging
-    * improved tests
-    * improved documentation on pipelining
+    - fixed random test hanging
+    - improved tests
+    - improved documentation on pipelining
 
 0.18_1 Thu Jul 21 2011 Pavel Shaydo <zwon@cpan.org>
-    * added send_command_cb function
+    - added send_command_cb function
 
 0.17 Fri Jul 15 2011 Pavel Shaydo <zwon@cpan.org>
-    * fixed shutdown command
-    * tests now shutdown redis-server rather than kill it
-    * now it should pass tests on Windows
+    - fixed shutdown command
+    - tests now shutdown redis-server rather than kill it
+    - now it should pass tests on Windows
 
 0.16 Wed Jul 13 2011 Pavel Shaydo <zwon@cpan.org>
-    * probably I shouldn't use MSG_DONTWAIT on Win at all
+    - probably I shouldn't use MSG_DONTWAIT on Win at all
 
 0.15 Wed Jul 13 2011 Pavel Shaydo <zwon@cpan.org>
-    * made it work on Windows (thanks to Sanko Robinson for suggestions)
-    * improved tests
+    - made it work on Windows (thanks to Sanko Robinson for suggestions)
+    - improved tests
 
 0.14 Wed Jun 15 2011 Pavel Shaydo <zwon@cpan.org>
-    * add get_all_replies method
-    * add replies_to_fetch method
-    * minor fixes
+    - add get_all_replies method
+    - add replies_to_fetch method
+    - minor fixes
 
 0.13 Sun May 29 2011 Pavel Shaydo <zwon@cpan.org>
-    * fix tests
+    - fix tests
 
 0.12 Sat May 28 2011 Pavel Shaydo <zwon@cpan.org>
-    * Fixed test
+    - Fixed test
 
 0.11 Sat May 28 2011 Pavel Shaydo <zwon@cpan.org>
-    * Ignore timeout if OS doesn't support it
-    * Added UNIX sockets support
+    - Ignore timeout if OS doesn't support it
+    - Added UNIX sockets support
 
 0.10 Wed May 18 2011 Pavel Shaydo <zwon@cpan.org>
-    * added BRPOP command support
-    * added test for lists commands
+    - added BRPOP command support
+    - added test for lists commands
 
 0.09 Mon May 16 2011 Pavel Shaydo <zwon@cpan.org>
-    * added info and version methods
-    * added IO timeout support
-    * fixed subscriptions test failure
+    - added info and version methods
+    - added IO timeout support
+    - fixed subscriptions test failure
 
 0.08 Thu May 12 2011 Pavel Shaydo <zwon@cpan.org>
-    * added transactions support
+    - added transactions support
 
 0.07 Mon Apr 18 2011 Pavel Shaydo <zwon@cpan.org>
-    * trying to find out the reason disconnect.t fails
+    - trying to find out the reason disconnect.t fails
       for certain cpan testers
-    * minor pod fixes
-    * require Test::Differences 0.61
+    - minor pod fixes
+    - require Test::Differences 0.61
 
 0.06 Sun Apr 10 2011 Pavel Shaydo <zwon@cpan.org>
-    * get_reply now returns only result value, no type
-    * fixed multi-bulk messages parsing
-    * added Pub/Sub support
+    - get_reply now returns only result value, no type
+    - fixed multi-bulk messages parsing
+    - added Pub/Sub support
 
 0.05 Mon Apr  4 2011 Pavel Shaydo <zwon@cpan.org>
-    * Fix dependencies for testing
-    * run disconnect test even if redis is not available
-    * make connect private method
-    * minor documentation fixes
+    - Fix dependencies for testing
+    - run disconnect test even if redis is not available
+    - make connect private method
+    - minor documentation fixes
 
 0.04 Sun Apr  3 2011 Pavel Shaydo <zwon@cpan.org>
-    * Fix test failures if there's no redis-server
+    - Fix test failures if there's no redis-server
 
 0.03 Sat Apr  2 2011 Pavel Shaydo <zwon@cpan.org>
-    * Added pipelining support
-    * Improved documentation
+    - Added pipelining support
+    - Improved documentation
 
 0.02 Sat Apr  2 2011 Pavel Shaydo <zwon@cpan.org>
-    * Just added Test::Most dependency
+    - Just added Test::Most dependency
 
-Thu Mar 31 2011 Pavel Shaydo <zwon@cpan.org>
-    * First version, released on an unsuspecting world.
+0.01 Thu Mar 31 2011 Pavel Shaydo <zwon@cpan.org>
+    - First version, released on an unsuspecting world.
 
