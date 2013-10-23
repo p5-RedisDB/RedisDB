@@ -569,6 +569,8 @@ method may block for indefinite time.
 sub mainloop {
     my $self = shift;
 
+    return unless $self->{_parser};
+
     while ( $self->{_parser}->callbacks ) {
         croak "You can't call mainloop in the child process" unless $self->{_pid} == $$;
         my $ret = $self->{_socket}->recv( my $buffer, 131072 );
