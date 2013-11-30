@@ -6,7 +6,7 @@ our $VERSION = "2.18";
 $VERSION = eval $VERSION;
 
 use RedisDB::Error;
-use RedisDB::Parse::Redis;
+use RedisDB::Parser;
 use IO::Socket::INET;
 use IO::Socket::UNIX;
 use Socket qw(MSG_DONTWAIT MSG_NOSIGNAL SO_RCVTIMEO SO_SNDTIMEO);
@@ -160,7 +160,11 @@ sub new {
 
 sub _init_parser {
     my $self = shift;
-    $self->{_parser} = RedisDB::Parse::Redis->new( utf8 => $self->{utf8}, redisdb => $self );
+    $self->{_parser} = RedisDB::Parser->new(
+        utf8        => $self->{utf8},
+        master      => $self,
+        error_class => 'RedisDB::Error',
+    );
 }
 
 =head2 $self->execute($command, @arguments)
@@ -385,7 +389,7 @@ sub _recv_data_nb {
         elsif ( $buf ne '' ) {
 
             # received some data
-            $self->{_parser}->add($buf);
+            $self->{_parser}->parse($buf);
         }
         else {
             delete $self->{_socket};
@@ -482,7 +486,7 @@ sub send_command {
     $self->_recv_data_nb;
 
     my $request = $self->{_parser}->build_request( $command, @_ );
-    $self->{_parser}->add_callback($callback);
+    $self->{_parser}->push_callback($callback);
     {
         local $SIG{PIPE} = 'IGNORE' unless $NOSIGNAL;
         defined $self->{_socket}->send( $request, $NOSIGNAL )
@@ -588,7 +592,7 @@ sub mainloop {
         if ( $buffer ne '' ) {
 
             # received some data
-            $self->{_parser}->add($buffer);
+            $self->{_parser}->parse($buffer);
         }
         else {
 
@@ -635,7 +639,7 @@ sub get_reply {
         elsif ( $buffer ne '' ) {
 
             # received some data
-            $self->{_parser}->add($buffer);
+            $self->{_parser}->parse($buffer);
         }
         else {
 
