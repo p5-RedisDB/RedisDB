@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+2.19_01 Sun Dec  1 2013 Pavel Shaydo <zwon@cpan.org>
+    - use RedisDB::Parser
+
 2.18 Thu Oct 24 2013 Pavel Shaydo <zwon@cpan.org>
     - fix mainloop when parser was not initialized.
       Patch by Andrew O'Brien

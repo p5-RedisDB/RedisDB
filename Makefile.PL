@@ -13,7 +13,7 @@ WriteMakefile(
     PREREQ_PM     => {
         'Try::Tiny'       => 0,
         Encode            => 2.10,
-        'RedisDB::Parser' => 2.19,
+        'RedisDB::Parser' => 2.20,
     },
     CONFIGURE_REQUIRES => {
         'ExtUtils::MakeMaker' => 6.3002,
