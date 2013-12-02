@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+2.19_02 Mon Dec  2 2013 Pavel Shaydo <zwon@cpan.org>
+    - remove RedisDB::Parse::Redis tests from no-leak.t
+
 2.19_01 Sun Dec  1 2013 Pavel Shaydo <zwon@cpan.org>
     - use RedisDB::Parser
 
