@@ -489,7 +489,7 @@ sub send_command {
     $self->{_parser}->push_callback($callback);
     {
         local $SIG{PIPE} = 'IGNORE' unless $NOSIGNAL;
-        defined $self->{_socket}->send( $request, $NOSIGNAL )
+        defined send( $self->{_socket}, $request, $NOSIGNAL )
           or $self->_on_disconnect( 1,
             RedisDB::Error::DISCONNECTED->new("Can't send request to server: $!") );
     }
@@ -577,7 +577,7 @@ sub mainloop {
 
     while ( $self->{_parser}->callbacks ) {
         croak "You can't call mainloop in the child process" unless $self->{_pid} == $$;
-        my $ret = $self->{_socket}->recv( my $buffer, 131072 );
+        my $ret = recv( $self->{_socket}, my $buffer, 131073, 0 );
         unless ( defined $ret ) {
             next if $! == EINTR;
             if ( $! == EAGAIN ) {
@@ -624,7 +624,7 @@ sub get_reply {
       or $self->{_subscription_loop};
     croak "You can't read reply in child process" unless $self->{_pid} == $$;
     while ( not @{ $self->{_replies} } ) {
-        my $ret = $self->{_socket}->recv( my $buffer, 131072 );
+        my $ret = recv( $self->{_socket}, my $buffer, 131074, 0 );
         if ( not defined $ret ) {
             next if $! == EINTR or $! == 0;
             my $err;
