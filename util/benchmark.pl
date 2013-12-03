@@ -14,11 +14,12 @@ use Redis::Client;
 use Benchmark qw( cmpthese );
 
 say <<EOT;
-************************************************************
-Please be careful with results that this script gives you.
-It doesn't really test what it supposed to, and results
-may vary drastically depending on the environment.
-************************************************************
+******************************************************************
+* Check source code to understand what this script benchmarking. *
+* Depending on your environment you may get different results,   *
+* e.g. hyper-threading may significantly decrease performance    *
+* of some modules.                                               *
+******************************************************************
 EOT
 
 say "Testing against";
