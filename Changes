@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+2.20 Sun Dec  8 2013 Pavel Shaydo <zwon@cpan.org>
+    - stable release
+    - minor benchmark fixes
+
 2.19_03 Tue Dec  3 2013 Pavel Shaydo <zwon@cpan.org>
     - performance improvements
 
