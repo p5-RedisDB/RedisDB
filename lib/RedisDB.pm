@@ -117,21 +117,16 @@ attempts to reconnect. Default value is 10.
 
 =item on_connect_error
 
-this allows you to specify callback that will be invoked in the case of failed
-connection attempt. First argument to callback is a reference to the RedisDB
-object, and second is the error description. You must not invoke any methods on
-the object, but you can change I<port> and I<host>, or I<path> attributes.
-After callback returned, module tries to establish connection again. Default
-callback confesses. This may be useful to switch to reserve server if primary
-is down.
-
-=begin comment
-
-=item on_disconnect
-
-callback to invoke when server closed connection
-
-=end comment
+this allows you to specify callback that will be invoked if module could not
+establish connection to the server.  First argument to callback is a reference
+to the RedisDB object, and second is the error description. You must not invoke
+any methods on the object inside the callback, but you can change I<port> and
+I<host>, or I<path> attributes of the I<RedisDB> object to point to another
+server.  After callback returned, module tries to establish connection again
+using new parameters. To prevent further connection attempts callback should
+throw an exception. Default callback confesses. This may be useful to switch to
+backup server if primary went down. RedisDB distribution includes an example of
+using this callback in eg/server_failover.pl.
 
 =back
 
