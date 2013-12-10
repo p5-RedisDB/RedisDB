@@ -89,7 +89,7 @@ subtest "Restore connection" => sub {
             reconnect_delay_max => 2,
           )
     }
-    qr/on_connect_error/, "Dies on conection failure";
+    "RedisDB::Error::DISCONNECTED", "Dies on conection failure";
 };
 
 # Check functionality if raise_error is disabled

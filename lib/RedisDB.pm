@@ -194,7 +194,9 @@ sub execute {
 sub _on_connect_error {
     my ( $self, $err ) = @_;
     my $server = $self->{path} || ("$self->{host}:$self->{port}");
-    confess "Couldn't connect to the redis server at $server: $!";
+    my $error_obj =
+      RedisDB::Error::DISCONNECTED->new("Couldn't connect to the redis server at $server: $!");
+    confess $error_obj;
 }
 
 sub _on_disconnect {
@@ -205,13 +207,17 @@ sub _on_disconnect {
             "Server unexpectedly closed connection. Some data might have been lost.");
         if ( $self->{raise_error} || $self->{_in_multi} ) {
             $self->reset_connection;
-            confess $error_obj;
+            die $error_obj;
         }
         elsif ( my $loop_type = $self->{_subscription_loop} ) {
             my $subscribed  = delete $self->{_subscribed};
             my $psubscribed = delete $self->{_psubscribed};
             my $callback    = delete $self->{_subscription_cb};
             $self->reset_connection;
+
+            # there's no simple way to return error from here
+            # TODO: handle it
+            $self->{raise_error}++;
             $self->_connect;
             $self->{_subscription_loop} = $loop_type;
             $self->{_subscription_cb}   = $callback;
@@ -225,6 +231,7 @@ sub _on_disconnect {
             for ( keys %$psubscribed ) {
                 $self->send_command( 'psubscribe', $_ );
             }
+            $self->{raise_error}--;
         }
         else {
 
@@ -240,7 +247,7 @@ sub _on_disconnect {
 }
 
 # establish connection to the server.
-
+# returns undef on success. On failure returns RedisDB::Error or throws an exception.
 sub _connect {
     my $self = shift;
 
@@ -278,7 +285,21 @@ sub _connect {
         }
     }
     continue {
-        $self->{on_connect_error}->( $self, $error ) unless $self->{_socket};
+        unless ( $self->{_socket} ) {
+            if ( $self->{raise_error} ) {
+                $self->{on_connect_error}->( $self, $error );
+            }
+            else {
+                my $new_error = try {
+                    $self->{on_connect_error}->( $self, $error );
+                    return 0;
+                }
+                catch {
+                    return $_;
+                };
+                return $new_error if $new_error;
+            }
+        }
     }
 
     if ( $self->{timeout} ) {
@@ -349,7 +370,7 @@ sub _connect {
     }
 
     delete $self->{_in_connect};
-    return 1;
+    return;
 }
 
 my $SET_NB   = 0;
@@ -364,6 +385,7 @@ else {
 }
 
 # parse data from the receive buffer without blocking
+# Returns undef in case of success or RedisDB::Error if failed
 sub _recv_data_nb {
     my $self = shift;
 
@@ -399,7 +421,10 @@ sub _recv_data_nb {
                 $self->_on_disconnect(0);
             }
 
-            $self->_connect unless $self->{_socket};
+            unless ( $self->{_socket} ) {
+                my $error = $self->_connect;
+                return $error if $error;
+            }
             last;
         }
     }
@@ -417,15 +442,15 @@ sub _queue {
 
 =head2 $self->send_command($command[, @arguments][, \&callback])
 
-send a command to the server. Returns true if the command was successfully
-sent, or dies if an error occurred. Note, that it does not return reply from
-the server, you should retrieve it using the I<get_reply> method, or if I<callback>
-has been specified, it will be invoked upon receiving the reply with two
-arguments: the RedisDB object, and the reply from the server.  If the server
-returns an error, the second argument to the callback will be a L<RedisDB::Error>
-object, you can get description of the error using this object in string
-context.  If you are not interested in reply, you can use RedisDB::IGNORE_REPLY
-constant as the last argument.
+send a command to the server. If send has failed command will die or return
+L<RedisDB::Error> object depending on L<raise_error> parameter.  Note, that it
+does not return reply from the server, you should retrieve it using the
+I<get_reply> method, or if I<callback> has been specified, it will be invoked
+upon receiving the reply with two arguments: the RedisDB object, and the reply
+from the server.  If the server returns an error, the second argument to the
+callback will be a L<RedisDB::Error> object, you can get description of the
+error using this object in string context.  If you are not interested in reply,
+you can use RedisDB::IGNORE_REPLY constant as the last argument.
 
 Note, that RedisDB does not run any background threads, so it will not receive
 the reply and invoke the callback unless you call some of its methods which
@@ -478,16 +503,21 @@ sub send_command {
 
     # Here we are reading received data and parsing it,
     # and at the same time checking if the connection is still alive
-    $self->_recv_data_nb;
+    my $error = $self->_recv_data_nb;
+    $self->{_parser}->push_callback($callback);
+    if ($error) {
+        $self->_on_disconnect( 1, $error );
+        return $error;
+    }
 
     my $request = $self->{_parser}->build_request( $command, @_ );
-    $self->{_parser}->push_callback($callback);
     {
         local $SIG{PIPE} = 'IGNORE' unless $NOSIGNAL;
         defined send( $self->{_socket}, $request, $NOSIGNAL )
           or $self->_on_disconnect( 1,
             RedisDB::Error::DISCONNECTED->new("Can't send request to server: $!") );
     }
+
     return 1;
 }
 
@@ -546,14 +576,18 @@ sub send_command_cb {
 
 This method may be used in the pipelining mode to check if there are some
 replies already received from the server. Returns the number of replies
-available for reading.
+available for reading. May also return L<RedisDB::Error> object if there was a
+network error and I<raise_error> is disabled.
 
 =cut
 
 sub reply_ready {
     my $self = shift;
 
-    $self->_recv_data_nb;
+    my $error = $self->_recv_data_nb;
+    if ($error) {
+        $self->_on_disconnect( 1, $error );
+    }
     return @{ $self->{_replies} } ? 1 : 0;
 }
 
