@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+2.21_01 Wed Dec 11 2013 Pavel Shaydo <zwon@cpan.org>
+    - fix handling failed connections when raise_error disabled.
+      See #14. Thanks to @mburgoon for reporting this.
+
 2.20 Sun Dec  8 2013 Pavel Shaydo <zwon@cpan.org>
     - stable release
     - minor benchmark fixes
