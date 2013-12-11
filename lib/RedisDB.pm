@@ -499,16 +499,25 @@ sub send_command {
         $self->{connection_name} = $_[1];
     }
 
-    $self->_connect unless $self->{_socket} and $self->{_pid} == $$;
+    # if not yet connected to server, or if process was forked
+    # reestablish connection
+    unless ( $self->{_socket} and $self->{_pid} == $$ ) {
+        my $error = $self->_connect;
+        if ($error) {
+            $callback->( $self, $error );
+            return $error;
+        }
+    }
 
     # Here we are reading received data and parsing it,
     # and at the same time checking if the connection is still alive
     my $error = $self->_recv_data_nb;
-    $self->{_parser}->push_callback($callback);
     if ($error) {
-        $self->_on_disconnect( 1, $error );
+        $callback->( $self, $error );
         return $error;
     }
+
+    $self->{_parser}->push_callback($callback);
 
     my $request = $self->{_parser}->build_request( $command, @_ );
     {
