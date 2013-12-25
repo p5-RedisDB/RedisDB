@@ -3,6 +3,10 @@ use strict;
 use warnings;
 use ExtUtils::MakeMaker 6.3002;
 
+if ( $^O eq 'MSWin32' ) {
+    die "On Win32 module requires perl >= 5.12" if not $^V or $^V lt v5.12;
+}
+
 WriteMakefile(
     NAME          => 'RedisDB',
     AUTHOR        => q{Pavel Shaydo <zwon@cpan.org>},
