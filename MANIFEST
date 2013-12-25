@@ -1,4 +1,6 @@
 Changes
+eg/no_raise_error_1.pl
+eg/server_failover.pl
 lib/RedisDB.pm
 lib/RedisDB/Error.pm
 Makefile.PL
@@ -18,6 +20,6 @@ t/transactions.t
 t/utf8.t
 util/benchmark.pl
 util/pipeline.pl
-xt/podspell.t
 xt/manifest.t
 xt/pod.t
+xt/podspell.t
