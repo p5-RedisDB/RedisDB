@@ -14,7 +14,7 @@ $redis->select(1);
 $redis->set( "Database", 1 );
 
 if ( $redis->version >= 2 ) {
-    $redis->quit;
+    delete $redis->{_socket};
     is $redis->ping, 'PONG', "Still can ping server after reconnecting";
     is $redis->get("Database"), 1, "Selected database 1";
     $redis->{password} = 'wrong';
