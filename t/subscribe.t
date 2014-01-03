@@ -124,6 +124,19 @@ $rep =$sub->get_reply;
 is $rep->[0], 'psubscribe', "got psubscribe reply";
 dies_ok { $sub->get('key') } "get is not allowed in subscription mode";
 
+if ( $pub->version >= 2.008 ) {
+    subtest "PUBSUB" => sub {
+        eq_or_diff $pub->pubsub('CHANNELS'), ['baz'], "Only baz channel is active";
+        eq_or_diff $pub->pubsub_channels,    ['baz'], "Only baz channel is active";
+        eq_or_diff $pub->pubsub_numsub( 'baz', 'boo' ), [ 'baz', 1, 'boo', 0 ],
+          "baz has one subscriber, boo has none";
+        eq_or_diff $pub->pubsub_numpat, 1, "one pattern subscriber";
+    };
+}
+else {
+    diag "Not testing PUBSUB command. Requires redis-server >= 2.8.0";
+}
+
 $pub->publish('unexpected', 'msg 1');
 $pub->publish('baz', 'msg 2');
 
