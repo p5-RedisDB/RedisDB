@@ -5,7 +5,6 @@ use RedisDB;
 use Digest::SHA qw(sha1_hex);
 use Time::HiRes qw(usleep);
 use Scalar::Util qw(blessed);
-use List::Util qw(pairmap);
 
 my $server = RedisServer->start;
 plan( skip_all => "Can't start redis-server" ) unless $server;
@@ -21,6 +20,14 @@ subtest "Server info commands"      => \&cmd_server;
 subtest "Sets commands"             => \&cmd_sets;
 subtest "Ordered sets commands"     => \&cmd_zsets;
 subtest "Scripts"                   => \&cmd_scripts;
+
+sub group_pairs {
+    my @res;
+    while (@_) {
+        push @res, [ shift, shift ];
+    }
+    return @res;
+}
 
 sub cmd_keys_strings {
     $redis->flushdb;
@@ -166,7 +173,7 @@ sub cmd_scan {
       "initialized hash with HMSET";
     my $hscan = $redis->hscan( "test_hash", 0, "MATCH", "*4", "COUNT", 100 );
     is $hscan->[0], 0, "Got all matching keys in a single HSCAN call";
-    eq_or_diff [ sort { $a->[0] cmp $b->[0] } pairmap { [ $a, $b ] } @{ $hscan->[1] } ],
+    eq_or_diff [ sort { $a->[0] cmp $b->[0] } group_pairs @{ $hscan->[1] } ],
       [ map { [ $_, "${_}value" ] } sort grep { /4$/ } @all_keys ],
       "Correct list of keys from HSCAN";
 
@@ -179,7 +186,7 @@ sub cmd_scan {
     is $redis->zadd( "test_zset", map { ( $_, "key$_" ) } 1 .. 40 ), 40, "initialized a sorted set";
     my $zscan = $redis->zscan( "test_zset", 0, "MATCH", "*2", "COUNT", 100 );
     is $zscan->[0], 0, "Got all matching elements in a single ZSCAN call";
-    eq_or_diff [ sort { $a->[0] cmp $b->[0] } pairmap { [ $a, $b ] } @{ $zscan->[1] } ],
+    eq_or_diff [ sort { $a->[0] cmp $b->[0] } group_pairs @{ $zscan->[1] } ],
       [ sort { $a->[0] cmp $b->[0] } grep { $_->[0] =~ /2$/ } map { [ "key$_", $_ ] } 1 .. 40 ],
       "Correct list of elements from ZSCAN";
 }
