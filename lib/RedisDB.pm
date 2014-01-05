@@ -779,21 +779,21 @@ my @commands = qw(
   dbsize	debug_object	debug_segfault
   decr	decrby	del	dump	echo	eval    evalsha exists	expire	expireat	flushall
   flushdb	get	getbit	getrange	getset	hdel	hexists	hget	hgetall
-  hincrby	hincrbyfloat	hkeys	hlen	hmget	hmset	hset	hsetnx	hvals	incr	incrby
+  hincrby	hincrbyfloat	hkeys	hlen	hmget	hscan	hmset	hset	hsetnx	hvals	incr	incrby
   incrbyfloat	keys	lastsave	lindex	linsert	llen	lpop	lpush	lpushx
   lrange	lrem	lset	ltrim	mget	migrate	move	mset	msetnx	object	object_refcount
   object_encoding	object_idletime	persist	pexpire	pexpireat	ping	psetex	pttl
   pubsub	pubsub_channels	pubsub_numsub	pubsub_numpat
   publish	quit	randomkey	rename	renamenx	restore	rpop	rpoplpush
-  rpush	rpushx	sadd	save	scard	script	script_exists   script_flush    script_kill
+  rpush	rpushx	sadd	save	scan	scard	script	script_exists   script_flush    script_kill
   script_load   sdiff	sdiffstore	select	set
   setbit	setex	setnx	setrange	sinter	sinterstore
   sismember	slaveof	slowlog smembers	smove	sort	spop	srandmember
-  srem	strlen	sunion	sunionstore	sync	time    ttl	type	unwatch watch
+  srem	sscan	strlen	sunion	sunionstore	sync	time    ttl	type	unwatch watch
   zadd	zcard
   zcount	zincrby	zinterstore	zrange	zrangebyscore	zrank	zrem
   zremrangebyrank   zremrangebyscore	zrevrange	zrevrangebyscore	zrevrank
-  zscore	zunionstore
+  zscan	zscore	zunionstore
 );
 
 sub _simple_commands {
@@ -824,20 +824,20 @@ bitcount, bitop, blpop, brpop, brpoplpush, client, client_kill, client_getname,
 client_setname, config, config_get, config_set, config_resetstat, config_rewrite, dbsize,
 debug_object, debug_segfault, decr, decrby, del, dump, echo, eval, evalsha,
 exists, expire, expireat, flushall, flushdb, get, getbit, getrange, getset,
-hdel, hexists, hget, hgetall, hincrby, hincrbyfloat, hkeys, hlen, hmget, hmset,
+hdel, hexists, hget, hgetall, hincrby, hincrbyfloat, hkeys, hlen, hmget, hscan, hmset,
 hset, hsetnx, hvals, incr, incrby, incrbyfloat, keys, lastsave, lindex,
 linsert, llen, lpop, lpush, lpushx, lrange, lrem, lset, ltrim, mget, migrate,
 move, mset, msetnx, object, object_refcount, object_encoding, object_idletime,
 persist, pexpire, pexpireat, ping, psetex, pttl, publish,
 pubsub, pubsub_channels, pubsub_numsub, pubsub_numpat, quit, randomkey,
-rename, renamenx, restore, rpop, rpoplpush, rpush, rpushx, sadd, save, scard,
+rename, renamenx, restore, rpop, rpoplpush, rpush, rpushx, sadd, save, scan, scard,
 script, script_exists, script_flush, script_kill, script_load, sdiff,
 sdiffstore, select, set, setbit, setex, setnx, setrange, sinter, sinterstore,
 sismember, slaveof, slowlog, smembers, smove, sort, spop, srandmember, srem,
-strlen, sunion, sunionstore, sync, time, ttl, type, unwatch, watch, zadd,
+sscan strlen, sunion, sunionstore, sync, time, ttl, type, unwatch, watch, zadd,
 zcard, zcount, zincrby, zinterstore, zrange, zrangebyscore, zrank, zrem,
 zremrangebyrank, zremrangebyscore, zrevrange, zrevrangebyscore, zrevrank,
-zscore, zunionstore.
+zscan, zscore, zunionstore.
 
 See description of all commands in redis documentation at
 L<http://redis.io/commands>.
