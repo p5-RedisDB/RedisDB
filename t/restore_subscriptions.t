@@ -22,16 +22,16 @@ my $sub = RedisDB->new(
 
 alarm 10;
 $sub->subscribe("sub");
-is $pub->publish( "sub",      "foo" ), 1, "published to sub";
 my $res = $sub->get_reply;
 eq_or_diff $res, [ 'subscribe', 'sub', 1 ], "got subscribe message";
+is $pub->publish( "sub",      "foo" ), 1, "published to sub";
 $res = $sub->get_reply;
 eq_or_diff $res, [ 'message', 'sub', 'foo' ], "got message from sub";
 
 $sub->psubscribe("psub*");
-is $pub->publish( "psub-boo", "bar" ), 1, "published to psub-boo";
 $res = $sub->get_reply;
 eq_or_diff $res, [ 'psubscribe', 'psub*', 2 ], "got psubscribe message";
+is $pub->publish( "psub-boo", "bar" ), 1, "published to psub-boo";
 $res = $sub->get_reply;
 eq_or_diff $res, [ 'pmessage', 'psub*', 'psub-boo', 'bar' ], "got message from psub-boo";
 alarm 0;
