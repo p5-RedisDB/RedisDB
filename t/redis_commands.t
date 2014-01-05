@@ -164,20 +164,20 @@ sub cmd_scan {
 
     is $redis->hmset( "test_hash", map { ( $_, "${_}value" ) } @all_keys ), "OK",
       "initialized hash with HMSET";
-    my $hscan = $redis->hscan( "test_hash", 0, "MATCH", "*4", "COUNT", 40 );
+    my $hscan = $redis->hscan( "test_hash", 0, "MATCH", "*4", "COUNT", 100 );
     is $hscan->[0], 0, "Got all matching keys in a single HSCAN call";
     eq_or_diff [ sort { $a->[0] cmp $b->[0] } pairmap { [ $a, $b ] } @{ $hscan->[1] } ],
       [ map { [ $_, "${_}value" ] } sort grep { /4$/ } @all_keys ],
       "Correct list of keys from HSCAN";
 
     is $redis->sadd( "test_set", @all_keys ), 40, "initialized a set";
-    my $sscan = $redis->sscan( "test_set", 0, "MATCH", "*3", "COUNT", 40 );
+    my $sscan = $redis->sscan( "test_set", 0, "MATCH", "*3", "COUNT", 100 );
     is $sscan->[0], 0, "Got all matching elements in a single SSCAN call";
     eq_or_diff [ sort @{ $sscan->[1] } ], [ sort grep { /3$/ } @all_keys ],
       "Correct list of elements from SSCAN";
 
     is $redis->zadd( "test_zset", map { ( $_, "key$_" ) } 1 .. 40 ), 40, "initialized a sorted set";
-    my $zscan = $redis->zscan( "test_zset", 0, "MATCH", "*2", "COUNT", 40 );
+    my $zscan = $redis->zscan( "test_zset", 0, "MATCH", "*2", "COUNT", 100 );
     is $zscan->[0], 0, "Got all matching elements in a single ZSCAN call";
     eq_or_diff [ sort { $a->[0] cmp $b->[0] } pairmap { [ $a, $b ] } @{ $zscan->[1] } ],
       [ sort { $a->[0] cmp $b->[0] } grep { $_->[0] =~ /2$/ } map { [ "key$_", $_ ] } 1 .. 40 ],
