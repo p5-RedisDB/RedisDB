@@ -22,9 +22,10 @@ subtest "Ordered sets commands"     => \&cmd_zsets;
 subtest "Scripts"                   => \&cmd_scripts;
 
 sub group_pairs {
+    my $ref = shift;
     my @res;
-    while (@_) {
-        push @res, [ shift, shift ];
+    while (@$ref) {
+        push @res, [ shift @$ref, shift @$ref];
     }
     return @res;
 }
@@ -166,29 +167,42 @@ sub cmd_scan {
         push @keys, @{ $res->[1] };
         last unless $cursor;
     }
-    fail "Haven't scanned all the keys after $cnt iterations" if $cnt > 5;
+    fail "haven't scanned all the keys after $cnt iterations" if $cnt > 5;
     eq_or_diff [ sort @keys ], [ sort @all_keys ], "SCAN returned all expected keys";
+    eq_or_diff [ sort @{ $redis->scan_all } ], [ sort @all_keys ], "scan_all returned all keys";
+    eq_or_diff [ sort @{ $redis->scan_all( MATCH => "*3" ) } ], [ sort grep { /3$/ } @all_keys ],
+      "scan_all returned all matched keys";
 
     is $redis->hmset( "test_hash", map { ( $_, "${_}value" ) } @all_keys ), "OK",
       "initialized hash with HMSET";
     my $hscan = $redis->hscan( "test_hash", 0, "MATCH", "*4", "COUNT", 100 );
-    is $hscan->[0], 0, "Got all matching keys in a single HSCAN call";
-    eq_or_diff [ sort { $a->[0] cmp $b->[0] } group_pairs @{ $hscan->[1] } ],
+    is $hscan->[0], 0, "got all matching keys in a single HSCAN call";
+    eq_or_diff [ sort { $a->[0] cmp $b->[0] } group_pairs $hscan->[1] ],
       [ map { [ $_, "${_}value" ] } sort grep { /4$/ } @all_keys ],
-      "Correct list of keys from HSCAN";
+      "correct list of keys from HSCAN";
+    eq_or_diff $redis->hscan_all( "test_hash", MATCH => "*99*" ), [],
+      "hscan_all returned empty list when no key matched";
+    eq_or_diff $redis->hscan_all( "test_hash", MATCH => "key1" ), [ key1 => "key1value" ],
+      "hscan_all returned expected list of keys/values";
 
     is $redis->sadd( "test_set", @all_keys ), 40, "initialized a set";
     my $sscan = $redis->sscan( "test_set", 0, "MATCH", "*3", "COUNT", 100 );
-    is $sscan->[0], 0, "Got all matching elements in a single SSCAN call";
+    is $sscan->[0], 0, "got all matching elements in a single SSCAN call";
     eq_or_diff [ sort @{ $sscan->[1] } ], [ sort grep { /3$/ } @all_keys ],
-      "Correct list of elements from SSCAN";
+      "correct list of elements from SSCAN";
+    eq_or_diff [ sort @{ $redis->sscan_all( "test_set", MATCH => "*3" ) } ],
+      [ sort grep { /3$/ } @all_keys ], "sscan_all returned correct list of elements";
 
     is $redis->zadd( "test_zset", map { ( $_, "key$_" ) } 1 .. 40 ), 40, "initialized a sorted set";
     my $zscan = $redis->zscan( "test_zset", 0, "MATCH", "*2", "COUNT", 100 );
-    is $zscan->[0], 0, "Got all matching elements in a single ZSCAN call";
-    eq_or_diff [ sort { $a->[0] cmp $b->[0] } group_pairs @{ $zscan->[1] } ],
-      [ sort { $a->[0] cmp $b->[0] } grep { $_->[0] =~ /2$/ } map { [ "key$_", $_ ] } 1 .. 40 ],
-      "Correct list of elements from ZSCAN";
+    is $zscan->[0], 0, "got all matching elements in a single ZSCAN call";
+    my $expect =
+      [ sort { $a->[0] cmp $b->[0] } grep { $_->[0] =~ /2$/ } map { [ "key$_", $_ ] } 1 .. 40 ];
+    eq_or_diff [ sort { $a->[0] cmp $b->[0] } group_pairs $zscan->[1] ],
+      $expect, "correct list of elements from ZSCAN";
+    eq_or_diff [ sort { $a->[0] cmp $b->[0] }
+          group_pairs $redis->zscan_all( "test_zset", MATCH => "*2" ) ], $expect,
+      "zscan_all returned correct list of elements";
 }
 
 sub cmd_lists {

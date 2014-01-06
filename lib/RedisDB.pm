@@ -943,6 +943,42 @@ sub shutdown {
     return;
 }
 
+sub scan_all {
+    my $self = shift;
+    if ( ref $_[-1] eq 'CODE' ) {
+        croak "scan_all does not accept callback parameter";
+    }
+    my $cursor = 0;
+    my @result;
+    do {
+        my $res = $self->execute( 'SCAN', $cursor, @_ );
+        $cursor = $res->[0];
+        push @result, @{ $res->[1] };
+    } while $cursor;
+    return \@result;
+}
+
+for my $command (qw(hscan sscan zscan)) {
+    my $uccom = uc $command;
+    no strict 'refs';
+    my $name = "${command}_all";
+    *{ __PACKAGE__ . "::$name" } = sub {
+        my $self = shift;
+        my $key  = shift;
+        if ( ref $_[-1] eq 'CODE' ) {
+            croak "$name does not accept callback parameter";
+        }
+        my $cursor = 0;
+        my @result;
+        do {
+            my $res = $self->execute( $uccom, $key, $cursor, @_ );
+            $cursor = $res->[0];
+            push @result, @{ $res->[1] };
+        } while $cursor;
+        return \@result;
+    };
+}
+
 =head1 UTF-8 SUPPORT
 
 The redis protocol is designed to work with the binary data, both keys and
