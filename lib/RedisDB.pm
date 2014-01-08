@@ -952,6 +952,9 @@ sub scan_all {
     my @result;
     do {
         my $res = $self->execute( 'SCAN', $cursor, @_ );
+
+        # in case of error just return it
+        return $res unless ref $res eq 'ARRAY';
         $cursor = $res->[0];
         push @result, @{ $res->[1] };
     } while $cursor;
@@ -972,6 +975,7 @@ for my $command (qw(hscan sscan zscan)) {
         my @result;
         do {
             my $res = $self->execute( $uccom, $key, $cursor, @_ );
+            return $res unless ref $res eq 'ARRAY';
             $cursor = $res->[0];
             push @result, @{ $res->[1] };
         } while $cursor;
