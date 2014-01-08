@@ -943,6 +943,16 @@ sub shutdown {
     return;
 }
 
+=head2 $self->scan_all([MATCH => $pattern,][COUNT => $count,])
+
+this method starts a new SCAN iteration and executes SCAN commands till cursor
+returned by server is 0. It then returns all the keys returned by server during
+the iteration. MATCH and COUNT are passed to SCAN command. In case of success
+returns reference to array with matching keys, in case of error dies or returns
+L<RedisDB::Error> object depending on I<raise_error> option.
+
+=cut
+
 sub scan_all {
     my $self = shift;
     if ( ref $_[-1] eq 'CODE' ) {
@@ -960,6 +970,18 @@ sub scan_all {
     } while $cursor;
     return \@result;
 }
+
+=head2 $self->hscan_all($key, [MATCH => $pattern,][COUNT => $count,])
+
+=head2 $self->sscan_all($key, [MATCH => $pattern,][COUNT => $count,])
+
+=head2 $self->zscan_all($key, [MATCH => $pattern,][COUNT => $count,])
+
+these three methods are doing the same thing as I<scan_all> except that they
+require a key as the first parameter, and they iterate using HSCAN, SSCAN and
+ZSCAN commands.
+
+=cut
 
 for my $command (qw(hscan sscan zscan)) {
     my $uccom = uc $command;
