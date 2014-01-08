@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+2.25 Wed Jan  8 2014 Pavel Shaydo <zwon@cpan.org>
+    - add *scan_all methods to iterate other scan commands
+
 2.24 Sun Jan  5 2014 Pavel Shaydo <zwon@cpan.org>
     - add support for the commands added in redis 2.8.0
     - fix randomly failing test
