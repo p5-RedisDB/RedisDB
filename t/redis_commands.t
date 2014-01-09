@@ -1,4 +1,4 @@
-use Test::Most 0.22;
+use Test::Most 0.22 qw(-Test::Deep);
 use lib 't';
 use RedisServer;
 use RedisDB;
