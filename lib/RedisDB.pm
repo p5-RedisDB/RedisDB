@@ -196,7 +196,7 @@ sub _on_connect_error {
     my $server = $self->{path} || ("$self->{host}:$self->{port}");
     my $error_obj =
       RedisDB::Error::DISCONNECTED->new("Couldn't connect to the redis server at $server: $!");
-    confess $error_obj;
+    die $error_obj;
 }
 
 sub _on_disconnect {
@@ -286,19 +286,21 @@ sub _connect {
     }
     continue {
         unless ( $self->{_socket} ) {
-            if ( $self->{raise_error} ) {
+            my $new_error;
+            try {
                 $self->{on_connect_error}->( $self, $error );
             }
-            else {
-                my $new_error = try {
-                    $self->{on_connect_error}->( $self, $error );
-                    return 0;
+            catch {
+                if ( $self->{raise_error} ) {
+                    $self->reset_connection;
+                    die $_;
                 }
-                catch {
-                    return $_;
-                };
-                return $new_error if $new_error;
-            }
+                else {
+                    $self->{_parser}->propagate_reply($_) if $self->{_parser};
+                    $new_error = $_;
+                }
+            };
+            return $new_error if $new_error;
         }
     }
 
