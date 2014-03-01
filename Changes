@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+2.28 Sat Mar  1 2014 Pavel Shaydo <zwon@cpan.org>
+    - fix race condition in test suite. See #17.
+
 2.27 Wed Feb 19 2014 Pavel Shaydo <zwon@cpan.org>
     - fix error handling on failed connect attempt. See #16.
 
