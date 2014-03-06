@@ -81,6 +81,13 @@ sub cmd_keys_strings {
             is $redis->get("bits5"), "\x70\x50", "bits5 == bits3 & bits4";
             is $redis->bitop( "XOR", "bits6", "bits3", "bits4" ), 2, "BITOP XOR";
             is $redis->get("bits6"), "\x85\xa5", "bits6 == bits3 ^ bits4";
+            if ( $redis->version >= 2.008007 ) {
+                $redis->set("bits7", "\x01\xfe\x01");
+                is $redis->bitpos( "bits7", 0, 1 ), 15, "BITPOS";
+            }
+            else {
+                diag "Skipped tests for redis >= 2.8.7";
+            }
         }
         else {
             diag "Skipped tests for redis >= 2.6";

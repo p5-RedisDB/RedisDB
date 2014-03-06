@@ -775,7 +775,7 @@ sub version {
 
 # don't forget to update POD
 my @commands = qw(
-  append	auth	bgrewriteaof	bgsave	bitcount	bitop
+  append	auth	bgrewriteaof	bgsave	bitcount	bitop	bitpos
   blpop	brpop   brpoplpush	client	client_kill	client_getname	client_setname
   config	config_get	config_set	config_resetstat config_rewrite
   dbsize	debug_object	debug_segfault
@@ -822,7 +822,7 @@ I<execute>, waits for the reply from the server, and returns it. E.g.:
     $redis->send_command("get", $key, sub { $val = $_[1] });
 
 The following wrapper methods are defined: append, auth, bgrewriteaof, bgsave,
-bitcount, bitop, blpop, brpop, brpoplpush, client, client_kill, client_getname,
+bitcount, bitop, bitpos, blpop, brpop, brpoplpush, client, client_kill, client_getname,
 client_setname, config, config_get, config_set, config_resetstat, config_rewrite, dbsize,
 debug_object, debug_segfault, decr, decrby, del, dump, echo, eval, evalsha,
 exists, expire, expireat, flushall, flushdb, get, getbit, getrange, getset,
