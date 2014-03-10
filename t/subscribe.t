@@ -157,4 +157,15 @@ eq_or_diff $rep, ['message', 'baz', 'msg 2'], "got msg 2 from the baz channel";
 $sub->unsubscribe;
 $sub->punsubscribe;
 
+subtest "unsubscribe without psubscriptions (issue #18)" => sub {
+    my $sub = RedisDB->new( host => 'localhost', port => $server->{port} );
+    $sub->subscribe('foo');
+    $sub->unsubscribe;
+    pass "Unsubscribed";
+    $sub->reset_connection;
+    $sub->psubscribe('foo*');
+    $sub->punsubscribe;
+    pass "Punsubscribed";
+};
+
 done_testing;
