@@ -1345,7 +1345,9 @@ sub unsubscribe {
     else {
         $self->{_subscribed} = {};
     }
-    if ( %{ $self->{_subscribed} } or %{ $self->{_psubscribed} } ) {
+    if (   %{ $self->{_subscribed} }
+        or %{ $self->{_psubscribed} || {} } )
+    {
         return $self->send_command( "UNSUBSCRIBE", @_ );
     }
     else {
@@ -1371,7 +1373,7 @@ sub punsubscribe {
     else {
         $self->{_psubscribed} = {};
     }
-    if (   %{ $self->{_subscribed} }
+    if (   %{ $self->{_subscribed} || {} }
         or %{ $self->{_psubscribed} } )
     {
         return $self->send_command( "PUNSUBSCRIBE", @_ );
