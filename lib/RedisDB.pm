@@ -1148,24 +1148,24 @@ you can't use any other redis commands like set, get, etc. Here is the example
 of running in the subscription mode:
 
     my $message_cb = sub {
-        my ($redis, $channel, $pattern, $message) = @_;
+        my ( $redis, $channel, $pattern, $message ) = @_;
         print "$channel: $message\n";
     };
-    
+
     my $control_cb = sub {
-        my ($redis, $channel, $pattern, $message) = @_;
-        if ($channel eq 'control.quit') {
+        my ( $redis, $channel, $pattern, $message ) = @_;
+        if ( $channel eq 'control.quit' ) {
             $redis->unsubscribe;
             $redis->punsubscribe;
         }
-        elsif ($channel eq 'control.subscribe') {
+        elsif ( $channel eq 'control.subscribe' ) {
             $redis->subscribe($message);
         }
     };
-    
-    subscription_loop(
-        subscribe => [ 'news',  ],
-        psubscribe => [ 'control.*' => $control_cb ],
+
+    $redis->subscription_loop(
+        subscribe        => [ 'news', ],
+        psubscribe       => [ 'control.*' => $control_cb ],
         default_callback => $message_cb,
     );
 
