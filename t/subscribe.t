@@ -168,4 +168,24 @@ subtest "unsubscribe without psubscriptions (issue #18)" => sub {
     pass "Punsubscribed";
 };
 
+subtest "subscribe before starting subscription loop" => sub {
+    unless ( my $pid = fork ) {
+        die "Couldn't fork: $!" unless defined $pid;
+        sleep 1;
+        $redis->publish( bar          => 'bar message' );
+        $redis->publish( 'other.quit' => 'quit' );
+        exit 0;
+    }
+    my $sub = RedisDB->new( host => 'localhost', port => $server->{port} );
+    $sub->subscribe( 'bar' => \&def_cb );
+    $counts{bar}   = 0;
+    $counts{other} = 0;
+    $sub->subscription_loop(
+        psubscribe       => ['other.*'],
+        default_callback => \&def_cb,
+    );
+    is $counts{bar},   1, "got one message for bar";
+    is $counts{other}, 1, "got one message for other";
+};
+
 done_testing;

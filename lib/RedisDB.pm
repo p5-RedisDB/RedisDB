@@ -1225,11 +1225,11 @@ for every channel you are going to subscribe.
 
 sub subscription_loop {
     my ( $self, %args ) = @_;
-    croak "Already in subscription loop" if $self->{_subscription_loop};
+    croak "Already in subscription loop" if $self->{_subscription_loop} > 0;
     croak "You can't start subscription loop while in pipelining mode."
       if $self->replies_to_fetch;
-    $self->{_subscribed}        = {};
-    $self->{_psubscribed}       = {};
+    $self->{_subscribed}  ||= {};
+    $self->{_psubscribed} ||= {};
     $self->{_subscription_cb}   = $args{default_callback};
     $self->{_subscription_loop} = 1;
     $self->{_parser}->set_default_callback( \&_queue );
@@ -1294,10 +1294,10 @@ sub subscribe {
           or croak "Callback for $channel not specified, neither default callback defined";
     }
     else {
-        $callback = 1;
+        $callback ||= 1;
     }
     $self->{_subscribed}{$channel} = $callback;
-    $self->send_command( "SUBSCRIBE", $channel );
+    $self->send_command( "SUBSCRIBE", $channel, \&_queue );
     return;
 }
 
@@ -1322,10 +1322,10 @@ sub psubscribe {
           or croak "Callback for $channel not specified, neither default callback defined";
     }
     else {
-        $callback = 1;
+        $callback ||= 1;
     }
     $self->{_psubscribed}{$channel} = $callback;
-    $self->send_command( "PSUBSCRIBE", $channel );
+    $self->send_command( "PSUBSCRIBE", $channel, \&_queue );
     return;
 }
 
