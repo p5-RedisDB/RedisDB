@@ -117,12 +117,15 @@ sub def_cb {
 subtest "subscriptions outside of subscription_loop" => sub {
     my $pub = RedisDB->new( host => 'localhost', port => $server->{port} );
     my $sub = RedisDB->new( host => 'localhost', port => $server->{port} );
-    $sub->subscribe( 'baz', sub { $_[0]->unsubscribe('baz') } );
-    $sub->psubscribe( 'un*', sub { $_[0]->punsubscribe } );
+    my $received;
+    my $cb = sub { $received->{ $_[1] } = $_[3] };
+    $sub->subscribe( 'baz', $cb );
+    $sub->psubscribe( 'un*', $cb );
     my $rep = $sub->get_reply;
     is $rep->[0], 'subscribe', "got subscribe reply";
     $rep = $sub->get_reply;
     is $rep->[0], 'psubscribe', "got psubscribe reply";
+    ok !$received, "p?subscribe messages didn't invoke callback";
     dies_ok { $sub->get('key') } "get is not allowed in subscription mode";
 
     if ( $pub->version >= 2.008 ) {
@@ -144,8 +147,10 @@ subtest "subscriptions outside of subscription_loop" => sub {
     $rep = $sub->get_reply;
     eq_or_diff $rep, [ 'pmessage', 'un*', 'unexpected', 'msg 1' ],
       "got msg 1 from the unexpected channel";
+    is $received->{unexpected}, 'msg 1', "callback for unexpected channel was invoked";
     $rep = $sub->get_reply;
     eq_or_diff $rep, [ 'message', 'baz', 'msg 2' ], "got msg 2 from the baz channel";
+    is $received->{baz}, 'msg 2', "callback for baz channel was invoked";
 
     {
         # this also checks how recv in get_reply deals with interrupts
@@ -154,6 +159,7 @@ subtest "subscriptions outside of subscription_loop" => sub {
         $rep = $sub->get_reply;
         alarm 0;
         eq_or_diff $rep, [ 'message', 'baz', 'msg 3' ], "got msg 3 from the baz channel";
+        is $received->{baz}, 'msg 3', "callback for baz channel was invoked";
     }
 
     $sub->unsubscribe;
