@@ -114,48 +114,51 @@ sub def_cb {
     return;
 }
 
-my $pub = RedisDB->new( host => 'localhost', port => $server->{port} );
-my $sub = RedisDB->new( host => 'localhost', port => $server->{port} );
-$sub->subscribe('baz', sub { $_[0]->unsubscribe('baz') });
-$sub->psubscribe('un*', sub { $_[0]->punsubscribe });
-my $rep =$sub->get_reply;
-is $rep->[0], 'subscribe', "got subscribe reply";
-$rep =$sub->get_reply;
-is $rep->[0], 'psubscribe', "got psubscribe reply";
-dies_ok { $sub->get('key') } "get is not allowed in subscription mode";
-
-if ( $pub->version >= 2.008 ) {
-    subtest "PUBSUB" => sub {
-        eq_or_diff $pub->pubsub('CHANNELS'), ['baz'], "Only baz channel is active";
-        eq_or_diff $pub->pubsub_channels,    ['baz'], "Only baz channel is active";
-        eq_or_diff $pub->pubsub_numsub( 'baz', 'boo' ), [ 'baz', 1, 'boo', 0 ],
-          "baz has one subscriber, boo has none";
-        eq_or_diff $pub->pubsub_numpat, 1, "one pattern subscriber";
-    };
-}
-else {
-    diag "Not testing PUBSUB command. Requires redis-server >= 2.8.0";
-}
-
-$pub->publish('unexpected', 'msg 1');
-$pub->publish('baz', 'msg 2');
-
-$rep = $sub->get_reply;
-eq_or_diff $rep, ['pmessage', 'un*', 'unexpected', 'msg 1'], "got msg 1 from the unexpected channel";
-$rep = $sub->get_reply;
-eq_or_diff $rep, ['message', 'baz', 'msg 2'], "got msg 2 from the baz channel";
-
-{
-    # this also checks how recv in get_reply deals with interrupts
-    local $SIG{ALRM} = sub { $pub->publish( 'baz', 'msg 3' ); delete $SIG{ALRM}; alarm 3; };
-    alarm 1;
+subtest "subscriptions outside of subscription_loop" => sub {
+    my $pub = RedisDB->new( host => 'localhost', port => $server->{port} );
+    my $sub = RedisDB->new( host => 'localhost', port => $server->{port} );
+    $sub->subscribe( 'baz', sub { $_[0]->unsubscribe('baz') } );
+    $sub->psubscribe( 'un*', sub { $_[0]->punsubscribe } );
+    my $rep = $sub->get_reply;
+    is $rep->[0], 'subscribe', "got subscribe reply";
     $rep = $sub->get_reply;
-    alarm 0;
-    eq_or_diff $rep, [ 'message', 'baz', 'msg 3' ], "got msg 3 from the baz channel";
-}
+    is $rep->[0], 'psubscribe', "got psubscribe reply";
+    dies_ok { $sub->get('key') } "get is not allowed in subscription mode";
 
-$sub->unsubscribe;
-$sub->punsubscribe;
+    if ( $pub->version >= 2.008 ) {
+        subtest "PUBSUB" => sub {
+            eq_or_diff $pub->pubsub('CHANNELS'), ['baz'], "Only baz channel is active";
+            eq_or_diff $pub->pubsub_channels,    ['baz'], "Only baz channel is active";
+            eq_or_diff $pub->pubsub_numsub( 'baz', 'boo' ), [ 'baz', 1, 'boo', 0 ],
+              "baz has one subscriber, boo has none";
+            eq_or_diff $pub->pubsub_numpat, 1, "one pattern subscriber";
+        };
+    }
+    else {
+        diag "Not testing PUBSUB command. Requires redis-server >= 2.8.0";
+    }
+
+    $pub->publish( 'unexpected', 'msg 1' );
+    $pub->publish( 'baz',        'msg 2' );
+
+    $rep = $sub->get_reply;
+    eq_or_diff $rep, [ 'pmessage', 'un*', 'unexpected', 'msg 1' ],
+      "got msg 1 from the unexpected channel";
+    $rep = $sub->get_reply;
+    eq_or_diff $rep, [ 'message', 'baz', 'msg 2' ], "got msg 2 from the baz channel";
+
+    {
+        # this also checks how recv in get_reply deals with interrupts
+        local $SIG{ALRM} = sub { $pub->publish( 'baz', 'msg 3' ); delete $SIG{ALRM}; alarm 3; };
+        alarm 1;
+        $rep = $sub->get_reply;
+        alarm 0;
+        eq_or_diff $rep, [ 'message', 'baz', 'msg 3' ], "got msg 3 from the baz channel";
+    }
+
+    $sub->unsubscribe;
+    $sub->punsubscribe;
+};
 
 subtest "unsubscribe without psubscriptions (issue #18)" => sub {
     my $sub = RedisDB->new( host => 'localhost', port => $server->{port} );
