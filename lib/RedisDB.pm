@@ -695,6 +695,25 @@ sub get_reply {
         croak $res;
     }
 
+    if ( $self->{_subscription_loop} ) {
+        confess "Expected multi-bulk reply, but got $res" unless ref $res;
+        if ( $res->[0] eq 'message' ) {
+            $self->{_subscribed}{ $res->[1] }( $self, $res->[1], undef, $res->[2] )
+              if $self->{_subscribed}{ $res->[1] };
+        }
+        elsif ( $res->[0] eq 'pmessage' ) {
+            $self->{_psubscribed}{ $res->[1] }( $self, $res->[2], $res->[1], $res->[3] )
+              if $self->{_psubscribed}{ $res->[1] };
+        }
+        elsif ( $res->[0] =~ /^p?(un)?subscribe/ ) {
+
+            # ignore
+        }
+        else {
+            confess "Got unknown reply $res->[0] in subscription mode";
+        }
+    }
+
     return $res;
 }
 
@@ -1252,23 +1271,7 @@ sub subscription_loop {
       unless ( keys %{ $self->{_subscribed} } or keys %{ $self->{_psubscribed} } );
 
     while ( $self->{_subscription_loop} ) {
-        my $msg = $self->get_reply;
-        confess "Expected multi-bulk reply, but got $msg" unless ref $msg;
-        if ( $msg->[0] eq 'message' ) {
-            $self->{_subscribed}{ $msg->[1] }( $self, $msg->[1], undef, $msg->[2] )
-              if $self->{_subscribed}{ $msg->[1] };
-        }
-        elsif ( $msg->[0] eq 'pmessage' ) {
-            $self->{_psubscribed}{ $msg->[1] }( $self, $msg->[2], $msg->[1], $msg->[3] )
-              if $self->{_psubscribed}{ $msg->[1] };
-        }
-        elsif ( $msg->[0] =~ /^p?(un)?subscribe/ ) {
-
-            # ignore
-        }
-        else {
-            confess "Got unknown reply $msg->[0] in subscription mode";
-        }
+        $self->get_reply;
     }
     return;
 }
@@ -1294,7 +1297,7 @@ sub subscribe {
           or croak "Callback for $channel not specified, neither default callback defined";
     }
     else {
-        $callback ||= 1;
+        $callback ||= sub { 1 };
     }
     $self->{_subscribed}{$channel} = $callback;
     $self->send_command( "SUBSCRIBE", $channel, \&_queue );
@@ -1322,7 +1325,7 @@ sub psubscribe {
           or croak "Callback for $channel not specified, neither default callback defined";
     }
     else {
-        $callback ||= 1;
+        $callback ||= sub { 1 };
     }
     $self->{_psubscribed}{$channel} = $callback;
     $self->send_command( "PSUBSCRIBE", $channel, \&_queue );
