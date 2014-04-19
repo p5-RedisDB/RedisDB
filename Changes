@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+2.31_01 Sat Apr 19 2014 Pavel Shaydo <zwon@cpan.org>
+    - improve subscriptions handling outside of subscription loop
+
 2.30 Mon Mar 10 2014 Pavel Shaydo <zwon@cpan.org>
     - fix problem with unsubscribe if there are no psubscriptions.
       See #18, reported by @cameronpm
