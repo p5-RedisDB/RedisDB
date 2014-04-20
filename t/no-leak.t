@@ -10,7 +10,7 @@ BEGIN {
 
 use RedisDB;
 
-my $srv = IO::Socket::INET->new( LocalAddr => '127.0.0.1', Proto => 'tcp', Listen => 1 );
+my $srv = IO::Socket::IP->new( LocalAddr => '127.0.0.1', Proto => 'tcp', Listen => 1 );
 plan skip_all => "Can't start server" unless $srv;
 my $pid = fork;
 

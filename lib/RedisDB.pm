@@ -7,7 +7,7 @@ $VERSION = eval $VERSION;
 
 use RedisDB::Error;
 use RedisDB::Parser;
-use IO::Socket::INET;
+use IO::Socket::IP;
 use IO::Socket::UNIX;
 use Socket qw(MSG_DONTWAIT MSG_NOSIGNAL SO_RCVTIMEO SO_SNDTIMEO);
 use POSIX qw(:errno_h);
@@ -272,7 +272,7 @@ sub _connect {
             my $delay;
             while ( not $self->{_socket} and $attempts ) {
                 sleep $delay if $delay;
-                $self->{_socket} = IO::Socket::INET->new(
+                $self->{_socket} = IO::Socket::IP->new(
                     PeerAddr => $self->{host},
                     PeerPort => $self->{port},
                     Proto    => 'tcp',

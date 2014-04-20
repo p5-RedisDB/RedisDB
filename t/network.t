@@ -1,6 +1,6 @@
 use Test::Most 0.22;
 use RedisDB;
-use IO::Socket::INET;
+use IO::Socket::IP;
 use IO::Socket::UNIX;
 use File::Temp qw(tempdir);
 use File::Spec;
@@ -10,14 +10,14 @@ use Test::FailWarnings;
 
 # Check that module is able to restore connection
 subtest "Restore connection" => sub {
-    my $srv = IO::Socket::INET->new(
+    my $srv = IO::Socket::IP->new(
         LocalAddr => '127.0.0.1',
         Proto     => 'tcp',
         Listen    => 1,
         ReuseAddr => 1,
     );
     plan skip_all => "Can't start server" unless $srv;
-    my $empty_port = IO::Socket::INET->new(
+    my $empty_port = IO::Socket::IP->new(
         LocalAddr => '127.0.0.1',
         Proto     => 'tcp',
         Listen    => 1,
@@ -37,7 +37,7 @@ subtest "Restore connection" => sub {
 
         # simulate restart of the redis-server
         usleep 100_000;
-        $srv = IO::Socket::INET->new(
+        $srv = IO::Socket::IP->new(
             LocalAddr => '127.0.0.1',
             LocalPort => $port,
             Proto     => 'tcp',
@@ -94,7 +94,7 @@ subtest "Restore connection" => sub {
 
 # Check functionality if raise_error is disabled
 subtest "Restore connection without raise_error" => sub {
-    my $srv = IO::Socket::INET->new(
+    my $srv = IO::Socket::IP->new(
         LocalAddr => '127.0.0.1',
         Proto     => 'tcp',
         Listen    => 1,
@@ -117,7 +117,7 @@ subtest "Restore connection without raise_error" => sub {
         $cli->close;
 
         usleep 100_000;
-        $srv = IO::Socket::INET->new(
+        $srv = IO::Socket::IP->new(
             LocalAddr => '127.0.0.1',
             LocalPort => $port,
             Proto     => 'tcp',
@@ -161,7 +161,7 @@ subtest "Restore connection without raise_error" => sub {
 
 # Check what will happen if server immediately closes connection
 subtest "No _connect recursion" => sub {
-    my $srv = IO::Socket::INET->new( LocalAddr => '127.0.0.1', Proto => 'tcp', Listen => 1 );
+    my $srv = IO::Socket::IP->new( LocalAddr => '127.0.0.1', Proto => 'tcp', Listen => 1 );
     plan skip_all => "Can't start server" unless $srv;
 
     my $pid = fork;
@@ -183,7 +183,7 @@ subtest "No _connect recursion" => sub {
 subtest "socket timeout" => sub {
     plan skip_all => "OS $^O doesn't support timeout on sockets" if $^O =~ /solaris|MSWin32|cygwin/;
 
-    my $srv = IO::Socket::INET->new( LocalAddr => '127.0.0.1', Proto => 'tcp', Listen => 1 );
+    my $srv = IO::Socket::IP->new( LocalAddr => '127.0.0.1', Proto => 'tcp', Listen => 1 );
 
     my $pid = fork;
     if ( $pid == 0 ) {

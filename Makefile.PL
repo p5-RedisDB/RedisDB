@@ -17,6 +17,7 @@ WriteMakefile(
     PREREQ_PM     => {
         'Try::Tiny'       => 0,
         Encode            => 2.10,
+        'IO::Socket::IP'  => 0,
         'RedisDB::Parser' => 2.20,
     },
     CONFIGURE_REQUIRES => {
