@@ -1,7 +1,9 @@
 Revision history for RedisDB
 
-2.31_01 Sat Apr 19 2014 Pavel Shaydo <zwon@cpan.org>
+2.31_02 Tue Apr 22 2014 Pavel Shaydo <zwon@cpan.org>
+    - add IPv6 support
     - improve subscriptions handling outside of subscription loop
+    - update documentation for subscription mode
 
 2.30 Mon Mar 10 2014 Pavel Shaydo <zwon@cpan.org>
     - fix problem with unsubscribe if there are no psubscriptions.
