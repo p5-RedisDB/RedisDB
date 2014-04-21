@@ -235,4 +235,25 @@ subtest "UNIX socket" => sub {
     is $redis->get("ping"), "PONG", "Got PONG via UNIX socket";
 };
 
+subtest "IPv6" => sub {
+    my $srv = IO::Socket::IP->new(
+        V6Only    => 1,
+        LocalHost => '::1',
+        Listen    => 1,
+    );
+    plan skip_all => "Can't create IPv6 socket" unless $srv;
+    my $pid = fork;
+    if ( $pid == 0 ) {
+        $SIG{ALRM} = sub { exit 0 };
+        alarm 10;
+        my $cli = $srv->accept;
+        defined $cli->recv( my $buf, 1024 ) or die "recv filed: $!";
+        defined $cli->send("+PONG\r\n") or die "send filed: $!";
+        $cli->close;
+        exit 0;
+    }
+    my $redis = RedisDB->new( host => '::1', port => $srv->sockport );
+    is $redis->get("ping"), "PONG", "Got PONG via IPv6 socket";
+};
+
 done_testing;
