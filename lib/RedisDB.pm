@@ -1159,12 +1159,33 @@ or using L</"WRAPPER METHODS"> you can rewrite it as:
 
 RedisDB supports subscriptions to redis channels. In the subscription mode you
 can subscribe to some channels and receive all the messages sent to these
-channels.  Every time RedisDB receives a message for the channel it invokes a
-callback provided by the user. User can specify different callbacks for the
-different channels.  When in the subscription mode you can subscribe to
-additional channels, or unsubscribe from the channels you subscribed to, but
-you can't use any other redis commands like set, get, etc. Here is the example
-of running in the subscription mode:
+channels. You can subscribe to channels and then manually check messages using
+I<get_reply> method, or you can invoke I<subscription_loop> method, which will
+block in loop waiting for messages and invoking callback for each received
+message.  In the first case you can use I<subscribe> and I<psubscribe> methods
+to subscribe to channels and then you can use I<get_reply> method to get
+messages from the channel:
+
+    $redis->subscribe(
+        foo => sub {
+            my ( $redis, $channel, $patern, $message ) = @_;
+            print "Foo: $message\n";
+        }
+    );
+    # Wait for messages
+    $res = $redis->get_reply;
+
+I<get_reply> method for messages from the channel will invoke callback
+specified as the second optional argument of the I<subscribe> method and will
+also return raw replies from the server, both for messages from the channels
+and for informational messages from the redis server. If you do not want to
+block in I<get_reply> method, you can check if there are any messages using
+I<reply_ready> method.
+
+In the second case you invoke I<subscription_loop> method, it subscribes to
+specified channels and waits for messages, when a message arrived it invokes
+callback defined for the channel from which the message came. Here is an
+example:
 
     my $message_cb = sub {
         my ( $redis, $channel, $pattern, $message ) = @_;
@@ -1188,14 +1209,20 @@ of running in the subscription mode:
         default_callback => $message_cb,
     );
 
-subscription_loop will subscribe you to the news channel and control.*
+subscription_loop will subscribe you to the "news" channel and "control.*"
 channels. It will call specified callbacks every time a new message received.
-You can subscribe to additional channels sending their names to the
-control.subscribe channel. You can unsubscribe from all the channels by sending
-a message to the control.quit channel. Every callback receives four arguments:
-the RedisDB object, the channel for which the message was received, the pattern
-if you subscribed to this channel using I<psubscribe> method, and the message
-itself.
+When message came from "control.subscribe" channel, callback subscribes to an
+additional channel. When message came from "control.quit" channel, callback
+unsubscribes from all channels.
+
+Callbacks used in subscription mode receive four arguments: the RedisDB object,
+the channel from which the message came, the pattern if you subscribed to this
+channel using I<psubscribe> method, and the message itself.
+
+Once you switched into subscription mode using either I<subscribe> or
+I<psubscribe> command, or by entering I<subscription_loop>, you only can send
+I<subscribe>, I<psubscribe>, I<unsubscribe>, and I<punsubscribe> commands to
+the server, other commands will throw an exception.
 
 You can publish messages into the channels using the I<publish> method. This
 method should be called when you in the normal mode, and can't be used while
@@ -1279,8 +1306,8 @@ sub subscription_loop {
 =head2 $self->subscribe($channel[, $callback])
 
 Subscribe to the I<$channel>. If I<$callback> is not specified, default
-callback will be used. If you are invoking I<subscribe> outside of subscription
-loop, I<$callback> is ignored.
+callback will be used in subscription loop, or messages will be returned by
+I<get_reply> if you are not using subscription loop.
 
 =cut
 
@@ -1307,8 +1334,8 @@ sub subscribe {
 =head2 $self->psubscribe($pattern[, $callback])
 
 Subscribe to channels matching I<$pattern>. If I<$callback> is not specified,
-default callback will be used. If you are invoking I<psubscribe> outside of
-subscription loop, I<$callback> is ignored.
+default callback will be used in subscription loop, or messages will be
+returned by I<get_reply> if you are not using subscription loop.
 
 =cut
 

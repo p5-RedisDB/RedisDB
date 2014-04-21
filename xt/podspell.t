@@ -26,6 +26,7 @@ SETNAME
 mainloop
 unwatch
 unsubscribe
+punsubscribe
 Unsubscribe
 auth
 callback
