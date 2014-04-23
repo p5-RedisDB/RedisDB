@@ -811,8 +811,8 @@ my @commands = qw(
   setbit	setex	setnx	setrange	sinter	sinterstore
   sismember	slaveof	slowlog smembers	smove	sort	spop	srandmember
   srem	sscan	strlen	sunion	sunionstore	sync	time    ttl	type	unwatch watch
-  zadd	zcard
-  zcount	zincrby	zinterstore	zrange	zrangebyscore	zrank	zrem
+  zadd	zcard	zcount	zincrby	zinterstore	zlexcount	zrange	zrangebylex
+  zrangebyscore	zrank	zrem	zremrangebylex
   zremrangebyrank   zremrangebyscore	zrevrange	zrevrangebyscore	zrevrank
   zscan	zscore	zunionstore
 );
@@ -841,22 +841,23 @@ I<execute>, waits for the reply from the server, and returns it. E.g.:
     $redis->send_command("get", $key, sub { $val = $_[1] });
 
 The following wrapper methods are defined: append, auth, bgrewriteaof, bgsave,
-bitcount, bitop, bitpos, blpop, brpop, brpoplpush, client, client_kill, client_getname,
-client_setname, config, config_get, config_set, config_resetstat, config_rewrite, dbsize,
-debug_object, debug_segfault, decr, decrby, del, dump, echo, eval, evalsha,
-exists, expire, expireat, flushall, flushdb, get, getbit, getrange, getset,
-hdel, hexists, hget, hgetall, hincrby, hincrbyfloat, hkeys, hlen, hmget, hscan, hmset,
-hset, hsetnx, hvals, incr, incrby, incrbyfloat, keys, lastsave, lindex,
-linsert, llen, lpop, lpush, lpushx, lrange, lrem, lset, ltrim, mget, migrate,
-move, mset, msetnx, object, object_refcount, object_encoding, object_idletime,
-persist, pexpire, pexpireat, ping, psetex, pttl, publish,
-pubsub, pubsub_channels, pubsub_numsub, pubsub_numpat, quit, randomkey,
-rename, renamenx, restore, rpop, rpoplpush, rpush, rpushx, sadd, save, scan, scard,
-script, script_exists, script_flush, script_kill, script_load, sdiff,
-sdiffstore, select, set, setbit, setex, setnx, setrange, sinter, sinterstore,
-sismember, slaveof, slowlog, smembers, smove, sort, spop, srandmember, srem,
-sscan strlen, sunion, sunionstore, sync, time, ttl, type, unwatch, watch, zadd,
-zcard, zcount, zincrby, zinterstore, zrange, zrangebyscore, zrank, zrem,
+bitcount, bitop, bitpos, blpop, brpop, brpoplpush, client, client_kill,
+client_getname, client_setname, config, config_get, config_set,
+config_resetstat, config_rewrite, dbsize, debug_object, debug_segfault, decr,
+decrby, del, dump, echo, eval, evalsha, exists, expire, expireat, flushall,
+flushdb, get, getbit, getrange, getset, hdel, hexists, hget, hgetall, hincrby,
+hincrbyfloat, hkeys, hlen, hmget, hscan, hmset, hset, hsetnx, hvals, incr,
+incrby, incrbyfloat, keys, lastsave, lindex, linsert, llen, lpop, lpush,
+lpushx, lrange, lrem, lset, ltrim, mget, migrate, move, mset, msetnx, object,
+object_refcount, object_encoding, object_idletime, persist, pexpire, pexpireat,
+ping, psetex, pttl, publish, pubsub, pubsub_channels, pubsub_numsub,
+pubsub_numpat, quit, randomkey, rename, renamenx, restore, rpop, rpoplpush,
+rpush, rpushx, sadd, save, scan, scard, script, script_exists, script_flush,
+script_kill, script_load, sdiff, sdiffstore, select, set, setbit, setex, setnx,
+setrange, sinter, sinterstore, sismember, slaveof, slowlog, smembers, smove,
+sort, spop, srandmember, srem, sscan strlen, sunion, sunionstore, sync, time,
+ttl, type, unwatch, watch, zadd, zcard, zcount, zincrby, zinterstore,
+zlexcount, zrange, zrangebylex, zrangebyscore, zrank, zrem, zremrangebylex,
 zremrangebyrank, zremrangebyscore, zrevrange, zrevrangebyscore, zrevrank,
 zscan, zscore, zunionstore.
 

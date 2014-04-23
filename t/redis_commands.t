@@ -422,6 +422,15 @@ sub cmd_zsets {
         eq_or_diff cut_precision( $redis->zrange( "zunion", 0, -1, "WITHSCORES" ) ),
           [qw(A 1.5 B 2.4 C 3.3 D 4.2 E 5.1 F 6)], "ZUNIONSTORE result is correct";
     }
+
+    if ( $redis->version >= 2.008009 ) {
+        is $redis->zadd( 'zlex', qw(0 a 0 b 0 c 0 d 0 e 0 f 0 g) ), 7, "added 7 elements to zlex";
+        eq_or_diff $redis->zrangebylex( 'zlex', '-', '[c' ), [qw( a b c )], "ZRAGEBYLEX";
+        is $redis->zlexcount( 'zlex', '(b', '[e' ), 3, "ZLEXCOUNT";
+        is $redis->zremrangebylex( 'zlex', '(b', '[e' ), 3, "ZREMRANGEBYLEX";
+        eq_or_diff $redis->zrange( 'zlex', 0, -1 ), [qw(a b f g)],
+          "correct set after ZREMRANGEBYLEX";
+    }
 }
 
 sub cmd_scripts {
