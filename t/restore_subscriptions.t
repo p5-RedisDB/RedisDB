@@ -1,8 +1,8 @@
 use Test::Most 0.22;
-use Test::FailWarnings;
 use lib 't';
 use RedisServer;
 use RedisDB;
+use Test::FailWarnings;
 
 my $server = RedisServer->start;
 plan( skip_all => "Can't start redis-server" ) unless $server;
