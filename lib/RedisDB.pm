@@ -803,7 +803,7 @@ my @commands = qw(
   hincrby	hincrbyfloat	hkeys	hlen	hmget	hscan	hmset	hset	hsetnx	hvals	incr	incrby
   incrbyfloat	keys	lastsave	lindex	linsert	llen	lpop	lpush	lpushx
   lrange	lrem	lset	ltrim	mget	migrate	move	mset	msetnx	object	object_refcount
-  object_encoding	object_idletime	persist	pexpire	pexpireat	ping	psetex	pttl
+  object_encoding	object_idletime	persist	pexpire	pexpireat	pfadd	pfcount	pfmerge	ping	psetex	pttl
   pubsub	pubsub_channels	pubsub_numsub	pubsub_numpat
   publish	quit	randomkey	rename	renamenx	restore	rpop	rpoplpush
   rpush	rpushx	sadd	save	scan	scard	script	script_exists   script_flush    script_kill
@@ -850,7 +850,7 @@ hincrbyfloat, hkeys, hlen, hmget, hscan, hmset, hset, hsetnx, hvals, incr,
 incrby, incrbyfloat, keys, lastsave, lindex, linsert, llen, lpop, lpush,
 lpushx, lrange, lrem, lset, ltrim, mget, migrate, move, mset, msetnx, object,
 object_refcount, object_encoding, object_idletime, persist, pexpire, pexpireat,
-ping, psetex, pttl, publish, pubsub, pubsub_channels, pubsub_numsub,
+pfadd, pfcount, pfmerge, ping, psetex, pttl, publish, pubsub, pubsub_channels, pubsub_numsub,
 pubsub_numpat, quit, randomkey, rename, renamenx, restore, rpop, rpoplpush,
 rpush, rpushx, sadd, save, scan, scard, script, script_exists, script_flush,
 script_kill, script_load, sdiff, sdiffstore, select, set, setbit, setex, setnx,

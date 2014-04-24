@@ -19,6 +19,7 @@ subtest "Hashes commands"           => \&cmd_hashes;
 subtest "Server info commands"      => \&cmd_server;
 subtest "Sets commands"             => \&cmd_sets;
 subtest "Ordered sets commands"     => \&cmd_zsets;
+subtest "HyperLogLog commands"      => \&cmd_hyperloglog;
 subtest "Scripts"                   => \&cmd_scripts;
 
 sub group_pairs {
@@ -451,6 +452,15 @@ sub cmd_scripts {
     eq_or_diff $redis->script_exists( $sha1, $sha3, $sha2 ), [ 1, 0, 1 ], "SCRIPT EXISTS";
     is $redis->script_load($script3), $sha3, "SCRIPT LOAD";
     eq_or_diff $redis->evalsha( $sha3, 1, 'eval' ), "passed", "EVALSHA";
+}
+
+sub cmd_hyperloglog {
+    plan skip_all => "This test requires redis-server >= 2.8.9" unless $redis->version >= 2.008009;
+    $redis->flushdb;
+    is $redis->pfadd('hll1', qw(a b c d)), 1, "PFADD";
+    is $redis->pfcount('hll1'), 4, "PFCOUNT";
+    is $redis->pfadd('hll2', qw(a b e f)), 1, "PFADD";
+    is $redis->pfmerge('hll3', 'hll1', 'hll2'), 'OK', "PFMERGE";
 }
 
 done_testing;
