@@ -18,7 +18,7 @@ if ( $redis->version >= 2 ) {
     is $redis->ping, 'PONG', "Still can ping server after reconnecting";
     is $redis->get("Database"), 1, "Selected database 1";
     $redis->{password} = 'wrong';
-    $redis->quit;
+    delete $redis->{_socket};
     throws_ok { $redis->ping } qr/invalid password/i, "dies on reconnect if password is wrong";
 }
 else {
