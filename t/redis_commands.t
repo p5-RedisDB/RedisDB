@@ -329,6 +329,15 @@ sub cmd_server {
     else {
         diag "Skipped tests for redis >= 2.6.9";
     }
+    if ( $redis->version ge 2.008008 ) {
+        throws_ok {
+            $redis->debug_error("Boo!");
+        }
+        qr/Boo!/, "DEBUG ERROR";
+    }
+    else {
+        diag "Skipped tests for redis >= 2.8.8";
+    }
 }
 
 sub cmd_sets {
