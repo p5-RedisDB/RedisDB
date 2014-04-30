@@ -26,7 +26,7 @@ sub group_pairs {
     my $ref = shift;
     my @res;
     while (@$ref) {
-        push @res, [ shift @$ref, shift @$ref];
+        push @res, [ shift @$ref, shift @$ref ];
     }
     return @res;
 }
@@ -82,8 +82,9 @@ sub cmd_keys_strings {
             is $redis->get("bits5"), "\x70\x50", "bits5 == bits3 & bits4";
             is $redis->bitop( "XOR", "bits6", "bits3", "bits4" ), 2, "BITOP XOR";
             is $redis->get("bits6"), "\x85\xa5", "bits6 == bits3 ^ bits4";
+
             if ( $redis->version >= 2.008007 ) {
-                $redis->set("bits7", "\x01\xfe\x01");
+                $redis->set( "bits7", "\x01\xfe\x01" );
                 is $redis->bitpos( "bits7", 0, 1 ), 15, "BITPOS";
             }
             else {
@@ -299,14 +300,10 @@ sub cmd_server {
     is ref($info2), "HASH", "Got hashref in info callback";
     is $info2->{redis_version}, $info->{redis_version}, "Same info as from synchronous call";
 
-    if ( $redis->version >= 2.0 ) {
+    if ( $redis->version ge 2.006009 ) {
         eq_or_diff $redis->config_get("dbfilename"), [qw(dbfilename dump_test.rdb)], "CONFIG GET";
-    }
-    if ( $redis->version >= 2.005 ) {
         my ( $sec, $ms ) = @{ $redis->time };
         ok time - $sec < 2, "Server time is correct";
-    }
-    if ( $redis->version ge 2.006009 ) {
         my $redis2 =
           RedisDB->new( host => 'localhost', port => $server->{port}, connection_name => 'bar', );
         is $redis->client_getname, undef, "Name for connection is not set";
@@ -314,6 +311,7 @@ sub cmd_server {
         is $redis->client_getname, "foo", "Now connection name is 'foo'";
         my $clients = $redis->client_list;
         is 0 + @$clients, 2, "Two clients connected to the server";
+
         unless ( $clients->[0]{name} eq 'foo' ) {
             @$clients = reverse @$clients;
         }
@@ -466,10 +464,10 @@ sub cmd_scripts {
 sub cmd_hyperloglog {
     plan skip_all => "This test requires redis-server >= 2.8.9" unless $redis->version >= 2.008009;
     $redis->flushdb;
-    is $redis->pfadd('hll1', qw(a b c d)), 1, "PFADD";
+    is $redis->pfadd( 'hll1', qw(a b c d) ), 1, "PFADD";
     is $redis->pfcount('hll1'), 4, "PFCOUNT";
-    is $redis->pfadd('hll2', qw(a b e f)), 1, "PFADD";
-    is $redis->pfmerge('hll3', 'hll1', 'hll2'), 'OK', "PFMERGE";
+    is $redis->pfadd( 'hll2', qw(a b e f) ), 1, "PFADD";
+    is $redis->pfmerge( 'hll3', 'hll1', 'hll2' ), 'OK', "PFMERGE";
 }
 
 done_testing;
