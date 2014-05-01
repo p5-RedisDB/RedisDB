@@ -1,5 +1,10 @@
 Revision history for RedisDB
 
+2.33 Thu May  1 2014 Pavel Shaydo <zwon@cpan.org>
+    - fixed randomly failing auth.t test.
+      Reported by @scripter-v (Vadim Vlasov), see #19.
+    - added debug_error method
+
 2.32 Sat Apr 26 2014 Pavel Shaydo <zwon@cpan.org>
     - add IPv6 support
     - improve subscriptions handling outside of subscription loop
