@@ -886,7 +886,7 @@ The following commands implement some additional postprocessing of the results:
 
 =cut
 
-=head2 $self->info([$callback])
+=head2 $self->info([\&callback])
 
 return information and statistics about the server. Redis-server returns
 information in form of I<field:value>, the I<info> method parses result and
@@ -917,7 +917,7 @@ sub _parse_info {
     return \%info;
 }
 
-=head2 $self->client_list([$callback])
+=head2 $self->client_list([\&callback])
 
 return list of clients connected to the server. This method parses server
 output and returns result as reference to array of hashes.
@@ -1307,7 +1307,7 @@ sub subscription_loop {
     return;
 }
 
-=head2 $self->subscribe($channel[, $callback])
+=head2 $self->subscribe($channel[, \&callback])
 
 Subscribe to the I<$channel>. If I<$callback> is not specified, default
 callback will be used in subscription loop, or messages will be returned by
@@ -1335,7 +1335,7 @@ sub subscribe {
     return;
 }
 
-=head2 $self->psubscribe($pattern[, $callback])
+=head2 $self->psubscribe($pattern[, \&callback])
 
 Subscribe to channels matching I<$pattern>. If I<$callback> is not specified,
 default callback will be used in subscription loop, or messages will be
