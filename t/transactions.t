@@ -2,6 +2,7 @@ use Test::Most 0.22;
 use lib 't';
 use RedisServer;
 use RedisDB;
+use IO::Select;
 use Time::HiRes qw(usleep);
 
 my $server = RedisServer->start;
@@ -47,6 +48,12 @@ subtest "With raise error" => sub {
     is $redis->set( "key", "42" ), "QUEUED", "QUEUED set";
     is $redis->quit, "OK", "QUIT";
     dies_ok { $redis->set( "key2", "43" ) } "Not reconnecting when in transaction";
+
+    ok $redis->multi(RedisDB::IGNORE_REPLY), "Entered transaction (async)";
+    is $redis->set( "key", "42" ), "QUEUED", "QUEUED set";
+    is $redis->quit, "OK", "QUIT";
+    dies_ok { $redis->set( "key2", "43" ) } "Not reconnecting when in transaction";
+
     $redis = undef;
 };
 
@@ -94,6 +101,44 @@ subtest "multi/exec without raise_error" => sub {
     is $res->[2],     "OK",             "last command returned OK";
     $res = $redis3->get("hash");
     isa_ok $res, "RedisDB::Error", "raise_error unset after transaction finished";
+};
+
+subtest "Reconnecting if disconnected after EXEC" => sub {
+    my $server = Test::TCP->new(
+        code => sub {
+            my $port = shift;
+            my $sock = IO::Socket::IP->new(
+                LocalPort => $port,
+                Listen    => 1,
+            );
+            while ( my $cli = $sock->accept ) {
+                my $line;
+                while ( defined( $line = <$cli> ) ) {
+                    if ( $line =~ /MULTI/ ) {
+                        $cli->send( "+OK\r\n", 0 );
+                    }
+                    elsif ( $line =~ /SET/ ) {
+                        $cli->send( "+QUEUED\r\n", 0 );
+                    }
+                    elsif ( $line =~ /GET/ ) {
+                        $cli->send( ":42\r\n", 0 );
+                    }
+                    elsif ( $line =~ /EXEC/ ) {
+                        $cli->close;
+                        last;
+                    }
+                }
+            }
+        }
+    );
+    my $redis = RedisDB->new( port => $server->port, raise_error => undef, );
+    ok $redis->multi(RedisDB::IGNORE_REPLY), "Entered transaction (async)";
+    is $redis->set( "key", "42" ), "QUEUED", "QUEUED set";
+    my $repl;
+    ok $redis->exec( sub { $repl = $_[1] } ), "Sent EXEC (async)";
+    IO::Select->new( $redis->{_socket} )->can_read;
+    is $redis->get("key"), 42, "Reconnected after EXEC";
+    isa_ok $repl, "RedisDB::Error::DISCONNECTED", "EXEC callback received error";
 };
 
 done_testing;
