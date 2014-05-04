@@ -153,10 +153,12 @@ subtest "Restore connection without raise_error" => sub {
 
     # now server disconnects again, so send will start failing also
     $redis->{reconect_attempts} = 1;
-    $res = $redis->set("key", "value");
-    isa_ok $res, "RedisDB::Error::DISCONNECTED", "got an error when server closed connection without sending reply";
-    $res = $redis->set("key", "value");
-    isa_ok $res, "RedisDB::Error::DISCONNECTED", "got an error when module couldn't establish connection with the server";
+    $res = $redis->set( "key", "value" );
+    isa_ok $res, "RedisDB::Error::DISCONNECTED",
+      "got an error when server closed connection without sending reply";
+    $res = $redis->set( "key", "value" );
+    isa_ok $res, "RedisDB::Error::DISCONNECTED",
+      "got an error when module couldn't establish connection with the server";
 };
 
 # Check what will happen if server immediately closes connection
@@ -236,11 +238,13 @@ subtest "UNIX socket" => sub {
 };
 
 subtest "IPv6" => sub {
-    my $srv = IO::Socket::IP->new(
-        V6Only    => 1,
-        LocalHost => '::1',
-        Listen    => 1,
-    );
+    my $srv = try {
+        IO::Socket::IP->new(
+            V6Only    => 1,
+            LocalHost => '::1',
+            Listen    => 1,
+        );
+    };
     plan skip_all => "Can't create IPv6 socket" unless $srv;
     my $pid = fork;
     if ( $pid == 0 ) {
