@@ -1454,7 +1454,7 @@ exec will return false value.
 
 =cut
 
-=head2 $self->multi
+=head2 $self->multi([\&callback])
 
 Enter the transaction. After this and till I<exec> or I<discard> will be called,
 all the commands will be queued but not executed.
@@ -1465,12 +1465,16 @@ sub multi {
     my $self = shift;
 
     die "Multi calls can not be nested!" if $self->{_in_multi};
-    my $res = $self->execute('MULTI');
     $self->{_in_multi} = 1;
-    return $res;
+    if ( ref $_[-1] eq 'CODE' ) {
+        return $self->send_command( 'MULTI', @_ );
+    }
+    else {
+        return $self->execute('MULTI');
+    }
 }
 
-=head2 $self->exec
+=head2 $self->exec([\&callback])
 
 Execute all queued commands and finish the transaction. Returns a list of
 results for every command. Will croak if some command has failed.  Also
@@ -1482,12 +1486,18 @@ client, the transaction will be canceled and I<exec> will return false.
 sub exec {
     my $self = shift;
 
-    my $res = $self->execute('EXEC');
+    my $res;
+    if ( ref $_[-1] eq 'CODE' ) {
+        $res = $self->send_command( 'EXEC', @_ );
+    }
+    else {
+        $res = $self->execute('EXEC');
+    }
     $self->{_in_multi} = undef;
     return $res;
 }
 
-=head2 $self->discard
+=head2 $self->discard([\&callback])
 
 Discard all queued commands without executing them and unwatch all keys.
 
@@ -1496,7 +1506,13 @@ Discard all queued commands without executing them and unwatch all keys.
 sub discard {
     my $self = shift;
 
-    my $res = $self->execute('DISCARD');
+    my $res;
+    if ( ref $_[-1] eq 'CODE' ) {
+        $res = $self->send_command( 'DISCARD', @_ );
+    }
+    else {
+        $res = $self->execute('DISCARD');
+    }
     $self->{_in_multi} = undef;
     return $res;
 }
