@@ -1098,7 +1098,7 @@ hostname, so on next attempt module will try to connect to different server.
 
 =cut
 
-=head1 PIPELINING SUPPORT
+=head1 PIPELINING
 
 You can send commands in the pipelining mode. It means you are sending multiple
 commands to the server without waiting for the replies.  This is implemented by
@@ -1159,7 +1159,7 @@ or using L</"WRAPPER METHODS"> you can rewrite it as:
 
 =cut
 
-=head1 SUBSCRIPTIONS SUPPORT
+=head1 PUB/SUB MESSAGING
 
 RedisDB supports subscriptions to redis channels. In the subscription mode you
 can subscribe to some channels and receive all the messages sent to these
@@ -1439,7 +1439,7 @@ sub psubscribed {
     return keys %{ shift->{_psubscribed} };
 }
 
-=head1 TRANSACTIONS SUPPORT
+=head1 TRANSACTIONS
 
 Transactions allow you to execute a sequence of commands in a single step. In
 order to start a transaction you should use the I<multi> method.  After you
