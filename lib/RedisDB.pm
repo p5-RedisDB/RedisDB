@@ -32,8 +32,7 @@ RedisDB - Perl extension to access redis database
 
 This module provides interface to access redis key-value store, it
 transparently handles disconnects and forks, supports transactions,
-pipelining, and subscription mode. Module includes XS and pure Perl
-versions of the parser.
+pipelining, and subscription mode.
 
 =head1 METHODS
 
