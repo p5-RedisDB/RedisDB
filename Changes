@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+2.34_01 Mon May  5 2014 Pavel Shaydo <zwon@cpan.org>
+    - allow perform transactions in pipelining mode
+    - fix test failing if IPv6 is not supported
+
 2.33 Thu May  1 2014 Pavel Shaydo <zwon@cpan.org>
     - fixed randomly failing auth.t test.
       Reported by @scripter-v (Vadim Vlasov), see #19.
