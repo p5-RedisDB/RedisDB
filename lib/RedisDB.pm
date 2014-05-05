@@ -40,7 +40,7 @@ pipelining, and subscription mode.
 
 =head2 $class->new(%options)
 
-Creates the new RedisDB object. The following options are accepted:
+Creates a new RedisDB object. The following options are accepted:
 
 =over 4
 
@@ -60,7 +60,7 @@ L</host> and L</port> you should specify I<path>.
 =item password
 
 Password, if redis server requires authentication. Alternatively you can use
-I<auth> method after connection.
+I<auth> method after creating the object.
 
 =item database
 
@@ -72,18 +72,18 @@ Default value is 0.
 =item raise_error
 
 By default if redis-server returned error reply, or there was a connection
-error I<get_reply> method throws an exception of L<RedisDB::Error> type, if
-you set this parameter to false it will return an error object instead. Note,
-that if you have set this to false you must always check if the result you've
-got from RedisDB is a L<RedisDB::Error> object.
+error I<get_reply> method throws an exception of L<RedisDB::Error> type, if you
+set this parameter to false it will return an error object instead. Note, that
+if you set this to false you should always check if the result you've got from
+RedisDB method is a L<RedisDB::Error> object.
 
 =item timeout
 
-IO timeout. With this option set, if IO operation has taken more than specified
-number of seconds, module will croak or return L<RedisDB::Error::EAGAIN> error
-object depending on L</raise_error> setting. Note, that some OSes do not
-support SO_RCVTIMEO, and SO_SNDTIMEO socket options, in this case timeout will
-not work.
+IO timeout. With this option set, if I/O operation has taken more than
+specified number of seconds, module will croak or return
+L<RedisDB::Error::EAGAIN> error object depending on L</raise_error> setting.
+Note, that some OSes do not support SO_RCVTIMEO, and SO_SNDTIMEO socket
+options, in this case timeout will not work.
 
 =item utf8
 
@@ -93,39 +93,39 @@ from UTF-8. See L</"UTF-8 SUPPORT">.
 
 =item connection_name
 
-After establishing connection set its name. See "CLIENT SETNAME" command
-description in the redis documentation.
+After establishing a connection set its name to the specified using "CLIENT
+SETNAME" command.
 
 =item lazy
 
-by default I<new> establishes connection to the server. If this parameter is
-set, then connection will be established when you will send a command to the
-server.
+by default I<new> establishes a connection to the server. If this parameter is
+set, then connection will be established only when you will send first command
+to the server.
 
 =item reconnect_attempts
 
 this parameter allows you to specify how many attempts to (re)connect to the
-server should be made before returning error. Default value is 1, set to -1 if
-module should try to reconnect indefinitely.
+server should be made before returning an error. Default value is 1, set to -1
+if module should try to reconnect indefinitely.
 
 =item reconnect_delay_max
 
-module makes a delay before each new attempt to connect. Delay increases with
-each new attempt. This parameter allows you to specify maximum delay between
-attempts to reconnect. Default value is 10.
+module waits some time before every new attempt to connect. Delay increases
+each time. This parameter allows you to specify maximum delay between attempts
+to reconnect. Default value is 10.
 
 =item on_connect_error
 
-this allows you to specify callback that will be invoked if module could not
-establish connection to the server.  First argument to callback is a reference
-to the RedisDB object, and second is the error description. You must not invoke
-any methods on the object inside the callback, but you can change I<port> and
-I<host>, or I<path> attributes of the I<RedisDB> object to point to another
-server.  After callback returned, module tries to establish connection again
-using new parameters. To prevent further connection attempts callback should
-throw an exception. Default callback confesses. This may be useful to switch to
-backup server if primary went down. RedisDB distribution includes an example of
-using this callback in eg/server_failover.pl.
+if module failed to establish connection with the server it will invoke this
+callback.  First argument to the callback is a reference to the RedisDB object,
+and second is the error description. You must not invoke any methods on the
+object inside the callback, but you can change I<port> and I<host>, or I<path>
+attributes of the I<RedisDB> object to point to another server.  After callback
+returned, module tries to establish connection again using new parameters. To
+prevent further connection attempts callback should throw an exception, which
+is done by default callback. This may be useful to switch to backup server if
+primary went down. RedisDB distribution includes an example of using this
+callback in eg/server_failover.pl.
 
 =back
 
@@ -163,10 +163,11 @@ sub _init_parser {
 
 =head2 $self->execute($command, @arguments)
 
-send a command to the server and return the result. It will throw an exception
-if the server returns an error or return L<RedisDB::Error> depending on
-L</raise_error> parameter. It may be more convenient to use instead of this
-method wrapper named after the corresponding redis command. E.g.:
+send a command to the server, wait for the result and return it. It will throw
+an exception if the server returns an error or return L<RedisDB::Error> object
+depending on L</raise_error> parameter. It may be more convenient to use
+instead of this method wrapper named after the corresponding redis command.
+E.g.:
 
     $redis->execute('set', key => 'value');
     # is the same as
@@ -174,9 +175,9 @@ method wrapper named after the corresponding redis command. E.g.:
 
 See L</"WRAPPER METHODS"> section for the full list of defined aliases.
 
-Note, that you can't use I<execute> if you have sent some commands using
-I<send_command> method without callback argument and have not yet got all
-replies.
+Note, that you can not use I<execute> if you have sent some commands using
+I<send_command> method without the I<callback> argument and have not yet got
+all replies.
 
 =cut
 
@@ -445,13 +446,14 @@ sub _queue {
 
 send a command to the server. If send has failed command will die or return
 L<RedisDB::Error> object depending on L<raise_error> parameter.  Note, that it
-does not return reply from the server, you should retrieve it using the
-I<get_reply> method, or if I<callback> has been specified, it will be invoked
-upon receiving the reply with two arguments: the RedisDB object, and the reply
-from the server.  If the server returns an error, the second argument to the
-callback will be a L<RedisDB::Error> object, you can get description of the
-error using this object in string context.  If you are not interested in reply,
-you can use RedisDB::IGNORE_REPLY constant as the last argument.
+does not return reply from the server, if I<callback> was not specified, you
+should retrieve result using I<get_reply> method, otherwise I<callback>  will
+be invoked upon receiving the result with two arguments: the RedisDB object,
+and the reply from the server. If the server returned an error, the second
+argument to the callback will be a L<RedisDB::Error> object, you can get
+description of the error using this object in string context.  If you are not
+interested in reply, you can use RedisDB::IGNORE_REPLY constant as the last
+argument.
 
 Note, that RedisDB does not run any background threads, so it will not receive
 the reply and invoke the callback unless you call some of its methods which
@@ -584,10 +586,9 @@ sub send_command_cb {
 
 =head2 $self->reply_ready
 
-This method may be used in the pipelining mode to check if there are some
-replies already received from the server. Returns the number of replies
-available for reading. May also return L<RedisDB::Error> object if there was a
-network error and I<raise_error> is disabled.
+this method may be used in the pipelining mode to check if there are some
+replies already received from the server. Returns true if there are replies
+ready to be fetched with I<get_reply> method.
 
 =cut
 
@@ -648,9 +649,9 @@ sub mainloop {
 
 =head2 $self->get_reply
 
-Receive and return reply from the server. If the server returned an error,
+receive and return reply from the server. If the server returned an error,
 method throws L<RedisDB::Error> exception or returns L<RedisDB::Error> object,
-depending on I<raise_error> parameter, see I<new>.
+depending on the L</raise_error> parameter.
 
 =cut
 
@@ -718,9 +719,9 @@ sub get_reply {
 
 =head2 $self->get_all_replies
 
-Wait till replies to all the commands without callback set will be received.
-Return a list of replies to these commands. For commands with callback set
-replies are processed as usual. Unlike I<mainloop> this method block only till
+wait till replies to all the commands without callback set will be received.
+Returns a list of replies to these commands. For commands with callback set
+replies are processed as usual. Unlike I<mainloop> this method blocks only till
 replies to all commands for which callback was NOT set will be received.
 
 =cut
@@ -736,7 +737,7 @@ sub get_all_replies {
 
 =head2 $self->replies_to_fetch
 
-Return the number of commands sent to the server replies to which wasn't yet
+return the number of commands sent to the server replies to which were not yet
 retrieved with I<get_reply> or I<get_all_replies>. This number only includes
 commands for which callback was not set.
 
@@ -749,7 +750,7 @@ sub replies_to_fetch {
 
 =head2 $self->selected_database
 
-Get currently selected database.
+get currently selected database.
 
 =cut
 
@@ -759,9 +760,9 @@ sub selected_database {
 
 =head2 $self->reset_connection
 
-Resets connection. This closes existing connection and drops all previously
-sent requests. After invoking this method the object returns to the same state
-as it was returned by the constructor.
+reset connection. This method closes existing connection and drops all
+previously sent requests. After invoking this method the object returns to the
+same state as it was returned by the constructor.
 
 =cut
 
@@ -776,7 +777,7 @@ sub reset_connection {
 
 =head2 $self->version
 
-Return the version of the server the client is connected to. The version is
+return the version of the server the client is connected to. The version is
 returned as a floating point number represented the same way as the perl
 versions. E.g. for redis 2.1.12 it will return 2.001012.
 
