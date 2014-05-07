@@ -1,6 +1,7 @@
 Revision history for RedisDB
 
-2.34_01 Mon May  5 2014 Pavel Shaydo <zwon@cpan.org>
+2.35 Wed May  7 2014 Pavel Shaydo <zwon@cpan.org>
+    - documentation fixes and improvements
     - allow perform transactions in pipelining mode
     - fix test failing if IPv6 is not supported
 
