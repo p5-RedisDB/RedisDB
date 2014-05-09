@@ -1086,9 +1086,10 @@ establish a new connection. If L</raise_error> disabled, the module will pass
 L<RedisDB::Error::DISCONNECTED> object to all outstanding callbacks and will
 try to reconnect to the server; it will also automatically restore
 subscriptions if object was in subscription mode. Module never tries to
-reconnect after MULTI command was sent to server and before corresponding EXEC
-or DISCARD was sent as this may cause data corruption, so during transaction
-module behaves like if L</raise_error> is set.
+reconnect after MULTI or WATCH command was sent to server and before
+corresponding UNWATCH, EXEC or DISCARD was sent as this may cause data
+corruption, so during transaction module behaves like if L</raise_error> is
+set.
 
 Module makes several attempts to reconnect each time increasing interval before
 the next attempt, depending on the values of L</reconnect_attempts> and
