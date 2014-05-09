@@ -43,7 +43,7 @@ subtest "With raise error" => sub {
         is $redis->get("key"), "value", "key wasn't changed";
     }
 
-    # must not reconnect while in multi
+    note "must not reconnect while in multi";
     is $redis->multi, "OK", "Entered transaction";
     is $redis->set( "key", "42" ), "QUEUED", "QUEUED set";
     is $redis->quit, "OK", "QUIT";
@@ -53,6 +53,15 @@ subtest "With raise error" => sub {
     is $redis->set( "key", "42" ), "QUEUED", "QUEUED set";
     is $redis->quit, "OK", "QUIT";
     dies_ok { $redis->set( "key2", "43" ) } "Not reconnecting when in transaction";
+
+    note "must not reconnect when watching key";
+    is $redis->watch("key"), "OK", "Watching key";
+    is $redis->quit, "OK", "QUIT";
+    dies_ok { $redis->set( "key2", "43" ) } "Not reconnecting when watching";
+
+    ok $redis->watch( "key", RedisDB::IGNORE_REPLY ), "Watching key (async)";
+    is $redis->quit, "OK", "QUIT";
+    dies_ok { $redis->set( "key2", "43" ) } "Not reconnecting when watching";
 
     $redis = undef;
 };
@@ -69,6 +78,14 @@ subtest "multi/exec without raise_error" => sub {
         connection_name => 'test_connection_3',
     );
 
+    my $kill_connection = sub {
+        my ($r3) =
+          map { $_->{addr} } grep { $_->{name} eq 'test_connection_3' } @{ $redis2->client_list };
+        ok $r3, "Got address for test_connection_3";
+        $redis2->client_kill($r3);
+        IO::Select->new( $redis->{_socket} )->can_read;
+    };
+
     note "inside transaction raise_error is always on";
     is $redis3->hset( "hash", "key", "value" ), 1, "Set hash key";
     my $res = $redis3->get("hash");
@@ -80,14 +97,23 @@ subtest "multi/exec without raise_error" => sub {
     note "redis will not reconnect in the middle of transaction";
     $redis3->reset_connection;
     is $redis3->multi, "OK", "Entered transaction";
-    my ($r3) =
-      map { $_->{addr} } grep { $_->{name} eq 'test_connection_3' } @{ $redis2->client_list };
-    ok $r3, "Got address for test_connection_3";
-    $redis3->set( "test3", "test3", RedisDB::IGNORE_REPLY );
-    $redis2->client_kill($r3);
-    usleep 100_000;
+    $redis3->set( "test3", "test3" );
+    $kill_connection->();
     throws_ok { $redis3->set( "test3", "42" ) } "RedisDB::Error::DISCONNECTED",
-      "on disconnect throws exception";
+      "not reconnecting when in multi";
+
+    note "must not reconnect when watching key";
+    $redis3->reset_connection;
+    is $redis3->watch("key"), "OK", "Watching key";
+    $kill_connection->();
+    throws_ok { $redis3->set( "test3", "42" ) } "RedisDB::Error::DISCONNECTED",
+      "not reconnecting when watching";
+
+    $redis3->reset_connection;
+    is $redis3->watch("key"), "OK", "Watching key";
+    is $redis3->unwatch, "OK", "Unwatched";
+    $kill_connection->();
+    is $redis3->ping, "PONG", "After unwatch it reconnects";
 
     note "exec should restore raise_error";
     $redis3->reset_connection;
