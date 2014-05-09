@@ -205,7 +205,7 @@ sub _on_disconnect {
     if ($err) {
         $error_obj ||= RedisDB::Error::DISCONNECTED->new(
             "Server unexpectedly closed connection. Some data might have been lost.");
-        if ( $self->{raise_error} || $self->{_in_multi} ) {
+        if ( $self->{raise_error} or $self->{_in_multi} or $self->{_watching} ) {
             $self->reset_connection;
             die $error_obj;
         }
@@ -413,7 +413,7 @@ sub _recv_data_nb {
         else {
             delete $self->{_socket};
 
-            if ( $self->{_parser}->callbacks or $self->{_in_multi} ) {
+            if ( $self->{_parser}->callbacks or $self->{_in_multi} or $self->{_watching} ) {
 
                 # there are some replies lost
                 $self->_on_disconnect(1);
@@ -690,7 +690,7 @@ sub get_reply {
 
     my $res = shift @{ $self->{_replies} };
     if ( ref $res eq 'RedisDB::Error'
-        and ( $self->{raise_error} or $self->{_in_multi} ) )
+        and ( $self->{raise_error} or $self->{_in_multi} or $self->{_watching} ) )
     {
         croak $res;
     }
@@ -810,7 +810,7 @@ my @commands = qw(
   script_load   sdiff	sdiffstore	select	set
   setbit	setex	setnx	setrange	sinter	sinterstore
   sismember	slaveof	slowlog smembers	smove	sort	spop	srandmember
-  srem	sscan	strlen	sunion	sunionstore	sync	time    ttl	type	unwatch watch
+  srem	sscan	strlen	sunion	sunionstore	sync	time    ttl	type
   zadd	zcard	zcount	zincrby	zinterstore	zlexcount	zrange	zrangebylex
   zrangebyscore	zrank	zrem	zremrangebylex
   zremrangebyrank   zremrangebyscore	zrevrange	zrevrangebyscore	zrevrank
@@ -1457,6 +1457,44 @@ exec will return false value.
 
 =cut
 
+=head2 $self->watch(@keys[, \&callback])
+
+mark given keys to be watched
+
+=cut
+
+sub watch {
+    my $self = shift;
+
+    $self->{_watching} = 1;
+    if ( ref $_[-1] eq 'CODE' ) {
+        return $self->send_command( 'WATCH', @_ );
+    }
+    else {
+        return $self->execute( 'WATCH', @_ );
+    }
+}
+
+=head2 $self->unwatch([\&callback])
+
+unwatch all keys
+
+=cut
+
+sub unwatch {
+    my $self = shift;
+
+    my $res;
+    if ( ref $_[-1] eq 'CODE' ) {
+        $res = $self->send_command( 'UNWATCH', @_ );
+    }
+    else {
+        $res = $self->execute( 'UNWATCH', @_ );
+    }
+    $self->{_watching} = undef;
+    return $res;
+}
+
 =head2 $self->multi([\&callback])
 
 Enter the transaction. After this and till I<exec> or I<discard> will be called,
@@ -1497,6 +1535,7 @@ sub exec {
         $res = $self->execute('EXEC');
     }
     $self->{_in_multi} = undef;
+    $self->{_watching} = undef;
     return $res;
 }
 
@@ -1517,6 +1556,7 @@ sub discard {
         $res = $self->execute('DISCARD');
     }
     $self->{_in_multi} = undef;
+    $self->{_watching} = undef;
     return $res;
 }
 
