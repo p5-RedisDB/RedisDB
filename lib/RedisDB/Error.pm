@@ -2,6 +2,7 @@ package RedisDB::Error;
 
 use strict;
 use warnings;
+use base 'RedisDB::Parser::Error';
 our $VERSION = "2.36";
 $VERSION = eval $VERSION;
 
@@ -21,40 +22,22 @@ RedisDB::Error - Error class for RedisDB
 
 Object of this class maybe passed as argument to callback specified in
 I<send_command_cb> if redis server return error.  In string context object
-returns description of the error.
-
-=head1 METHODS
-
-=cut
-
-use overload '""' => \&as_string;
-
-=head2 $class->new($message)
-
-Create new error object with specified error message.
+returns description of the error. This class inherits from
+L<RedisDB::Parser::Error>.
 
 =cut
-
-sub new {
-    my ($class, $message) = @_;
-    return bless { message => $message }, $class;
-}
-
-=head2 $self->as_string
-
-Return error message. Also you can just use object in string context.
-
-=cut
-
-sub as_string {
-    return shift->{message};
-}
 
 package RedisDB::Error::EAGAIN;
 our @ISA = qw(RedisDB::Error);
 
 package RedisDB::Error::DISCONNECTED;
 our @ISA = qw(RedisDB::Error);
+
+package RedisDB::Error::MOVED;
+our @ISA = qw(RedisDB::Parser::Error::MOVED RedisDB::Error);
+
+package RedisDB::Error::ASK;
+our @ISA = qw(RedisDB::Parser::Error::ASK RedisDB::Error);
 
 1;
 
