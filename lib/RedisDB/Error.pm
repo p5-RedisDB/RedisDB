@@ -1,7 +1,6 @@
 package RedisDB::Error;
 
 use strict;
-use warnings;
 use base 'RedisDB::Parser::Error';
 our $VERSION = "2.36";
 $VERSION = eval $VERSION;
@@ -26,6 +25,8 @@ returns description of the error. This class inherits from
 L<RedisDB::Parser::Error>.
 
 =cut
+
+*new = \&RedisDB::Parser::Error::new;
 
 package RedisDB::Error::EAGAIN;
 our @ISA = qw(RedisDB::Error);
