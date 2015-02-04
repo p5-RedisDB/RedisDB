@@ -142,7 +142,7 @@ sub cmd_keys_strings {
     if ( $redis->version >= 2.002003 ) {
         is $redis->set(qw(object test)), "OK", "Set object";
         is $redis->object_refcount("object"), 1,     "OBJECT REFCOUNT";
-        is $redis->object_encoding("object"), "raw", "OBJECT ENCODING";
+        like $redis->object_encoding("object"), qr/raw|embstr/, "OBJECT ENCODING";
         my $idle = $redis->object_idletime("object");
         ok $idle >= 0 && $idle < 11, "OBJECT IDLETIME";
     }
