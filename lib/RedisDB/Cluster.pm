@@ -68,6 +68,16 @@ sub crc16 {
     return $crc;
 }
 
+sub key_slot {
+    my $key = shift;
+
+    if ( $key =~ /\{([^}]+)\}/ ) {
+        $key = $1;
+    }
+
+    return crc16($key) & 16383;
+}
+
 1;
 
 __END__
