@@ -796,6 +796,7 @@ sub version {
 my @commands = qw(
   append	auth	bgrewriteaof	bgsave	bitcount	bitop	bitpos
   blpop	brpop   brpoplpush	client	client_kill	client_getname	client_setname
+  cluster_slots
   config	config_get	config_set	config_resetstat	config_rewrite
   dbsize	debug_error	debug_object	debug_segfault
   decr	decrby	del	dump	echo	eval    evalsha exists	expire	expireat	flushall

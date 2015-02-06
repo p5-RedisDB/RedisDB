@@ -19,6 +19,44 @@ RedisDB::Cluster - client for redis cluster
 
 =cut
 
+sub new {
+    my ( $class, %params ) = @_;
+
+    my $self = {
+        _slot       => [],
+        _connection => {},
+    };
+
+    bless $self, $class;
+    $self->_initialize_slots( @{ $params{startup_nodes} } );
+
+    return $self;
+}
+
+sub _initialize_slots {
+    my $self = shift;
+
+    for my $node (@_) {
+        my $redis = RedisDB->new(
+            host        => $node->{host},
+            port        => $node->{port},
+            raise_error => 0,
+        );
+        my $slots = $redis->cluster_slots;
+        next if ref $slots =~ /^RedisDB::Error/;
+        for (@$slots) {
+            my ( $ip, $port ) = @{ $_->[2] };
+            my $host_id = "$ip:$port";
+            for ( $_->[0] .. $_->[1] ) {
+                $self->{_slot}[$_] = $host_id;
+            }
+        }
+        last;
+    }
+
+    return;
+}
+
 my @crc16tab = (
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
     0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef,
