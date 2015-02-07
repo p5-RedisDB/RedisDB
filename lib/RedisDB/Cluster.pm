@@ -5,7 +5,11 @@ use warnings;
 our $VERSION = "2.36";
 $VERSION = eval $VERSION;
 
+use Carp;
 use RedisDB;
+use Time::HiRes qw(usleep);
+
+my $DEBUG = 1;
 
 =head1 NAME
 
@@ -36,6 +40,7 @@ sub new {
 sub _initialize_slots {
     my $self = shift;
 
+    my %nodes;
     for my $node (@_) {
         my $redis = RedisDB->new(
             host        => $node->{host},
@@ -47,14 +52,87 @@ sub _initialize_slots {
         for (@$slots) {
             my ( $ip, $port ) = @{ $_->[2] };
             my $host_id = "$ip:$port";
+            $nodes{$host_id} = 1;
             for ( $_->[0] .. $_->[1] ) {
                 $self->{_slot}[$_] = $host_id;
             }
         }
         last;
     }
+    $self->{_nodes} = [ keys %nodes ];
 
     return;
+}
+
+sub execute {
+    my $self    = shift;
+    my $command = uc shift;
+    my $key     = shift;
+
+    if ( $self->{_refresh_slots} ) {
+        $self->_initialize_slots( @{ $self->{_nodes} } );
+    }
+    my $slot    = key_slot($key);
+    my $host_id = $self->{_slot}[$slot];
+    my $asking;
+    my $last_connection;
+
+    my $attempts = 10;
+    while ( $attempts-- ) {
+        my $redis = $self->{_connection}{$host_id};
+        unless ($redis) {
+            my ( $host, $port ) = split /:/, $host_id;
+            $redis = $self->{_connection}{$host_id} = RedisDB->new(
+                host        => $host,
+                port        => $port,
+                raise_error => 0,
+            );
+        }
+
+        $redis->asking(RedisDB::IGNORE_REPLY) if $asking;
+        $asking = 0;
+        my $res = $redis->execute( $command, $key, @_ );
+        if ( ref $res eq 'RedisDB::Error::MOVED' ) {
+            if ( $res->{slot} ne $slot ) {
+                confess
+                  "Incorrectly computed slot for key '$key', ours $slot, theirs $res->{slot}";
+            }
+            warn "slot $slot moved to $res->{host}:$res->{port}" if $DEBUG;
+            $host_id = $self->{_slot}[$slot] = "$res->{host}:$res->{port}";
+            $self->{_refresh_slots} = 1;
+            next;
+        }
+        elsif ( ref $res eq 'RedisDB::Error::ASK' ) {
+            warn "asking $res->{host}:$res->{port} about slot $slot" if $DEBUG;
+            $host_id = "$res->{host}:$res->{port}";
+            $asking  = 1;
+            next;
+        }
+        elsif ( ref $res eq 'RedisDB::Error::DISCONNECTED' ) {
+            warn "connection to $host_id lost" if $DEBUG;
+            delete $self->{_connection}{$host_id};
+            usleep 100_000;
+            if ( $last_connection and $last_connection eq $host_id ) {
+
+                # if we couldn't reconnect to host, then refresh slots table
+                warn "refreshing slots table" if $DEBUG;
+                $self->_initialize_slots( @{ $self->{_nodes} } );
+
+                # if it's still the same host, then just return the error
+                return $res if $self->{_slot}[$slot] eq $host_id;
+                warn "got a new host for the slot" if $DEBUG;
+            }
+            else {
+                warn "trying to reconnect" if $DEBUG;
+                $last_connection = $host_id;
+            }
+            next;
+        }
+        return $res;
+    }
+
+    return RedisDB::Error::DISCONNECTED->new(
+        "Couldn't send command after 10 attempts");
 }
 
 my @crc16tab = (
