@@ -29,10 +29,11 @@ sub new {
     my $self = {
         _slot       => [],
         _connection => {},
+        _nodes      => $params{startup_nodes},
     };
 
     bless $self, $class;
-    $self->_initialize_slots( @{ $params{startup_nodes} } );
+    $self->_initialize_slots;
 
     return $self;
 }
@@ -40,8 +41,12 @@ sub new {
 sub _initialize_slots {
     my $self = shift;
 
+    unless ( $self->{_nodes} and @{ $self->{_nodes} } ) {
+        confess "list of cluster nodes is empty";
+    }
+
     my %nodes;
-    for my $node (@_) {
+    for my $node ( @{ $self->{_nodes} } ) {
         my $redis = RedisDB->new(
             host        => $node->{host},
             port        => $node->{port},
@@ -60,6 +65,9 @@ sub _initialize_slots {
         last;
     }
     $self->{_nodes} = [ keys %nodes ];
+    unless ( @{ $self->{_nodes} } ) {
+        confess "couldn't get cluster slots";
+    }
 
     return;
 }
@@ -70,7 +78,7 @@ sub execute {
     my $key     = shift;
 
     if ( $self->{_refresh_slots} ) {
-        $self->_initialize_slots( @{ $self->{_nodes} } );
+        $self->_initialize_slots;
     }
     my $slot    = key_slot($key);
     my $host_id = $self->{_slot}[$slot];
@@ -116,7 +124,7 @@ sub execute {
 
                 # if we couldn't reconnect to host, then refresh slots table
                 warn "refreshing slots table" if $DEBUG;
-                $self->_initialize_slots( @{ $self->{_nodes} } );
+                $self->_initialize_slots;
 
                 # if it's still the same host, then just return the error
                 return $res if $self->{_slot}[$slot] eq $host_id;
