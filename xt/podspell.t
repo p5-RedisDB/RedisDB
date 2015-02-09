@@ -51,3 +51,5 @@ HIROSE
 Masaake
 FunkyMonk
 Sanko
+pipelining
+crc

@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+2.37 Tue Feb 10 2015 Pavel Shaydo <zwon@cpan.org>
+    - initial support for redis cluster
+
 2.36 Fri May  9 2014 Pavel Shaydo <zwon@cpan.org>
     - do not reconnect when watching some keys
 

@@ -2,6 +2,7 @@ Changes
 eg/no_raise_error_1.pl
 eg/server_failover.pl
 lib/RedisDB.pm
+lib/RedisDB/Cluster.pm
 lib/RedisDB/Error.pm
 Makefile.PL
 MANIFEST
@@ -9,6 +10,7 @@ README
 t/00-load.t
 t/auth.t
 t/basic_redis.t
+t/cluster.t
 t/network.t
 t/no-leak.t
 t/redis_commands.t

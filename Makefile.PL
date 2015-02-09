@@ -18,7 +18,7 @@ WriteMakefile(
         'Try::Tiny'       => 0,
         Encode            => 2.10,
         'IO::Socket::IP'  => 0,
-        'RedisDB::Parser' => 2.20,
+        'RedisDB::Parser' => 2.21,
     },
     CONFIGURE_REQUIRES => {
         'ExtUtils::MakeMaker' => 6.3002,

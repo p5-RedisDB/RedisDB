@@ -2,7 +2,7 @@ package RedisDB::Cluster;
 
 use strict;
 use warnings;
-our $VERSION = "2.36";
+our $VERSION = "2.37";
 $VERSION = eval $VERSION;
 
 use Carp;
@@ -247,7 +247,7 @@ Pavel Shaydo, C<< <zwon at cpan.org> >>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2011-2014 Pavel Shaydo.
+Copyright 2011-2015 Pavel Shaydo.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
