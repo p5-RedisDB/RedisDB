@@ -17,9 +17,24 @@ RedisDB::Cluster - client for redis cluster
 
 =head1 SYNOPSIS
 
+    my $cluster = RedisDB::Cluster->new( startup_nodes => \@nodes );
+    $cluster->set( 'foo', 'bar' );
+    my $res = $cluster->get('foo');
+
 =head1 DESCRIPTION
 
+This module allows you to access redis cluster.
+
+B<WARNING:> this module is at early stage of development
+
 =head1 METHODS
+
+=cut
+
+=head2 $self->new(startup_nodes => \@nodes)
+
+create a new connection to cluster. Startup nodes are used to retrieve
+information about all cluster nodes and slots mappings.
 
 =cut
 
@@ -71,6 +86,13 @@ sub _initialize_slots {
 
     return;
 }
+
+=head2 $self->execute($command, $key, @args)
+
+sends command to redis and returns the reply. It determines the cluster node to
+send command to from the I<$key>.
+
+=cut
 
 sub execute {
     my $self    = shift;
@@ -178,6 +200,13 @@ my @crc16tab = (
     0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0,
 );
 
+=head2 $self->crc16($buf)
+
+compute crc16 for the specified buffer as defined in redis cluster
+specification
+
+=cut
+
 sub crc16 {
     my $buf = shift;
     if ( utf8::is_utf8($buf) ) {
@@ -191,6 +220,12 @@ sub crc16 {
     }
     return $crc;
 }
+
+=head2 $self->key_slot($key)
+
+return slot number for the given I<$key>
+
+=cut
 
 sub key_slot {
     my $key = shift;
