@@ -953,6 +953,30 @@ sub _parse_client_list {
     return $res;
 }
 
+sub cluster_nodes {
+    my $self = shift;
+    my $list = $self->execute(qw(CLUSTER NODES));
+    my @nodes;
+    for ( split /^/, $list ) {
+        my ( $node_id, $addr, @rest ) = split / /;
+        my %flags;
+        while ( ( my $flag = shift @rest ) ne '-' ) {
+            $flags{$flag} = 1;
+        }
+        my $node = {
+            node_id            => $node_id,
+            address            => $addr,
+            flags              => \%flags,
+            last_ping_sent     => $rest[0],
+            last_pong_received => $rest[1],
+            link_state         => $rest[2],
+            slots              => $rest[3],
+        };
+        push @nodes, $node;
+    }
+    return \@nodes;
+}
+
 =head2 $self->shutdown
 
 Shuts the redis server down. Returns undef, as the server doesn't send the
