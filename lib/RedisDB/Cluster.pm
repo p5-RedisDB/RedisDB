@@ -9,7 +9,7 @@ use Carp;
 use RedisDB;
 use Time::HiRes qw(usleep);
 
-my $DEBUG = 1;
+our $DEBUG = 0;
 
 =head1 NAME
 
