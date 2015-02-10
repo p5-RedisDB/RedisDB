@@ -1,5 +1,11 @@
 Revision history for RedisDB
 
+2.38 Wed Feb 11 2015 Pavel Shaydo <zwon@cpan.org>
+    - fix the way information about the nodes is stored
+    - disable debugging output by default
+    - fix parsing of cluster_nodes output
+    - add wrapper for cluster_info
+
 2.37 Tue Feb 10 2015 Pavel Shaydo <zwon@cpan.org>
     - initial support for redis cluster
 
