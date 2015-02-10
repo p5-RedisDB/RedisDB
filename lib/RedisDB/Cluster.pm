@@ -68,7 +68,7 @@ sub _initialize_slots {
             port        => $node->{port},
             raise_error => 0,
         );
-        my $slots = $redis->cluster_slots;
+        my $slots = $redis->cluster('SLOTS');
         next if ref $slots =~ /^RedisDB::Error/;
         for (@$slots) {
             my ( $ip, $port ) = @{ $_->[2] };
