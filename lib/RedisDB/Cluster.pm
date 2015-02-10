@@ -60,7 +60,8 @@ sub _initialize_slots {
         confess "list of cluster nodes is empty";
     }
 
-    my %nodes;
+    my %new_nodes;
+    my @new_nodes;
     for my $node ( @{ $self->{_nodes} } ) {
         my $redis = RedisDB->new(
             host        => $node->{host},
@@ -72,14 +73,18 @@ sub _initialize_slots {
         for (@$slots) {
             my ( $ip, $port ) = @{ $_->[2] };
             my $host_id = "$ip:$port";
-            $nodes{$host_id} = 1;
+            push @new_nodes,
+              {
+                host => $ip,
+                port => $port,
+              } unless $new_nodes{$host_id}++;
             for ( $_->[0] .. $_->[1] ) {
                 $self->{_slot}[$_] = $host_id;
             }
         }
         last;
     }
-    $self->{_nodes} = [ keys %nodes ];
+    $self->{_nodes} = \@new_nodes;
     unless ( @{ $self->{_nodes} } ) {
         confess "couldn't get cluster slots";
     }
