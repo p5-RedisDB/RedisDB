@@ -958,19 +958,21 @@ sub cluster_nodes {
     my $list = $self->execute(qw(CLUSTER NODES));
     my @nodes;
     for ( split /^/, $list ) {
-        my ( $node_id, $addr, @rest ) = split / /;
-        my %flags;
-        while ( ( my $flag = shift @rest ) ne '-' ) {
-            $flags{$flag} = 1;
-        }
+        my ( $node_id, $addr, $flags, $master_id, $ping, $pong, $state, @slots ) =
+          split / /;
+        my %flags = map { $_ => 1 } split /,/, $flags;
+        my ( $host, $port ) = split /:/, $addr;
         my $node = {
             node_id            => $node_id,
             address            => $addr,
+            host               => $host,
+            port               => $port,
             flags              => \%flags,
-            last_ping_sent     => $rest[0],
-            last_pong_received => $rest[1],
-            link_state         => $rest[2],
-            slots              => $rest[3],
+            master_id          => $master_id,
+            last_ping_sent     => $ping,
+            last_pong_received => $pong,
+            link_state         => $state,
+            slots              => \@slots,
         };
         push @nodes, $node;
     }
