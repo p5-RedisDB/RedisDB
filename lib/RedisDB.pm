@@ -953,6 +953,22 @@ sub _parse_client_list {
     return $res;
 }
 
+sub cluster_info {
+    my $self = shift;
+    my $orig = $_[-1];
+    if ( $orig && ref $orig eq 'CODE' ) {
+        my $cb = sub {
+            my ( $redis, $info ) = @_;
+            $orig->( $redis, _parse_info($info) );
+        };
+        return $self->send_command( 'CLUSTER', 'INFO', $cb );
+    }
+    else {
+        my $info = $self->execute('CLUSTER', 'INFO');
+        return _parse_info($info);
+    }
+}
+
 sub cluster_nodes {
     my $self = shift;
     my $list = $self->execute(qw(CLUSTER NODES));
