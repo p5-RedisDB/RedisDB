@@ -61,32 +61,42 @@ sub _initialize_slots {
     }
 
     my %new_nodes;
-    my @new_nodes;
+    my $new_nodes;
     for my $node ( @{ $self->{_nodes} } ) {
         my $redis = RedisDB->new(
             host        => $node->{host},
             port        => $node->{port},
             raise_error => 0,
         );
+
+        my $nodes = $redis->cluster_nodes;
+        next if ref $nodes =~ /^RedisDB::Error/;
+        $new_nodes = $nodes;
+        for (@$nodes) {
+            $new_nodes{"$_->{host}:$_->{port}"}++;
+        }
+
         my $slots = $redis->cluster('SLOTS');
-        next if ref $slots =~ /^RedisDB::Error/;
+        confess "got an error trying retrieve a list of cluster slots: $slots"
+          if ref $slots =~ /^RedisDB::Error/;
         for (@$slots) {
             my ( $ip, $port ) = @{ $_->[2] };
             my $host_id = "$ip:$port";
-            push @new_nodes,
-              {
-                host => $ip,
-                port => $port,
-              } unless $new_nodes{$host_id}++;
             for ( $_->[0] .. $_->[1] ) {
                 $self->{_slot}[$_] = $host_id;
             }
         }
         last;
     }
-    $self->{_nodes} = \@new_nodes;
-    unless ( @{ $self->{_nodes} } ) {
-        confess "couldn't get cluster slots";
+
+    unless (@$new_nodes) {
+        confess "couldn't get list of cluster nodes";
+    }
+    $self->{_nodes} = $new_nodes;
+
+    # close connections to nodes that are not in cluster
+    for (keys %{$self->{_connection}}) {
+        delete $self->{_connection}{$_} unless $new_nodes{$_};
     }
 
     return;
