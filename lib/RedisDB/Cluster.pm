@@ -180,6 +180,76 @@ sub execute {
         "Couldn't send command after 10 attempts");
 }
 
+sub add_new_node {
+    my ( $self, $addr, $master_id ) = @_;
+    $addr = _ensure_hash_address($addr);
+
+    my $redis = RedisDB->new(
+        %$addr,
+        raise_error => 0,
+    );
+    my $ok;
+    for my $node ( @{ $self->{_nodes} } ) {
+        $redis->cluster( 'MEET', $node->{host}, $node->{port},
+            sub { $ok++ if not ref $_[1] and $_[1] eq 'OK'; warn $_[1] if ref $_[1]; }
+        );
+    }
+    $redis->mainloop;
+    croak "failed to attach node to cluster" unless $ok;
+
+    if ($master_id) {
+        my $attempt = 0;
+        my $nodes   = $redis->cluster_nodes;
+        while ( not grep { $_->{node_id} eq $master_id } @$nodes ) {
+            croak "failed to start replication from $master_id - node is not present"
+              if $attempt++ >= 10;
+            usleep 100_000 * $attempt;
+            $nodes = $redis->cluster_nodes;
+        }
+        my $res = $redis->cluster( 'REPLICATE', $master_id );
+        croak $res if ref $res =~ /^RedisDB::Error/;
+    }
+
+    return 'OK';
+}
+
+sub _ensure_hash_address {
+    my $addr = shift;
+    unless ( ref $addr eq 'HASH' ) {
+        my ( $host, $port ) = split /:/, $addr;
+        croak "invalid address spec: $addr" unless $host and $port;
+        $addr = {
+            host => $host,
+            port => $port
+        };
+    }
+    return $addr;
+}
+
+sub _connect_to_node {
+    my ( $self, $node ) = @_;
+    my $redis = RedisDB->new(
+        host        => $node->{host},
+        port        => $node->{port},
+        raise_error => 0,
+    );
+    $redis = $redis->{_socket} ? $redis : undef;
+    $self->{_connection}{"$_->{host}:$_->{port}"} = $redis if $redis;
+    return $redis;
+}
+
+sub random_connection {
+    my $self = shift;
+    my ($connection) = values %{ $self->{_connection} };
+    unless ($connection) {
+        for ( @{ $self->{_nodes} } ) {
+            $connection = _connect_to_node( $self, $_ );
+            last if $connection;
+        }
+    }
+    return $connection;
+}
+
 my @crc16tab = (
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
     0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef,
