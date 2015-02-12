@@ -971,7 +971,10 @@ sub cluster_info {
 
 sub cluster_nodes {
     my $self = shift;
+
     my $list = $self->execute(qw(CLUSTER NODES));
+    return $list if ref $list =~ /^RedisDB::Error/;
+
     my @nodes;
     for ( split /^/, $list ) {
         my ( $node_id, $addr, $flags, $master_id, $ping, $pong, $state, @slots ) =
@@ -992,6 +995,7 @@ sub cluster_nodes {
         };
         push @nodes, $node;
     }
+
     return \@nodes;
 }
 
