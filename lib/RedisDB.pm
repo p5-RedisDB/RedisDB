@@ -981,6 +981,9 @@ sub cluster_nodes {
           split / /;
         my %flags = map { $_ => 1 } split /,/, $flags;
         my ( $host, $port ) = split /:/, $addr;
+        unless ($host) {
+            $host = $self->{host}, $addr = "$self->{host}:$port",
+        }
         my $node = {
             node_id            => $node_id,
             address            => $addr,
