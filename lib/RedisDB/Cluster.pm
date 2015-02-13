@@ -187,6 +187,15 @@ sub execute {
         "Couldn't send command after 10 attempts");
 }
 
+=head2 $self->add_new_node($address[, $master_id])
+
+attach node with the specified I<$address> to the cluster. If I<$master_id> is
+specified, the new node is configured as a replica of the master with the
+specified ID, otherwise it will be a master node itself. Address should be
+specified as a hash containing I<host> and I<port> elements.
+
+=cut
+
 sub add_new_node {
     my ( $self, $addr, $master_id ) = @_;
     $addr = _ensure_hash_address($addr);
@@ -243,6 +252,12 @@ sub _connect_to_node {
     }
     return $self->{_connection}{$host_key};
 }
+
+=head2 $self->random_connection
+
+return RedisDB object that is connected to random node of the cluster.
+
+=cut
 
 sub random_connection {
     my $self = shift;
