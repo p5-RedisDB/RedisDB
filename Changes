@@ -1,5 +1,10 @@
 Revision history for RedisDB
 
+2.39 Sat Feb 14 2015 Pavel Shaydo <zwon@cpan.org>
+    - improve retrieval of list of cluster nodes on connect
+    - add random_connection method to cluster
+    - add add_new_node method to cluster
+
 2.38 Wed Feb 11 2015 Pavel Shaydo <zwon@cpan.org>
     - fix the way information about the nodes is stored
     - disable debugging output by default
