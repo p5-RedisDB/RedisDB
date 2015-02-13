@@ -63,11 +63,8 @@ sub _initialize_slots {
     my %new_nodes;
     my $new_nodes;
     for my $node ( @{ $self->{_nodes} } ) {
-        my $redis = RedisDB->new(
-            host        => $node->{host},
-            port        => $node->{port},
-            raise_error => 0,
-        );
+        my $redis = _connect_to_node( $self, $node );
+        next unless $redis;
 
         my $nodes = $redis->cluster_nodes;
         next if ref $nodes =~ /^RedisDB::Error/;
@@ -89,13 +86,13 @@ sub _initialize_slots {
         last;
     }
 
-    unless (@$new_nodes) {
+    unless ($new_nodes and @$new_nodes) {
         confess "couldn't get list of cluster nodes";
     }
     $self->{_nodes} = $new_nodes;
 
     # close connections to nodes that are not in cluster
-    for (keys %{$self->{_connection}}) {
+    for ( keys %{ $self->{_connection} } ) {
         delete $self->{_connection}{$_} unless $new_nodes{$_};
     }
 
@@ -127,16 +124,26 @@ sub execute {
         my $redis = $self->{_connection}{$host_id};
         unless ($redis) {
             my ( $host, $port ) = split /:/, $host_id;
-            $redis = $self->{_connection}{$host_id} = RedisDB->new(
-                host        => $host,
-                port        => $port,
-                raise_error => 0,
+            $redis = _connect_to_node(
+                $self,
+                {
+                    host => $host,
+                    port => $port
+                }
             );
         }
 
-        $redis->asking(RedisDB::IGNORE_REPLY) if $asking;
-        $asking = 0;
-        my $res = $redis->execute( $command, $key, @_ );
+        my $res;
+        if ($redis) {
+            $redis->asking(RedisDB::IGNORE_REPLY) if $asking;
+            $asking = 0;
+            $res = $redis->execute( $command, $key, @_ );
+        }
+        else {
+            $res = RedisDB::Error::DISCONNECTED->new(
+                "Couldn't connect to redis server at $host_id");
+        }
+
         if ( ref $res eq 'RedisDB::Error::MOVED' ) {
             if ( $res->{slot} ne $slot ) {
                 confess
@@ -154,7 +161,7 @@ sub execute {
             next;
         }
         elsif ( ref $res eq 'RedisDB::Error::DISCONNECTED' ) {
-            warn "connection to $host_id lost" if $DEBUG;
+            warn "$res" if $DEBUG;
             delete $self->{_connection}{$host_id};
             usleep 100_000;
             if ( $last_connection and $last_connection eq $host_id ) {
@@ -184,10 +191,7 @@ sub add_new_node {
     my ( $self, $addr, $master_id ) = @_;
     $addr = _ensure_hash_address($addr);
 
-    my $redis = RedisDB->new(
-        %$addr,
-        raise_error => 0,
-    );
+    my $redis = _connect_to_node( $self, $addr );
     my $ok;
     for my $node ( @{ $self->{_nodes} } ) {
         $redis->cluster( 'MEET', $node->{host}, $node->{port},
@@ -228,14 +232,16 @@ sub _ensure_hash_address {
 
 sub _connect_to_node {
     my ( $self, $node ) = @_;
-    my $redis = RedisDB->new(
-        host        => $node->{host},
-        port        => $node->{port},
-        raise_error => 0,
-    );
-    $redis = $redis->{_socket} ? $redis : undef;
-    $self->{_connection}{"$_->{host}:$_->{port}"} = $redis if $redis;
-    return $redis;
+    my $host_key = "$node->{host}:$node->{port}";
+    unless ( $self->{_connection}{$host_key} ) {
+        my $redis = RedisDB->new(
+            host        => $node->{host},
+            port        => $node->{port},
+            raise_error => 0,
+        );
+        $self->{_connection}{$host_key} = $redis->{_socket} ? $redis : undef;
+    }
+    return $self->{_connection}{$host_key};
 }
 
 sub random_connection {
