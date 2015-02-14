@@ -78,9 +78,9 @@ sub _initialize_slots {
           if ref $slots =~ /^RedisDB::Error/;
         for (@$slots) {
             my ( $ip, $port ) = @{ $_->[2] };
-            my $host_id = "$ip:$port";
+            my $node_key = "$ip:$port";
             for ( $_->[0] .. $_->[1] ) {
-                $self->{_slot}[$_] = $host_id;
+                $self->{_slot}[$_] = $node_key;
             }
         }
         last;
@@ -115,15 +115,15 @@ sub execute {
         $self->_initialize_slots;
     }
     my $slot    = key_slot($key);
-    my $host_id = $self->{_slot}[$slot];
+    my $node_key = $self->{_slot}[$slot];
     my $asking;
     my $last_connection;
 
     my $attempts = 10;
     while ( $attempts-- ) {
-        my $redis = $self->{_connection}{$host_id};
+        my $redis = $self->{_connection}{$node_key};
         unless ($redis) {
-            my ( $host, $port ) = split /:/, $host_id;
+            my ( $host, $port ) = split /:/, $node_key;
             $redis = _connect_to_node(
                 $self,
                 {
@@ -141,7 +141,7 @@ sub execute {
         }
         else {
             $res = RedisDB::Error::DISCONNECTED->new(
-                "Couldn't connect to redis server at $host_id");
+                "Couldn't connect to redis server at $node_key");
         }
 
         if ( ref $res eq 'RedisDB::Error::MOVED' ) {
@@ -150,33 +150,33 @@ sub execute {
                   "Incorrectly computed slot for key '$key', ours $slot, theirs $res->{slot}";
             }
             warn "slot $slot moved to $res->{host}:$res->{port}" if $DEBUG;
-            $host_id = $self->{_slot}[$slot] = "$res->{host}:$res->{port}";
+            $node_key = $self->{_slot}[$slot] = "$res->{host}:$res->{port}";
             $self->{_refresh_slots} = 1;
             next;
         }
         elsif ( ref $res eq 'RedisDB::Error::ASK' ) {
             warn "asking $res->{host}:$res->{port} about slot $slot" if $DEBUG;
-            $host_id = "$res->{host}:$res->{port}";
+            $node_key = "$res->{host}:$res->{port}";
             $asking  = 1;
             next;
         }
         elsif ( ref $res eq 'RedisDB::Error::DISCONNECTED' ) {
             warn "$res" if $DEBUG;
-            delete $self->{_connection}{$host_id};
+            delete $self->{_connection}{$node_key};
             usleep 100_000;
-            if ( $last_connection and $last_connection eq $host_id ) {
+            if ( $last_connection and $last_connection eq $node_key ) {
 
                 # if we couldn't reconnect to host, then refresh slots table
                 warn "refreshing slots table" if $DEBUG;
                 $self->_initialize_slots;
 
                 # if it's still the same host, then just return the error
-                return $res if $self->{_slot}[$slot] eq $host_id;
+                return $res if $self->{_slot}[$slot] eq $node_key;
                 warn "got a new host for the slot" if $DEBUG;
             }
             else {
                 warn "trying to reconnect" if $DEBUG;
-                $last_connection = $host_id;
+                $last_connection = $node_key;
             }
             next;
         }
