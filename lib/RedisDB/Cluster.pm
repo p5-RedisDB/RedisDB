@@ -226,6 +226,81 @@ sub add_new_node {
     return 'OK';
 }
 
+=head2 $self->migrate_slot($slod, $destination_node)
+
+migrates specified slot to the given I<$destination_node> from the current node
+responsible for this slot. Destinations node should be specified as a hash
+containing I<host> and I<port> elements. For details check "Cluster live
+reconfiguration" section in the L<Redis Cluster
+Specification|http://redis.io/topics/cluster-spec>.
+
+=cut
+
+sub migrate_slot {
+    my ( $self, $slot, $dst ) = @_;
+    warn "foo" if $DEBUG;
+
+    # make sure we have up to date information about slots mapping
+    $self->_initialize_slots;
+    my $src_key = $self->{_slot}[$slot];
+    confess "mapping for slot $slot is not defined" unless $src_key;
+
+    # destination node should be part of the cluster
+    $dst = $self->_get_node_info($dst)
+      or confess "destination node is seems not a part of the cluster";
+    my $dst_key = "$dst->{host}:$dst->{port}";
+    warn "migrating slot $slot from $src_key to $dst_key" if $DEBUG;
+
+    # if slot is already on destination node, just return
+    return if $src_key eq $dst_key;
+    my $src = $self->_get_node_info($src_key);
+
+    my $dst_redis = _connect_to_node( $self, $dst )
+      or confess "couldn't connect to destination node";
+    my $src_redis = _connect_to_node( $self, $src )
+      or confess "couldn't connect to source node";
+
+    # set importing/migrating state for the slot
+    my $res =
+      $dst_redis->cluster( 'setslot', $slot, 'importing', $src->{node_id} );
+    confess "$res" unless "$res" eq 'OK';
+    $res =
+      $src_redis->cluster( 'setslot', $slot, 'migrating', $dst->{node_id} );
+    confess "$res" unless "$res" eq 'OK';
+    warn "set slots on dst/src nodes to importing/migrating state" if $DEBUG;
+
+    # migrate all keys from src to dst
+    my $migrated = 0;
+    while (1) {
+        my $keys = $src_redis->cluster( 'getkeysinslot', $slot, 1000 );
+        confess "Migration failed: $keys" if ref $keys =~ /^RedisDB::Error/;
+        last unless @$keys;
+        for (@$keys) {
+            $res = $src_redis->migrate( $dst->{host}, $dst->{port}, $_, 0, 60 );
+            confess "Migration failed: $res" unless $res eq 'OK';
+            $migrated++;
+        }
+    }
+    warn "migrated $migrated keys from the slot" if $DEBUG;
+
+    $res = $dst_redis->cluster( 'setslot', $slot, 'node', $dst->{node_id} );
+    confess "$res" unless "$res" eq 'OK';
+    $res = $src_redis->cluster( 'setslot', $slot, 'node', $src->{node_id} );
+    confess "$res" unless "$res" eq 'OK';
+    warn "migration is finished" if $DEBUG;
+
+    return 1;
+}
+
+sub _get_node_info {
+    my ( $self, $node ) = @_;
+    $node = _ensure_hash_address($node);
+    for ( @{ $self->{_nodes} } ) {
+        return $_ if $node->{host} eq $_->{host} and $node->{port} eq $_->{port};
+    }
+    return;
+}
+
 sub _ensure_hash_address {
     my $addr = shift;
     unless ( ref $addr eq 'HASH' ) {
