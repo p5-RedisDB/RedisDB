@@ -238,7 +238,6 @@ Specification|http://redis.io/topics/cluster-spec>.
 
 sub migrate_slot {
     my ( $self, $slot, $dst ) = @_;
-    warn "foo" if $DEBUG;
 
     # make sure we have up to date information about slots mapping
     $self->_initialize_slots;
@@ -277,7 +276,7 @@ sub migrate_slot {
         last unless @$keys;
         for (@$keys) {
             $res = $src_redis->migrate( $dst->{host}, $dst->{port}, $_, 0, 60 );
-            confess "Migration failed: $res" unless $res eq 'OK';
+            confess "Migration failed: $res" unless "$res" eq 'OK';
             $migrated++;
         }
     }
@@ -288,6 +287,72 @@ sub migrate_slot {
     $res = $src_redis->cluster( 'setslot', $slot, 'node', $src->{node_id} );
     confess "$res" unless "$res" eq 'OK';
     warn "migration is finished" if $DEBUG;
+
+    return 1;
+}
+
+sub remove_node {
+    my ( $self, $node ) = @_;
+
+    $self->_initialize_slots;
+    $node = $self->_get_node_info($node);
+    my $node_key = "$node->{host}:$node->{port}";
+    if ( $node->{flags}{master} ) {
+        my @masters;
+        my @slaves;
+        for ( @{ $self->{_nodes} } ) {
+            if ( $_->{flags}{slave} ) {
+                push @slaves, $_ if $_->{master_id} eq $node->{node_id};
+                next;
+            }
+            next if $_->{node_id} eq $node->{node_id};
+            push @masters, $_;
+        }
+        my @slots;
+        for my $i ( 0 .. 16383 ) {
+            push @slots, $i if $self->{_slots}[$i] eq $node_key;
+        }
+        if ($DEBUG) {
+            warn "Node to remove is a master with "
+              . scalar(@slaves)
+              . "\nIt holds "
+              . scalar(@slots)
+              . " slots."
+              . "\nThere are "
+              . scalar(@masters)
+              . " other masters in cluster\n";
+        }
+        my $slots_per_master  = int( @slots / @masters + 1 );
+        my $slaves_per_master = int( @slaves / @masters + 1 );
+        for my $master (@masters) {
+            for ( 1 .. $slots_per_master ) {
+                my $slot = shift @slots;
+                last unless defined $slot;
+                $self->migrate_slot( $slot, $master );
+            }
+            for ( 1 .. $slaves_per_master ) {
+                my $slave = shift @slaves or last;
+                my $redis = $self->_connect_to_node($slave) or next;
+                my $res = $redis->cluster( 'replicate', $master->{node_id} );
+                warn "Failed to reconfigure slave $slave->{host}:$slave->{port}"
+                  . " to replicate from $master->{node_id}: $res"
+                  if ref $res =~ /^RedisDB::Error/;
+            }
+        }
+    }
+
+    my $redis = delete $self->{_connections}{$node_key};
+    $redis->shutdown;
+    my @nodes;
+    for ( @{ $self->{_nodes} } ) {
+        next if $_->{node_id} eq $node->{node_id};
+        push @nodes, $_;
+        my $redis = $self->_connect_to_node($_) or next;
+        my $res = $redis->cluster( 'forget', $node->{node_id} );
+        warn "$_->{host}:$_->{port} could not forget the node: $res"
+          if $res =~ /^RedisDB::Error/;
+    }
+    $self->{_nodes} = \@nodes;
 
     return 1;
 }
