@@ -42,9 +42,9 @@ sub new {
     my ( $class, %params ) = @_;
 
     my $self = {
-        _slot       => [],
-        _connection => {},
-        _nodes      => $params{startup_nodes},
+        _slots       => [],
+        _connections => {},
+        _nodes       => $params{startup_nodes},
     };
 
     bless $self, $class;
@@ -80,7 +80,7 @@ sub _initialize_slots {
             my ( $ip, $port ) = @{ $_->[2] };
             my $node_key = "$ip:$port";
             for ( $_->[0] .. $_->[1] ) {
-                $self->{_slot}[$_] = $node_key;
+                $self->{_slots}[$_] = $node_key;
             }
         }
         last;
@@ -92,8 +92,8 @@ sub _initialize_slots {
     $self->{_nodes} = $new_nodes;
 
     # close connections to nodes that are not in cluster
-    for ( keys %{ $self->{_connection} } ) {
-        delete $self->{_connection}{$_} unless $new_nodes{$_};
+    for ( keys %{ $self->{_connections} } ) {
+        delete $self->{_connections}{$_} unless $new_nodes{$_};
     }
 
     return;
@@ -115,13 +115,13 @@ sub execute {
         $self->_initialize_slots;
     }
     my $slot    = key_slot($key);
-    my $node_key = $self->{_slot}[$slot];
+    my $node_key = $self->{_slots}[$slot];
     my $asking;
     my $last_connection;
 
     my $attempts = 10;
     while ( $attempts-- ) {
-        my $redis = $self->{_connection}{$node_key};
+        my $redis = $self->{_connections}{$node_key};
         unless ($redis) {
             my ( $host, $port ) = split /:/, $node_key;
             $redis = _connect_to_node(
@@ -150,7 +150,7 @@ sub execute {
                   "Incorrectly computed slot for key '$key', ours $slot, theirs $res->{slot}";
             }
             warn "slot $slot moved to $res->{host}:$res->{port}" if $DEBUG;
-            $node_key = $self->{_slot}[$slot] = "$res->{host}:$res->{port}";
+            $node_key = $self->{_slots}[$slot] = "$res->{host}:$res->{port}";
             $self->{_refresh_slots} = 1;
             next;
         }
@@ -162,7 +162,7 @@ sub execute {
         }
         elsif ( ref $res eq 'RedisDB::Error::DISCONNECTED' ) {
             warn "$res" if $DEBUG;
-            delete $self->{_connection}{$node_key};
+            delete $self->{_connections}{$node_key};
             usleep 100_000;
             if ( $last_connection and $last_connection eq $node_key ) {
 
@@ -171,7 +171,7 @@ sub execute {
                 $self->_initialize_slots;
 
                 # if it's still the same host, then just return the error
-                return $res if $self->{_slot}[$slot] eq $node_key;
+                return $res if $self->{_slots}[$slot] eq $node_key;
                 warn "got a new host for the slot" if $DEBUG;
             }
             else {
@@ -242,7 +242,7 @@ sub migrate_slot {
 
     # make sure we have up to date information about slots mapping
     $self->_initialize_slots;
-    my $src_key = $self->{_slot}[$slot];
+    my $src_key = $self->{_slots}[$slot];
     confess "mapping for slot $slot is not defined" unless $src_key;
 
     # destination node should be part of the cluster
@@ -317,15 +317,15 @@ sub _ensure_hash_address {
 sub _connect_to_node {
     my ( $self, $node ) = @_;
     my $host_key = "$node->{host}:$node->{port}";
-    unless ( $self->{_connection}{$host_key} ) {
+    unless ( $self->{_connections}{$host_key} ) {
         my $redis = RedisDB->new(
             host        => $node->{host},
             port        => $node->{port},
             raise_error => 0,
         );
-        $self->{_connection}{$host_key} = $redis->{_socket} ? $redis : undef;
+        $self->{_connections}{$host_key} = $redis->{_socket} ? $redis : undef;
     }
-    return $self->{_connection}{$host_key};
+    return $self->{_connections}{$host_key};
 }
 
 =head2 $self->random_connection
@@ -336,7 +336,7 @@ return RedisDB object that is connected to random node of the cluster.
 
 sub random_connection {
     my $self = shift;
-    my ($connection) = values %{ $self->{_connection} };
+    my ($connection) = values %{ $self->{_connections} };
     unless ($connection) {
         for ( @{ $self->{_nodes} } ) {
             $connection = _connect_to_node( $self, $_ );
