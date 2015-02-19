@@ -46,6 +46,7 @@ sub new {
         _connections => {},
         _nodes       => $params{startup_nodes},
     };
+    $self->{no_slots_initialization} = 1 if $params{no_slots_initialization};
 
     bless $self, $class;
     $self->_initialize_slots;
@@ -56,6 +57,7 @@ sub new {
 sub _initialize_slots {
     my $self = shift;
 
+    return if $self->{no_slots_initialization};
     unless ( $self->{_nodes} and @{ $self->{_nodes} } ) {
         confess "list of cluster nodes is empty";
     }
@@ -86,7 +88,7 @@ sub _initialize_slots {
         last;
     }
 
-    unless ($new_nodes and @$new_nodes) {
+    unless ( $new_nodes and @$new_nodes ) {
         confess "couldn't get list of cluster nodes";
     }
     $self->{_nodes} = $new_nodes;
@@ -114,8 +116,9 @@ sub execute {
     if ( $self->{_refresh_slots} ) {
         $self->_initialize_slots;
     }
-    my $slot    = key_slot($key);
-    my $node_key = $self->{_slots}[$slot];
+    my $slot     = key_slot($key);
+    my $node_key = $self->{_slots}[$slot]
+      // "$self->{_nodes}[0]{host}:$self->{_nodes}[0]{port}";
     my $asking;
     my $last_connection;
 
@@ -157,7 +160,7 @@ sub execute {
         elsif ( ref $res eq 'RedisDB::Error::ASK' ) {
             warn "asking $res->{host}:$res->{port} about slot $slot" if $DEBUG;
             $node_key = "$res->{host}:$res->{port}";
-            $asking  = 1;
+            $asking   = 1;
             next;
         }
         elsif ( ref $res eq 'RedisDB::Error::DISCONNECTED' ) {
