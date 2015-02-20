@@ -11,6 +11,122 @@ use Time::HiRes qw(usleep);
 
 our $DEBUG = 0;
 
+# use util/generate_key_positions.pl to generate this
+# command / first key position
+my %key_pos = (
+    append           => 1,
+    bitcount         => 1,
+    bitop            => 2,
+    bitpos           => 1,
+    blpop            => 1,
+    brpop            => 1,
+    brpoplpush       => 1,
+    decr             => 1,
+    decrby           => 1,
+    del              => 1,
+    dump             => 1,
+    exists           => 1,
+    expire           => 1,
+    expireat         => 1,
+    get              => 1,
+    getbit           => 1,
+    getrange         => 1,
+    getset           => 1,
+    hdel             => 1,
+    hexists          => 1,
+    hget             => 1,
+    hgetall          => 1,
+    hincrby          => 1,
+    hincrbyfloat     => 1,
+    hkeys            => 1,
+    hlen             => 1,
+    hmget            => 1,
+    hmset            => 1,
+    hscan            => 1,
+    hset             => 1,
+    hsetnx           => 1,
+    hvals            => 1,
+    incr             => 1,
+    incrby           => 1,
+    incrbyfloat      => 1,
+    lindex           => 1,
+    linsert          => 1,
+    llen             => 1,
+    lpop             => 1,
+    lpush            => 1,
+    lpushx           => 1,
+    lrange           => 1,
+    lrem             => 1,
+    lset             => 1,
+    ltrim            => 1,
+    mget             => 1,
+    move             => 1,
+    mset             => 1,
+    msetnx           => 1,
+    object           => 2,
+    persist          => 1,
+    pexpire          => 1,
+    pexpireat        => 1,
+    pfadd            => 1,
+    pfcount          => 1,
+    pfmerge          => 1,
+    psetex           => 1,
+    pttl             => 1,
+    rename           => 1,
+    renamenx         => 1,
+    restore          => 1,
+    'restore-asking' => 1,
+    rpop             => 1,
+    rpoplpush        => 1,
+    rpush            => 1,
+    rpushx           => 1,
+    sadd             => 1,
+    scard            => 1,
+    sdiff            => 1,
+    sdiffstore       => 1,
+    set              => 1,
+    setbit           => 1,
+    setex            => 1,
+    setnx            => 1,
+    setrange         => 1,
+    sinter           => 1,
+    sinterstore      => 1,
+    sismember        => 1,
+    smembers         => 1,
+    smove            => 1,
+    sort             => 1,
+    spop             => 1,
+    srandmember      => 1,
+    srem             => 1,
+    sscan            => 1,
+    strlen           => 1,
+    substr           => 1,
+    sunion           => 1,
+    sunionstore      => 1,
+    ttl              => 1,
+    type             => 1,
+    watch            => 1,
+    zadd             => 1,
+    zcard            => 1,
+    zcount           => 1,
+    zincrby          => 1,
+    zlexcount        => 1,
+    zrange           => 1,
+    zrangebylex      => 1,
+    zrangebyscore    => 1,
+    zrank            => 1,
+    zrem             => 1,
+    zremrangebylex   => 1,
+    zremrangebyrank  => 1,
+    zremrangebyscore => 1,
+    zrevrange        => 1,
+    zrevrangebylex   => 1,
+    zrevrangebyscore => 1,
+    zrevrank         => 1,
+    zscan            => 1,
+    zscore           => 1,
+);
+
 =head1 NAME
 
 RedisDB::Cluster - client for redis cluster
@@ -109,9 +225,13 @@ send command to from the I<$key>.
 =cut
 
 sub execute {
-    my $self    = shift;
-    my $command = uc shift;
-    my $key     = shift;
+    my $self = shift;
+    my @args = @_;
+
+    my $command = lc $args[0];
+    confess "Command $command does not have key" unless $key_pos{$command};
+    my $key = $args[ $key_pos{$command} ];
+    confess "Key is not specified in: ", join " ", @args unless length $key;
 
     if ( $self->{_refresh_slots} ) {
         $self->_initialize_slots;
@@ -140,7 +260,7 @@ sub execute {
         if ($redis) {
             $redis->asking(RedisDB::IGNORE_REPLY) if $asking;
             $asking = 0;
-            $res = $redis->execute( $command, $key, @_ );
+            $res    = $redis->execute(@args);
         }
         else {
             $res = RedisDB::Error::DISCONNECTED->new(
