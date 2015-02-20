@@ -1,5 +1,13 @@
 Revision history for RedisDB
 
+2.40 Sat Feb 21 2015 Pavel Shaydo <zwon@cpan.org>
+    - add migrate_slot method to Cluster
+    - add remove_node method to Cluster
+    - add command method to RedisDB
+    - add support for the commands which have key not as the first
+      argument
+    - add wrappers for redis commands
+
 2.39 Sat Feb 14 2015 Pavel Shaydo <zwon@cpan.org>
     - improve retrieval of list of cluster nodes on connect
     - add random_connection method to cluster

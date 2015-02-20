@@ -21,6 +21,7 @@ t/subscribe.t
 t/transactions.t
 t/utf8.t
 util/benchmark.pl
+util/generate_key_positions.pl
 util/pipeline.pl
 xt/manifest.t
 xt/pod.t
