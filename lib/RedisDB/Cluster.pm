@@ -217,10 +217,24 @@ sub _initialize_slots {
     return;
 }
 
-=head2 $self->execute($command, $key, @args)
+=head2 $self->execute($command, @args)
 
 sends command to redis and returns the reply. It determines the cluster node to
-send command to from the I<$key>.
+send command to from the first key in I<@args>, sending commands that does not
+include key as an argument is not supported. If I<@args> contains several keys,
+all of them should belong to the same slot, otherwise redis-server will return
+an error if some of the keys are stored on a different node.
+
+Module also defines wrapper methods with names matching to redis commands, so
+you can use
+
+    $cluster->set( "foo", "bar" );
+    $cluster->inc("baz");
+
+instead of
+
+    $cluster->execute( "set", "foo", "bar" );
+    $cluster->execute( "inc", "baz" );
 
 =cut
 
