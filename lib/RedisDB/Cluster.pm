@@ -190,6 +190,32 @@ sub execute {
         "Couldn't send command after 10 attempts");
 }
 
+=head2 $self->random_connection
+
+return RedisDB object that is connected to some node of the cluster. Note, that
+in most cases this method will return the same connection every time.
+
+=cut
+
+sub random_connection {
+    my $self = shift;
+    my ($connection) = values %{ $self->{_connections} };
+    unless ($connection) {
+        for ( @{ $self->{_nodes} } ) {
+            $connection = _connect_to_node( $self, $_ );
+            last if $connection;
+        }
+    }
+    return $connection;
+}
+
+=head1 CLUSTER MANAGEMENT METHODS
+
+The following methods can be used for cluster management -- to add or remove a
+node, or migrate slot from one node to another.
+
+=cut
+
 =head2 $self->add_new_node($address[, $master_id])
 
 attach node with the specified I<$address> to the cluster. If I<$master_id> is
@@ -404,24 +430,9 @@ sub _connect_to_node {
     return $self->{_connections}{$host_key};
 }
 
-=head2 $self->random_connection
-
-return RedisDB object that is connected to some node of the cluster. Note, that
-in most cases this method will return the same connection every time.
+=head1 SERVICE FUNCTIONS
 
 =cut
-
-sub random_connection {
-    my $self = shift;
-    my ($connection) = values %{ $self->{_connections} };
-    unless ($connection) {
-        for ( @{ $self->{_nodes} } ) {
-            $connection = _connect_to_node( $self, $_ );
-            last if $connection;
-        }
-    }
-    return $connection;
-}
 
 my @crc16tab = (
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
@@ -458,7 +469,7 @@ my @crc16tab = (
     0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0,
 );
 
-=head2 $self->crc16($buf)
+=head2 crc16($buf)
 
 compute crc16 for the specified buffer as defined in redis cluster
 specification
@@ -479,7 +490,7 @@ sub crc16 {
     return $crc;
 }
 
-=head2 $self->key_slot($key)
+=head2 key_slot($key)
 
 return slot number for the given I<$key>
 
