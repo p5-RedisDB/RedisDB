@@ -310,6 +310,11 @@ sub execute {
         "Couldn't send command after 10 attempts");
 }
 
+for my $command (keys %key_pos) {
+    no strict 'refs';
+    *{ __PACKAGE__ . "::$command" } = sub { execute(shift, $command, @_) };
+}
+
 =head2 $self->random_connection
 
 return RedisDB object that is connected to some node of the cluster. Note, that
