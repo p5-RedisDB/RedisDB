@@ -294,6 +294,14 @@ sub migrate_slot {
     return 1;
 }
 
+=head2 $self->remove_node($node)
+
+removes node from the cluster. If the node is a slave, it simply shuts the node
+down and sends CLUSTER FORGET command to all other cluster nodes. If the node
+is a master node, the method first migrates all slots from it to other nodes.
+
+=cut
+
 sub remove_node {
     my ( $self, $node ) = @_;
 
@@ -398,7 +406,8 @@ sub _connect_to_node {
 
 =head2 $self->random_connection
 
-return RedisDB object that is connected to random node of the cluster.
+return RedisDB object that is connected to some node of the cluster. Note, that
+in most cases this method will return the same connection every time.
 
 =cut
 
