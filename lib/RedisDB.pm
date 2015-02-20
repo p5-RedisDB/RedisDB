@@ -796,7 +796,7 @@ sub version {
 my @commands = qw(
   append	asking	auth	bgrewriteaof	bgsave	bitcount	bitop	bitpos
   blpop	brpop   brpoplpush	client	client_kill	client_getname	client_setname
-  cluster
+  cluster	command
   config	config_get	config_set	config_resetstat	config_rewrite
   dbsize	debug_error	debug_object	debug_segfault
   decr	decrby	del	dump	echo	eval    evalsha exists	expire	expireat	flushall
@@ -843,7 +843,7 @@ I<execute>, waits for the reply from the server, and returns it. E.g.:
 
 The following wrapper methods are defined: append, asking, auth, bgrewriteaof, bgsave,
 bitcount, bitop, bitpos, blpop, brpop, brpoplpush, client, client_kill,
-client_getname, client_setname, cluster, config, config_get, config_set,
+client_getname, client_setname, cluster, command, config, config_get, config_set,
 config_resetstat, config_rewrite, dbsize, debug_error, debug_object, debug_segfault, decr,
 decrby, del, dump, echo, eval, evalsha, exists, expire, expireat, flushall,
 flushdb, get, getbit, getrange, getset, hdel, hexists, hget, hgetall, hincrby,
