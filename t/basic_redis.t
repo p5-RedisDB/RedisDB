@@ -106,6 +106,8 @@ $redis->set( "DB_number", 1 );
 is $redis->get("DB_number"), 1, "DB number 1";
 is $redis->selected_database, 1, "selected_database 1";
 $redis->quit;
+# wait for FIN from server
+$redis->{_socket}->recv( my $buf, 100, 0 );
 is $redis->get("DB_number"), 1,    "after reconnecting DB number is still 1";
 is $redis->select(0),        'OK', "selected DB 0";
 is $redis->selected_database, 0, "selected_database 0";
