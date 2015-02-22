@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+2.21 Sun Feb 22 2015 Pavel Shaydo <zwon@cpan.org>
+    - fix module on perl 5.8.x
+    - fix race condition in basic-redis test
+
 2.40 Sat Feb 21 2015 Pavel Shaydo <zwon@cpan.org>
     - add migrate_slot method to Cluster
     - add remove_node method to Cluster
