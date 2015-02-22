@@ -252,7 +252,7 @@ sub execute {
     }
     my $slot     = key_slot($key);
     my $node_key = $self->{_slots}[$slot]
-      // "$self->{_nodes}[0]{host}:$self->{_nodes}[0]{port}";
+      || "$self->{_nodes}[0]{host}:$self->{_nodes}[0]{port}";
     my $asking;
     my $last_connection;
 
