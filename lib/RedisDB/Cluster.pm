@@ -485,8 +485,10 @@ sub remove_node {
             push @masters, $_;
         }
         my @slots;
+        my %slots_at;
         for my $i ( 0 .. 16383 ) {
             push @slots, $i if $self->{_slots}[$i] eq $node_key;
+            $slots_at{ $self->{_slots}[$i] }++;
         }
         if ($DEBUG) {
             warn "Node to remove is a master with "
@@ -498,10 +500,11 @@ sub remove_node {
               . scalar(@masters)
               . " other masters in cluster\n";
         }
-        my $slots_per_master  = int( @slots / @masters + 1 );
+        my $slots_per_master  = int( 16384 / @masters + 1 );
         my $slaves_per_master = int( @slaves / @masters + 1 );
         for my $master (@masters) {
-            for ( 1 .. $slots_per_master ) {
+            my $key = "$master->{host}:$master->{port}";
+            for ( $slots_at{$key} + 1 .. $slots_per_master ) {
                 my $slot = shift @slots;
                 last unless defined $slot;
                 $self->migrate_slot( $slot, $master );
