@@ -1002,6 +1002,68 @@ sub cluster_nodes {
     return \@nodes;
 }
 
+sub _parse_role {
+    my $role = shift;
+
+    my $parsed = {
+        role => $role->[0],
+    };
+    if ( $parsed->{role} eq 'master' ) {
+        $parsed->{replication_offset} = $role->[1];
+        for ( @{ $role->[2] } ) {
+            push @{ $parsed->{slaves} },
+              {
+                host               => $_->[0],
+                port               => $_->[1],
+                replication_offset => $_->[2],
+              };
+        }
+    }
+    elsif ( $parsed->{role} eq 'slave' ) {
+        $parsed->{master} = {
+            host => $role->[1],
+            port => $role->[2],
+        };
+        $parsed->{status}             = $role->[3];
+        $parsed->{replication_offset} = $role->[4];
+    }
+    elsif ( $parsed->{role} eq 'sentinel' ) {
+        for ( @{ $role->[1] } ) {
+            push @{ $parsed->{services} }, $_;
+        }
+    } else {
+        confess "Unknown role $parsed->{role}";
+    }
+
+    return $parsed;
+}
+
+=head2 $self->role
+
+return reference to a hash describing the role of the server. Hash contains
+"role" element that can be either "master", "slave", or "sentinel". For master
+hash will also contain "replication_offset" and "slaves" elements, for slave it
+will contain "master", "status", and "replication_offset" elements, and for
+sentinel it will contain "services".
+
+=cut
+
+sub role {
+    my $self = shift;
+    my $orig = $_[-1];
+    if ( $orig && ref $orig eq 'CODE' ) {
+        my $cb = sub {
+            my ( $redis, $role ) = @_;
+            $orig->( $redis, _parse_role($role) );
+        };
+        return $self->send_command( 'ROLE', $cb );
+    }
+    else {
+        my $role = $self->execute('ROLE');
+        return _parse_role($role);
+    }
+}
+
 =head2 $self->shutdown
 
 Shuts the redis server down. Returns undef, as the server doesn't send the
