@@ -953,6 +953,14 @@ sub _parse_client_list {
     return $res;
 }
 
+=head2 $self->cluster_info([\&callback])
+
+return information and statistics about the cluster. Redis-server returns
+information in form of I<field:value>, the I<cluster_info> method parses result
+and returns it as a hash reference.
+
+=cut
+
 sub cluster_info {
     my $self = shift;
     my $orig = $_[-1];
@@ -968,6 +976,14 @@ sub cluster_info {
         return _parse_info($info);
     }
 }
+
+=head2 $self->cluster_nodes
+
+return list of cluster nodes. Each node represented as a hash with the
+following keys: node_id, address, host, port, flags, master_id, last_ping_sent,
+last_pong_received, link_state, slots.
+
+=cut
 
 sub cluster_nodes {
     my $self = shift;
@@ -1038,7 +1054,7 @@ sub _parse_role {
     return $parsed;
 }
 
-=head2 $self->role
+=head2 $self->role([\&callback])
 
 return reference to a hash describing the role of the server. Hash contains
 "role" element that can be either "master", "slave", or "sentinel". For master
