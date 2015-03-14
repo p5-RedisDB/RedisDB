@@ -43,6 +43,26 @@ redis.
 
 =cut
 
+=head2 $class->new(%params)
+
+retrieve information about master from sentinel and return RedisDB object
+connected to master. Additionaly sets on_conect_error handler to retrieve
+information about new master in case of reconnect. Requires two parameters:
+
+=over 4
+
+=item B<service>
+
+service name to which you want to connect
+
+=item B<sentinels>
+
+list of sentinels. Each element is a hash with "host" and "port" elements.
+
+=back
+
+=cut
+
 sub new {
     my ( $class, %args ) = @_;
 
