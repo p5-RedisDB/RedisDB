@@ -17,7 +17,7 @@ RedisDB::Sentinel - interface to redis servers managed by sentinel
 
     use RedisDB::Sentinel;
 
-    my $redis = RedisDB::Sentinel->new(
+    my $redis = RedisDB::Sentinel->connect_to_master(
         service => $service_name,
         sentinels => [
             {
@@ -43,7 +43,7 @@ redis.
 
 =cut
 
-=head2 $class->new(%params)
+=head2 $class->connect_to_master(%params)
 
 retrieve information about master from sentinel and return RedisDB object
 connected to master. Additionaly sets on_conect_error handler to retrieve
@@ -67,7 +67,7 @@ RedisDB::Sentinel
 
 =cut
 
-sub new {
+sub connect_to_master {
     my ( $class, %args ) = @_;
 
     my $service = delete $args{service}
