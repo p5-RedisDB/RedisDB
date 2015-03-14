@@ -61,6 +61,10 @@ list of sentinels. Each element is a hash with "host" and "port" elements.
 
 =back
 
+Other parameters are passed as is to constructor of RedisDB object. Note, that
+host, port, and on_connect_error parameters will be overwritten by
+RedisDB::Sentinel
+
 =cut
 
 sub new {
