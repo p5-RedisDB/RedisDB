@@ -5,7 +5,9 @@ use warnings;
 our $VERSION = "2.41";
 $VERSION = eval $VERSION;
 
+use Carp;
 use RedisDB;
+use Try::Tiny;
 
 =head1 NAME
 
@@ -40,6 +42,42 @@ redis.
 =head1 METHODS
 
 =cut
+
+sub new {
+    my ( $class, %args ) = @_;
+
+    my $service = delete $args{service}
+      or croak '"service" parameter is required';
+    my @sentinels = @{ delete $args{sentinels} }
+      or croak '"sentinels" parameter is required';
+
+    my ( $host, $port ) = _get_master_from_sentinel( $service, \@sentinels );
+    return RedisDB->new(
+        %args,
+        host             => $host,
+        port             => $port,
+        on_connect_error => sub {
+            my ( $redis, $error ) = @_;
+            my ( $host, $port ) = _get_master_from_sentinel( $service, \@sentinels );
+            $redis->{host} = $host;
+            $redis->{port} = $port;
+            return;
+        },
+    );
+}
+
+sub _get_master_from_sentinel {
+    my ( $service, $sentinels ) = @_;
+
+    for ( 1 .. @$sentinels ) {
+        my $master = try {
+            my $sentinel = RedisDB->new( %{ $sentinels->[0] } );
+            $sentinel->execute( 'sentinel', 'get-master-addr-by-name', $service );
+        };
+        return @$master if $master;
+        push @$sentinels, shift @$sentinels;
+    }
+}
 
 1;
 
