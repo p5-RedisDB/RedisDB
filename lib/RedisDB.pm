@@ -1689,6 +1689,16 @@ sub discard {
     return $res;
 }
 
+=head1 CLUSTER SUPPORT
+
+For accessing redis cluster use L<RedisDB::Cluster> package
+
+=head1 SENTINEL SUPPORT
+
+For accessing redis servers managed by sentinel use L<RedisDB::Sentinel> package
+
+=cut
+
 1;
 
 __END__
