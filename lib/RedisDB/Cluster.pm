@@ -141,8 +141,6 @@ RedisDB::Cluster - client for redis cluster
 
 This module allows you to access redis cluster.
 
-B<WARNING:> this module is at early stage of development
-
 =head1 METHODS
 
 =cut
@@ -225,8 +223,8 @@ include key as an argument is not supported. If I<@args> contains several keys,
 all of them should belong to the same slot, otherwise redis-server will return
 an error if some of the keys are stored on a different node.
 
-Module also defines wrapper methods with names matching to redis commands, so
-you can use
+Module also defines wrapper methods with names matching corresponding redis
+commands, so you can use
 
     $cluster->set( "foo", "bar" );
     $cluster->inc("baz");
