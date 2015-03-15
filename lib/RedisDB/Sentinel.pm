@@ -2,7 +2,7 @@ package RedisDB::Sentinel;
 
 use strict;
 use warnings;
-our $VERSION = "2.41";
+our $VERSION = "2.42";
 $VERSION = eval $VERSION;
 
 use Carp;
@@ -46,7 +46,7 @@ redis.
 =head2 $class->connect_to_master(%params)
 
 retrieve information about master from sentinel and return RedisDB object
-connected to master. Additionaly sets on_conect_error handler to retrieve
+connected to master. Additionally sets on_conect_error handler to retrieve
 information about new master in case of reconnect. Requires two parameters:
 
 =over 4

@@ -4,6 +4,7 @@ eg/server_failover.pl
 lib/RedisDB.pm
 lib/RedisDB/Cluster.pm
 lib/RedisDB/Error.pm
+lib/RedisDB/Sentinel.pm
 Makefile.PL
 MANIFEST
 README
