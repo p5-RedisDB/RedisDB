@@ -811,7 +811,7 @@ my @commands = qw(
   script_load   sdiff	sdiffstore	select	set
   setbit	setex	setnx	setrange	sinter	sinterstore
   sismember	slaveof	slowlog smembers	smove	sort	spop	srandmember
-  srem	sscan	strlen	sunion	sunionstore	sync	time    ttl	type
+  srem	sscan	strlen	sunion	sunionstore	time    ttl	type
   zadd	zcard	zcount	zincrby	zinterstore	zlexcount	zrange	zrangebylex
   zrangebyscore	zrank	zrem	zremrangebylex
   zremrangebyrank   zremrangebyscore	zrevrange	zrevrangebyscore	zrevrank
@@ -856,7 +856,7 @@ pubsub_numpat, quit, randomkey, rename, renamenx, restore, rpop, rpoplpush,
 rpush, rpushx, sadd, save, scan, scard, script, script_exists, script_flush,
 script_kill, script_load, sdiff, sdiffstore, select, set, setbit, setex, setnx,
 setrange, sinter, sinterstore, sismember, slaveof, slowlog, smembers, smove,
-sort, spop, srandmember, srem, sscan strlen, sunion, sunionstore, sync, time,
+sort, spop, srandmember, srem, sscan strlen, sunion, sunionstore, time,
 ttl, type, unwatch, watch, zadd, zcard, zcount, zincrby, zinterstore,
 zlexcount, zrange, zrangebylex, zrangebyscore, zrank, zrem, zremrangebylex,
 zremrangebyrank, zremrangebyscore, zrevrange, zrevrangebyscore, zrevrank,
