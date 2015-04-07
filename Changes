@@ -1,5 +1,10 @@
 Revision history for RedisDB
 
+2.43 Tue Apr  7 2015 Pavel Shaydo <zwon@trinitum.org>
+    - remove wrapper for SYNC command, as it does not work
+    - fix test failing with redis-server 3.0.0.
+      See #23, reported by Victor Efimov
+
 2.42 Sun Mar 15 2015 Pavel Shaydo <zwon@cpan.org>
     - when removing cluster node try to distribute slots between nodes
     more uniformly
