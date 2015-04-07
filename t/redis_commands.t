@@ -290,8 +290,8 @@ sub cmd_server {
     my $info = $redis->info;
     is ref($info), "HASH", "Got hashref from info";
     ok exists $info->{redis_version}, "There's redis_version in the hash";
-    $info->{redis_version} =~ /^([0-9]+)[.]([0-9]+)(?:[.]([0-9]+))?/;
-    ok( ( $1 and $2 ), "Looks like a version" );
+    ok $info->{redis_version} =~ /^([0-9]+)[.]([0-9]+)(?:[.]([0-9]+))?/,
+      "it looks like version number";
     my $version = 0 + $1 + 0.001 * $2 + ( $3 ? 0.000001 * $3 : 0 );
     is '' . $redis->version, "$version", "Correct server version: $version";
     my $info2;
