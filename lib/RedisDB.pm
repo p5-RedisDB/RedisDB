@@ -881,11 +881,34 @@ for my $command (@commands) {
     };
 }
 
+sub _is_redisdb_error {
+    ref(shift) =~ /^RedisDB::Error/;
+}
+
 =pod
 
 The following commands implement some additional postprocessing of the results:
 
 =cut
+
+sub _execute_with_postprocess {
+    my $self  = shift;
+    my $ppsub = pop;
+    if ( $_[-1] && ref $_[-1] eq 'CODE' ) {
+        my $orig = pop;
+        my $cb   = sub {
+            my ( $redis, $reply ) = @_;
+            $reply = $ppsub->($reply) unless _is_redisdb_error($reply);
+            $orig->( $redis, $reply );
+        };
+        return $self->send_command( @_, $cb );
+    }
+    else {
+        my $reply = $self->execute(@_);
+        $reply = $ppsub->($reply) unless _is_redisdb_error($reply);
+        return $reply;
+    }
+}
 
 =head2 $self->info([\&callback])
 
@@ -897,18 +920,7 @@ returns it as a hash reference.
 
 sub info {
     my $self = shift;
-    my $orig = $_[-1];
-    if ( $orig && ref $orig eq 'CODE' ) {
-        my $cb = sub {
-            my ( $redis, $info ) = @_;
-            $orig->( $redis, _parse_info($info) );
-        };
-        return $self->send_command( 'INFO', $cb );
-    }
-    else {
-        my $info = $self->execute('INFO');
-        return _parse_info($info);
-    }
+    return $self->_execute_with_postprocess('INFO', @_, \&_parse_info);
 }
 
 sub _parse_info {
@@ -927,18 +939,7 @@ output and returns result as reference to array of hashes.
 
 sub client_list {
     my $self = shift;
-    my $orig = $_[-1];
-    if ( $orig && ref $orig eq 'CODE' ) {
-        my $cb = sub {
-            my ( $redis, $list ) = @_;
-            $orig->( $redis, _parse_client_list($list) );
-        };
-        return $self->send_command( qw(CLIENT LIST), $cb );
-    }
-    else {
-        my $list = $self->execute(qw(CLIENT LIST));
-        return _parse_client_list($list);
-    }
+    return $self->_execute_with_postprocess('CLIENT', 'LIST', @_, \&_parse_client_list);
 }
 
 sub _parse_client_list {
@@ -963,21 +964,10 @@ and returns it as a hash reference.
 
 sub cluster_info {
     my $self = shift;
-    my $orig = $_[-1];
-    if ( $orig && ref $orig eq 'CODE' ) {
-        my $cb = sub {
-            my ( $redis, $info ) = @_;
-            $orig->( $redis, _parse_info($info) );
-        };
-        return $self->send_command( 'CLUSTER', 'INFO', $cb );
-    }
-    else {
-        my $info = $self->execute('CLUSTER', 'INFO');
-        return _parse_info($info);
-    }
+    return $self->_execute_with_postprocess('CLUSTER', 'INFO', @_, \&_parse_info);
 }
 
-=head2 $self->cluster_nodes
+=head2 $self->cluster_nodes([\&callback])
 
 return list of cluster nodes. Each node represented as a hash with the
 following keys: node_id, address, host, port, flags, master_id, last_ping_sent,
@@ -987,9 +977,12 @@ last_pong_received, link_state, slots.
 
 sub cluster_nodes {
     my $self = shift;
+    return $self->_execute_with_postprocess( 'CLUSTER', 'NODES', @_,
+        sub { $self->_parse_cluster_nodes(@_) } );
+}
 
-    my $list = $self->execute(qw(CLUSTER NODES));
-    return $list if ref $list =~ /^RedisDB::Error/;
+sub _parse_cluster_nodes {
+    my ($self, $list) = @_;
 
     my @nodes;
     for ( split /^/, $list ) {
@@ -1066,18 +1059,7 @@ sentinel it will contain "services".
 
 sub role {
     my $self = shift;
-    my $orig = $_[-1];
-    if ( $orig && ref $orig eq 'CODE' ) {
-        my $cb = sub {
-            my ( $redis, $role ) = @_;
-            $orig->( $redis, _parse_role($role) );
-        };
-        return $self->send_command( 'ROLE', $cb );
-    }
-    else {
-        my $role = $self->execute('ROLE');
-        return _parse_role($role);
-    }
+    return $self->_execute_with_postprocess( 'ROLE', @_, \&_parse_role );
 }
 
 =head2 $self->shutdown
