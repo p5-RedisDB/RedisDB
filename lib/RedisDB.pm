@@ -152,6 +152,10 @@ sub new {
     return $self;
 }
 
+sub _is_redisdb_error {
+    ref(shift) =~ /^RedisDB::Error/;
+}
+
 sub _init_parser {
     my $self = shift;
     $self->{_parser} = RedisDB::Parser->new(
@@ -356,7 +360,7 @@ sub _connect {
             $self->{password},
             sub {
                 my ( $self, $res ) = @_;
-                croak "$res" if ref $res eq 'RedisDB::Error';
+                croak "$res" if _is_redisdb_error($res);
             }
         );
     }
@@ -535,7 +539,7 @@ sub send_command {
 
 sub _ignore {
     my ( $self, $res ) = @_;
-    if ( ref $res eq 'RedisDB::Error' ) {
+    if ( _is_redisdb_error($res) ) {
         warn "Ignoring error returned by redis-server: $res";
     }
 }
@@ -689,7 +693,7 @@ sub get_reply {
     }
 
     my $res = shift @{ $self->{_replies} };
-    if ( ref $res eq 'RedisDB::Error'
+    if ( _is_redisdb_error($res)
         and ( $self->{raise_error} or $self->{_in_multi} or $self->{_watching} ) )
     {
         croak $res;
@@ -879,10 +883,6 @@ for my $command (@commands) {
             return $self->execute( @uccom, @_ );
         }
     };
-}
-
-sub _is_redisdb_error {
-    ref(shift) =~ /^RedisDB::Error/;
 }
 
 =pod
