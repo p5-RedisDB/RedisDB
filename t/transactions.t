@@ -134,9 +134,10 @@ subtest "Reconnecting if disconnected after EXEC" => sub {
         code => sub {
             my $port = shift;
             my $sock = IO::Socket::IP->new(
+                LocalAddr => '127.0.0.1',
                 LocalPort => $port,
                 Listen    => 1,
-            );
+            ) or die $_;
             while ( my $cli = $sock->accept ) {
                 my $line;
                 while ( defined( $line = <$cli> ) ) {
@@ -157,7 +158,11 @@ subtest "Reconnecting if disconnected after EXEC" => sub {
             }
         }
     );
-    my $redis = RedisDB->new( port => $server->port, raise_error => undef, );
+    my $redis = RedisDB->new(
+        host        => '127.0.0.1',
+        port        => $server->port,
+        raise_error => undef,
+    );
     ok $redis->multi(RedisDB::IGNORE_REPLY), "Entered transaction (async)";
     is $redis->set( "key", "42" ), "QUEUED", "QUEUED set";
     my $repl;
