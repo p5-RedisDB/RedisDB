@@ -1,6 +1,10 @@
 Revision history for RedisDB
 
-2.43 Tue Apr  7 2015 Pavel Shaydo <zwon@trinitum.org>
+2.44 Sun Jun 14 2015 Pavel Shaydo <zwon@cpan.org>
+    - internals refactoring
+    - fix test failing on FreeBSD
+
+2.43 Tue Apr  7 2015 Pavel Shaydo <zwon@cpan.org>
     - remove wrapper for SYNC command, as it does not work
     - fix test failing with redis-server 3.0.0.
       See #23, reported by Victor Efimov
