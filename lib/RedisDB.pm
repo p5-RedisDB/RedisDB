@@ -989,7 +989,7 @@ sub _parse_cluster_nodes {
         my ( $node_id, $addr, $flags, $master_id, $ping, $pong, $state, @slots ) =
           split / /;
         my %flags = map { $_ => 1 } split /,/, $flags;
-        my ( $host, $port ) = split /:/, $addr;
+        my ( $host, $port ) = split /:([^:]+)$/, $addr;
         unless ($host) {
             $host = $self->{host}, $addr = "$self->{host}:$port",
         }

@@ -258,7 +258,7 @@ sub execute {
     while ( $attempts-- ) {
         my $redis = $self->{_connections}{$node_key};
         unless ($redis) {
-            my ( $host, $port ) = split /:/, $node_key;
+            my ( $host, $port ) = split /:([^:]+)$/, $node_key;
             $redis = _connect_to_node(
                 $self,
                 {
@@ -546,7 +546,7 @@ sub _get_node_info {
 sub _ensure_hash_address {
     my $addr = shift;
     unless ( ref $addr eq 'HASH' ) {
-        my ( $host, $port ) = split /:/, $addr;
+        my ( $host, $port ) = split /:([^:]+)$/, $addr;
         croak "invalid address spec: $addr" unless $host and $port;
         $addr = {
             host => $host,
