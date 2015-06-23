@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+2.45 Tue Jun 23 2015 Pavel Shaydo <zwon@trinitum.org>
+    - fix cluster code to work with clusters using IPv6,
+      see #25, patch by Troy Ablan
+
 2.44 Sun Jun 14 2015 Pavel Shaydo <zwon@cpan.org>
     - internals refactoring
     - fix test failing on FreeBSD
