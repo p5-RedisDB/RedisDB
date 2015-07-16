@@ -804,7 +804,8 @@ my @commands = qw(
   config	config_get	config_set	config_resetstat	config_rewrite
   dbsize	debug_error	debug_object	debug_segfault
   decr	decrby	del	dump	echo	eval    evalsha exists	expire	expireat	flushall
-  flushdb	get	getbit	getrange	getset	hdel	hexists	hget	hgetall
+  flushdb	geoadd	geodist	geohash	geopos	georadius	georadiusbymember
+  get	getbit	getrange	getset	hdel	hexists	hget	hgetall
   hincrby	hincrbyfloat	hkeys	hlen	hmget	hscan	hmset	hset	hsetnx	hvals	incr	incrby
   incrbyfloat	keys	lastsave	lindex	linsert	llen	lpop	lpush	lpushx
   lrange	lrem	lset	ltrim	mget	migrate	move	mset	msetnx	object	object_refcount
@@ -850,7 +851,8 @@ bitcount, bitop, bitpos, blpop, brpop, brpoplpush, client, client_kill,
 client_getname, client_setname, cluster, command, config, config_get, config_set,
 config_resetstat, config_rewrite, dbsize, debug_error, debug_object, debug_segfault, decr,
 decrby, del, dump, echo, eval, evalsha, exists, expire, expireat, flushall,
-flushdb, get, getbit, getrange, getset, hdel, hexists, hget, hgetall, hincrby,
+flushdb, geoadd, geodist, geohash, geopos, georadius, georadiusbymember,
+get, getbit, getrange, getset, hdel, hexists, hget, hgetall, hincrby,
 hincrbyfloat, hkeys, hlen, hmget, hscan, hmset, hset, hsetnx, hvals, incr,
 incrby, incrbyfloat, keys, lastsave, lindex, linsert, llen, lpop, lpush,
 lpushx, lrange, lrem, lset, ltrim, mget, migrate, move, mset, msetnx, object,

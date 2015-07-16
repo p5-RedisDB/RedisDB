@@ -1,4 +1,4 @@
-use Test::Most 0.22 qw(-Test::Deep);
+use Test::Most 0.22;
 use lib 't';
 use RedisServer;
 use RedisDB;
@@ -21,6 +21,7 @@ subtest "Sets commands"             => \&cmd_sets;
 subtest "Ordered sets commands"     => \&cmd_zsets;
 subtest "HyperLogLog commands"      => \&cmd_hyperloglog;
 subtest "Scripts"                   => \&cmd_scripts;
+subtest "Geo"                       => \&cmd_geo;
 
 sub group_pairs {
     my $ref = shift;
@@ -468,6 +469,46 @@ sub cmd_hyperloglog {
     is $redis->pfcount('hll1'), 4, "PFCOUNT";
     is $redis->pfadd( 'hll2', qw(a b e f) ), 1, "PFADD";
     is $redis->pfmerge( 'hll3', 'hll1', 'hll2' ), 'OK', "PFMERGE";
+}
+
+sub cmd_geo {
+    plan skip_all => "ENABLE_GEO is not set" unless $ENV{ENABLE_GEO};
+    $redis->flushdb;
+    is $redis->geoadd(
+        'China',   116.383333, 39.916667, 'Beijing', 126.633333, 45.75,
+        'Harbin',  104.064722, 30.658611, 'Chengdu', 102.683333, 25.066667,
+        'Kunming', 100.266667, 25.6,      'Dali',    100.233333, 26.883333,
+        'Lijiang'
+      ),
+      6, "GEOADD";
+    is int $redis->geodist( 'China', 'Chengdu', 'Beijing', 'km' ), 1517,
+      "GEODIST";
+    eq_or_diff $redis->geohash( 'China', 'Beijing', 'Harbin', 'Kunming' ),
+      [qw(wx4g06eg2j0 yb4h38e94d0 wk3n8e5xzj0)],
+      "GEOHASH";
+    cmp_deeply $redis->geopos( 'China', 'Dali', 'Lijiang' ),
+      [
+        [ num( 100.266, 0.001 ), num( 25.6,   0.001 ) ],
+        [ num( 100.233, 0.001 ), num( 26.883, 0.001 ) ]
+      ],
+      "GEOPOS";
+    eq_or_diff $redis->georadius( 'China', 103.3325, 29.519722, 550, 'km',
+        'ASC' ),
+      [ 'Chengdu', 'Lijiang', 'Kunming', 'Dali' ], "GEORADIUS";
+    cmp_deeply $redis->georadiusbymember( 'China', 'Dali', 160, 'mi',
+        'WITHDIST', 'WITHCOORD' ),
+      [
+        [ 'Dali', num( 0, 0 ), [ num( 100.266667, 0.001 ), num( 25.6, 0.001 ) ] ],
+        [
+            'Lijiang', num( 88, 1 ), [ num( 100.233, 0.001 ), num( 26.883, 0.001 ) ]
+        ],
+        [
+            'Kunming',
+            num( 155, 1 ),
+            [ num( 102.683, 0.001 ), num( 25.066, 0.001 ) ]
+        ],
+      ],
+      "GEORADIUSBYMEMBER";
 }
 
 done_testing;
