@@ -1,6 +1,9 @@
 Revision history for RedisDB
 
-2.45 Tue Jun 23 2015 Pavel Shaydo <zwon@trinitum.org>
+2.46 Mon Aug  3 2015 Pavel Shaydo <zwon@cpan.org>
+    - add support for geo commands
+
+2.45 Tue Jun 23 2015 Pavel Shaydo <zwon@cpan.org>
     - fix cluster code to work with clusters using IPv6,
       see #25, patch by Troy Ablan
 
