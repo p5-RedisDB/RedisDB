@@ -2,6 +2,28 @@ package Test::RedisDB;
 use strict;
 use warnings;
 
+=head1 NAME
+
+Test::RedisDB - start redis-server for testing
+
+=head1 SYNOPSIS
+
+    use Test::RedisDB;
+
+    my $test_server = Test::RedisDB->new;
+    my $redis = $test_server->redisdb_client;
+    $redis->set('foo', 1);
+    my $res = $redis->get('foo');
+
+=head1 DESCRIPTION
+
+This module allows you to start an instance of redis-server for testing your
+modules that use RedisDB.
+
+=head1 METHODS
+
+=cut
+
 use File::Spec;
 use File::Temp;
 use RedisDB;
@@ -9,6 +31,17 @@ use Test::TCP;
 
 my $REDIS_SERVER = 'redis-server';
 $REDIS_SERVER .= '.exe' if $^O eq 'MSWin32';
+
+=head2 $class->new(%options)
+
+start a new redis-server instance, return Test::RedisDB object tied to this
+instance. Accepts the following options:
+
+=head3 password
+
+server should require a password to connect
+
+=cut
 
 sub new {
     my $class = shift;
@@ -46,17 +79,53 @@ EOC
     return $self;
 }
 
+=head2 $self->start
+
+start the server. You only need to call this method if you stopped the server
+using the I<stop> method
+
+=cut
+
 sub start {
     shift->{_t_tcp}->start;
 }
+
+=head2 $self->stop
+
+stop the server
+
+=cut
 
 sub stop {
     shift->{_t_tcp}->stop;
 }
 
+=head2 $self->host
+
+return hostname or address, at the moment always 'localhost'
+
+=cut
+
+sub host {
+    'localhost';
+}
+
+=head2 $self->port
+
+return port number on which server accept connections
+
+=cut
+
 sub port {
     shift->{port};
 }
+
+=head2 $self->redisdb_client(%options)
+
+return a new RedisDB client object connected to the test server, I<%options>
+passed to RedisDB constructor
+
+=cut
 
 sub redisdb_client {
     my $self = shift;
@@ -69,3 +138,21 @@ sub redisdb_client {
 }
 
 1;
+
+__END__
+
+=head1 AUTHOR
+
+Pavel Shaydo, C<< <zwon at cpan.org> >>
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright 2011-2015 Pavel Shaydo.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of either: the GNU General Public License as published
+by the Free Software Foundation; or the Artistic License.
+
+See http://dev.perl.org/licenses/ for more information.
+
+=cut
