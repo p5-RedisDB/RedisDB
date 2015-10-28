@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+2.47 Thu Oct 29 2015 Pavel Shaydo <zwon@cpan.org>
+    - add Test::RedisDB module
+
 2.46 Mon Aug  3 2015 Pavel Shaydo <zwon@cpan.org>
     - add support for geo commands
 
