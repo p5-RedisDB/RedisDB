@@ -3,9 +3,7 @@
 use 5.010;
 use strict;
 use warnings;
-use RedisDB;
-use lib qw(t ../t);
-use RedisServer;
+use Test::RedisDB;
 use Time::HiRes qw(time);
 use Getopt::Long;
 
@@ -21,8 +19,8 @@ say "Testing ", ( $pipeline ? "in pipeling mode" : "in synchronous mode" );
 say "Data chunk size ",  $size;
 say "Number of chunks ", $count;
 
-my $srv     = RedisServer->start;
-my $redisdb = RedisDB->new( host => "localhost", port => $srv->{port} );
+my $srv     = Test::RedisDB->new;
+my $redisdb = $srv->redisdb_client;
 my $chunk   = 'x' x $size;
 my @cb      = $pipeline ? RedisDB::IGNORE_REPLY : ();
 

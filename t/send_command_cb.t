@@ -1,14 +1,13 @@
 use Test::Most 0.22;
-use lib 't';
-use RedisServer;
+use Test::RedisDB;
 use RedisDB;
 
 # This test is derived from basic_redis to preserve
 # tests for deprecated send_command_cb method
 
-my $server = RedisServer->start;
+my $server = Test::RedisDB->new;
 plan( skip_all => "Can't start redis-server" ) unless $server;
-my $redis = RedisDB->new( host => 'localhost', port => $server->{port} );
+my $redis = $server->redisdb_client;
 
 # Test callbacks
 my @replies;

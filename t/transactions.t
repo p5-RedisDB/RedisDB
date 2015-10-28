@@ -1,15 +1,14 @@
 use Test::Most 0.22;
-use lib 't';
-use RedisServer;
+use Test::RedisDB;
 use RedisDB;
 use IO::Select;
 use Time::HiRes qw(usleep);
 
-my $server = RedisServer->start;
+my $server = Test::RedisDB->new;
 plan( skip_all => "Can't start redis-server" ) unless $server;
 
-my $redis = RedisDB->new( host => 'localhost', port => $server->{port} );
-my $redis2 = RedisDB->new( { host => 'localhost', port => $server->{port}, lazy => 1, } );
+my $redis = $server->redisdb_client;
+my $redis2 = $server->redisdb_client(lazy => 1);
 plan( skip_all => "test requires redis-server version 2.0.0 and above" ) if $redis->version < 2;
 
 subtest "With raise error" => sub {
@@ -71,9 +70,7 @@ subtest "multi/exec without raise_error" => sub {
     # we need connection name support
     plan skip_all => "this test requires redis 2.6.9" if $redis2->version lt 2.006009;
 
-    my $redis3 = RedisDB->new(
-        host            => 'localhost',
-        port            => $server->{port},
+    my $redis3 = $server->redisdb_client(
         raise_error     => undef,
         connection_name => 'test_connection_3',
     );

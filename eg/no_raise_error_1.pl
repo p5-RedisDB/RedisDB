@@ -2,8 +2,7 @@ use 5.010;
 use strict;
 use warnings;
 
-use lib qw(t ../t);
-use RedisServer;
+use Test::RedisDB;
 use RedisDB;
 use Scalar::Util qw(blessed);
 
@@ -21,7 +20,7 @@ blessed reference when connection to server has failed.
 my @servers;
 my @queues;
 for ( 1 .. 3 ) {
-    my $srv = RedisServer->start;
+    my $srv = Test::RedisDB->new;
     push @servers, $srv;
     my $redis = RedisDB->new(
         host        => "127.0.0.1",
@@ -38,7 +37,7 @@ while (1) {
         $len = $redis->incr("error_test");
         if ( blessed $len) {
             say "Got an error: $len";
-            $servers[$n] = RedisServer->start(port => $redis->{port}) if rand > 0.7;
+            $servers[$n]->start if rand > 0.7;
         }
         else {
             say "Server $n: $len";

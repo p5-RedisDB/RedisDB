@@ -2,13 +2,12 @@ use 5.010;
 use strict;
 use warnings;
 
-use lib qw(t ../t);
-use RedisServer;
+use Test::RedisDB;
 use RedisDB;
 
 my @servers;
 for ( 1 .. 3 ) {
-    my $srv = RedisServer->start;
+    my $srv = Test::RedisDB->new;
     push @servers, $srv;
 }
 
@@ -27,14 +26,17 @@ parameters.
 =cut
 
 my $redis = RedisDB->new(
-    port             => $servers[0]{port},
+    port             => $servers[0]->port,
     raise_error      => 0,
     on_connect_error => sub {
         shift @servers;
 
         # or it could be:
         # push @servers, shift @servers;
-        die "No more servers\n" unless @servers;
+        unless(@servers) {
+            say "No more servers";
+            exit 0;
+        }
         say "Disconnected from $_[0]{port}, connecting to $servers[0]{port}";
         $_[0]{port} = $servers[0]{port};
     },

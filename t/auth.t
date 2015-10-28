@@ -1,9 +1,8 @@
 use Test::Most 0.22;
-use lib 't';
-use RedisServer;
+use Test::RedisDB;
 use RedisDB;
 
-my $server = RedisServer->start( password => 'test' );
+my $server = Test::RedisDB->new( password => 'test' );
 plan( skip_all => "Can't start redis-server" ) unless $server;
 my $redis = RedisDB->new( host => 'localhost', port => $server->{port} );
 dies_ok { $redis->ping } "Couldn't ping before auth";

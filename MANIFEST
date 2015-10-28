@@ -5,6 +5,7 @@ lib/RedisDB.pm
 lib/RedisDB/Cluster.pm
 lib/RedisDB/Error.pm
 lib/RedisDB/Sentinel.pm
+lib/Test/RedisDB.pm
 Makefile.PL
 MANIFEST
 README
@@ -15,7 +16,6 @@ t/cluster.t
 t/network.t
 t/no-leak.t
 t/redis_commands.t
-t/RedisServer.pm
 t/restore_subscriptions.t
 t/send_command_cb.t
 t/subscribe.t

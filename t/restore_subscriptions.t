@@ -1,21 +1,15 @@
 use Test::Most 0.22;
-use lib 't';
-use RedisServer;
+use Test::RedisDB;
 use RedisDB;
 use Test::FailWarnings;
 
-my $server = RedisServer->start;
+my $server = Test::RedisDB->new;
 plan( skip_all => "Can't start redis-server" ) unless $server;
 
-my $pub = RedisDB->new(
-    host => 'localhost',
-    port => $server->{port},
-);
+my $pub = $server->redisdb_client;
 plan( skip_all => "This test requires redis-server 2.6.9 or later" ) if $pub->version lt 2.006009;
 
-my $sub = RedisDB->new(
-    host            => 'localhost',
-    port            => $server->{port},
+my $sub = $server->redisdb_client(
     raise_error     => undef,
     connection_name => "test_subscriber",
 );

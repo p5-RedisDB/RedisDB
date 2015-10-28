@@ -1,9 +1,8 @@
 use Test::Most 0.22;
-use lib 't';
-use RedisServer;
+use Test::RedisDB;
 use RedisDB;
 
-my $server = RedisServer->start;
+my $server = Test::RedisDB->new;
 plan( skip_all => "Can't start redis-server" ) unless $server;
 
 my $binary    = "\x{01}\x{00}\x{c0}\x{d1}\x{ff}\x{fe}";
@@ -12,7 +11,7 @@ my $nonutf    = "\x{e4}\x{bd}\x{a0}\x{e5}\x{a5}\x{bd}";
 my $moose     = "\x{e4}lg";
 my $moose_bin = "\x{c3}\x{a4}lg";
 
-my $redis = RedisDB->new( host => 'localhost', port => $server->{port} );
+my $redis = $server->redisdb_client;
 subtest "utf8 disabled" => sub {
     $redis->set( "binary", $binary );
     is $redis->get("binary"), $binary, "Binary value stored/retrieved correctly";
@@ -28,8 +27,7 @@ subtest "utf8 disabled" => sub {
 };
 
 subtest "utf8 enabled" => sub {
-    my $redis8 =
-      RedisDB->new( host => 'localhost', port => $server->{port}, utf8 => 1, );
+    my $redis8 = $server->redisdb_client( utf8 => 1 );
     dies_ok { $redis8->get("binary") } "Couldn't get binary value";
     $redis8->reset_connection;
     is $redis8->set( "moose", $moose ), "OK", "set latin1 value";

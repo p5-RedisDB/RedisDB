@@ -1,16 +1,16 @@
-package RedisServer;
-
+package Test::RedisDB;
 use strict;
 use warnings;
-use POSIX qw(SIGTERM);
+
 use File::Spec;
 use File::Temp;
+use RedisDB;
 use Test::TCP;
 
 my $REDIS_SERVER = 'redis-server';
 $REDIS_SERVER .= '.exe' if $^O eq 'MSWin32';
 
-sub start {
+sub new {
     my $class = shift;
     my %args  = @_;
 
@@ -46,15 +46,26 @@ EOC
     return $self;
 }
 
+sub start {
+    shift->{_t_tcp}->start;
+}
+
 sub stop {
     shift->{_t_tcp}->stop;
 }
 
-sub restart {
+sub port {
+    shift->{port};
+}
+
+sub redisdb_client {
     my $self = shift;
-    $self->{_t_tcp}->stop;
-    $self->{_t_tcp}->start;
-    return;
+
+    if($self->{password}) {
+        unshift @_, password => $self->{password};
+    }
+
+    return RedisDB->new(host => 'localhost', port => $self->{port}, @_);
 }
 
 1;

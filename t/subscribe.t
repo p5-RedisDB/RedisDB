@@ -1,11 +1,10 @@
 use Test::Most 0.22;
-use lib 't';
-use RedisServer;
+use Test::RedisDB;
 use RedisDB;
 
-my $server = RedisServer->start;
+my $server = Test::RedisDB->new;
 plan( skip_all => "Can't start redis-server" ) unless $server;
-my $redis = RedisDB->new( host => 'localhost', port => $server->{port} );
+my $redis = $server->redisdb_client;
 
 unless ( my $pid = fork ) {
     die "Couldn't fork: $!" unless defined $pid;
@@ -115,8 +114,8 @@ sub def_cb {
 }
 
 subtest "subscriptions outside of subscription_loop" => sub {
-    my $pub = RedisDB->new( host => 'localhost', port => $server->{port} );
-    my $sub = RedisDB->new( host => 'localhost', port => $server->{port} );
+    my $pub = $server->redisdb_client;
+    my $sub = $server->redisdb_client;
     my $received;
     my $cb = sub { $received->{ $_[1] } = $_[3] };
     $sub->subscribe( 'baz', $cb );
@@ -167,7 +166,7 @@ subtest "subscriptions outside of subscription_loop" => sub {
 };
 
 subtest "unsubscribe without psubscriptions (issue #18)" => sub {
-    my $sub = RedisDB->new( host => 'localhost', port => $server->{port} );
+    my $sub = $server->redisdb_client;
     $sub->subscribe('foo');
     $sub->unsubscribe;
     pass "Unsubscribed";
@@ -185,7 +184,7 @@ subtest "subscribe before starting subscription loop" => sub {
         $redis->publish( 'other.quit' => 'quit' );
         exit 0;
     }
-    my $sub = RedisDB->new( host => 'localhost', port => $server->{port} );
+    my $sub = $server->redisdb_client;
     $sub->subscribe( 'bar' => \&def_cb );
     $counts{bar}   = 0;
     $counts{other} = 0;

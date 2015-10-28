@@ -1,15 +1,14 @@
 use Test::Most 0.22;
-use lib 't';
-use RedisServer;
+use Test::RedisDB;
 use RedisDB;
 use Digest::SHA qw(sha1_hex);
 use Time::HiRes qw(usleep);
 use Scalar::Util qw(blessed);
 
-my $server = RedisServer->start;
+my $server = Test::RedisDB->new;
 plan( skip_all => "Can't start redis-server" ) unless $server;
 
-my $redis = RedisDB->new( host => 'localhost', port => $server->{port} );
+my $redis = $server->redisdb_client;
 plan( skip_all => "Test requires redis-server at least 1.2" ) unless $redis->version ge 1.003015;
 
 subtest "Keys and strings commands" => \&cmd_keys_strings;
@@ -305,8 +304,7 @@ sub cmd_server {
         eq_or_diff $redis->config_get("dbfilename"), [qw(dbfilename dump_test.rdb)], "CONFIG GET";
         my ( $sec, $ms ) = @{ $redis->time };
         ok time - $sec < 2, "Server time is correct";
-        my $redis2 =
-          RedisDB->new( host => 'localhost', port => $server->{port}, connection_name => 'bar', );
+        my $redis2 = $server->redisdb_client(connection_name => 'bar');
         is $redis->client_getname, undef, "Name for connection is not set";
         is $redis->client_setname("foo"), "OK", "Set it to 'foo'";
         is $redis->client_getname, "foo", "Now connection name is 'foo'";

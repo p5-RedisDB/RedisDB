@@ -7,8 +7,7 @@ use RedisDB;
 use Redis::hiredis;
 use AnyEvent::Redis;
 use AnyEvent::Redis::RipeRedis;
-use lib qw(t ../t);
-use RedisServer;
+use Test::RedisDB;
 use Redis::Client;
 
 use Benchmark qw( cmpthese );
@@ -37,7 +36,7 @@ if ( $ENV{TEST_REDIS} ) {
     $srv = { host => $host, port => $port };
 }
 else {
-    $srv = RedisServer->start;
+    $srv = Test::RedisDB->new;
     $srv->{host} = '127.0.0.1';
 }
 
