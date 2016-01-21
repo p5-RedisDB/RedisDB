@@ -15,6 +15,8 @@ use Config;
 use Carp;
 use Try::Tiny;
 use Encode qw();
+use URI;
+use URI::redis;
 
 =head1 NAME
 
@@ -68,6 +70,13 @@ DB number to use. Specified database will be selected immediately after
 connecting to the server. Database changes when you sending I<select> command
 to the server. You can get current database using I<selected_database> method.
 Default value is 0.
+
+=item url
+
+A Redis URL as described in L<URI::redis>.
+
+You cannot use C<url> together with any of C<host>, C<port>, C<path>,
+C<password>, C<database>.
 
 =item raise_error
 
@@ -138,6 +147,13 @@ sub new {
     if ( $self->{path} and ( $self->{host} or $self->{port} ) ) {
         croak "You can't specify \"path\" together with \"host\" and \"port\"";
     }
+    if ( $self->{url} ) {
+        if ( $self->{host} or $self->{port} or $self->{path} ) {
+            croak "You can't specify \"url\" together with \"host\", \"port\" and \"path\"";
+        }
+
+        $self->_parse_url( $self->{url} );
+    }
     $self->{port} ||= 6379;
     $self->{host} ||= 'localhost';
     $self->{raise_error}    = 1 unless exists $self->{raise_error};
@@ -150,6 +166,22 @@ sub new {
     $self->_init_parser;
     $self->_connect unless $self->{lazy};
     return $self;
+}
+
+sub _parse_url {
+    my ($self, $url) = @_;
+
+    my $uri = URI->new($url);
+
+    if ( $uri->scheme !~ /^redis/ ) {
+        die "Unknown URL scheme '" . $uri->scheme . "' in URL '$url'";
+    }
+
+    $self->{host}     = $uri->host;
+    $self->{port}     = $uri->port;
+    $self->{path}     = $uri->socket_path;
+    $self->{password} = $uri->password;
+    $self->{database} = $uri->database;
 }
 
 sub _is_redisdb_error {

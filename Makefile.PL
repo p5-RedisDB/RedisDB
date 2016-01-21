@@ -19,6 +19,8 @@ WriteMakefile(
         Encode            => 2.10,
         'IO::Socket::IP'  => 0,
         'RedisDB::Parser' => 2.21,
+        'URI'             => 0,
+        'URI::redis'      => 0,
     },
     CONFIGURE_REQUIRES => {
         'ExtUtils::MakeMaker' => 6.3002,
