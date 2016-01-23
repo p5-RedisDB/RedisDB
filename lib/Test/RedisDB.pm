@@ -139,6 +139,18 @@ sub redisdb_client {
     return RedisDB->new(host => 'localhost', port => $self->{port}, @_);
 }
 
+=head2 $self->url
+
+return URL for the server
+
+=cut
+
+sub url {
+    my $self = shift;
+
+    return 'redis://' . ($self->{password} ? ":$self->{password}@" : "") . "localhost:$self->{port}";
+}
+
 1;
 
 __END__

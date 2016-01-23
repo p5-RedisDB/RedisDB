@@ -1,5 +1,6 @@
 use Test::Most 0.22;
 use RedisDB;
+use Test::RedisDB;
 
 subtest 'incompatible combination of options' => sub {
     dies_ok {
@@ -68,6 +69,18 @@ subtest 'Unix domain socket URLs - using query params' => sub {
     is $redis->{path}, '/tmp/test.sock', "path is correct";
     is $redis->{database}, 5, "database is correct";
     is $redis->{password}, "testpassword", "password is correct";
+};
+
+
+subtest 'Test::RedisDB' => sub {
+    my $server = Test::RedisDB->new;
+    my $redis  = $server->redisdb_client;
+    my $id     = time . ".$$";
+    $redis->set( "foo", $id );
+    my $url = $server->url;
+    ok $url, "got url";
+    my $redis2 = RedisDB->new( url => $url );
+    is $redis2->get("foo"), $id, "Connected to correct redis using the url";
 };
 
 
