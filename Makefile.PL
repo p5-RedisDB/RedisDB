@@ -47,6 +47,7 @@ WriteMakefile(
         x_contributors => [
             'Pavel Shaydo <zwon@cpan.org>',
             'HIROSE Masaaki <hirose31@gmail.com>',
+            'Norbert Buchmüller <mendel@cpan.org>',
             'Uwe Voelker <uwe.voelker@xing.com>',
             "Andrew O'Brien",
             'Troy Ablan',
