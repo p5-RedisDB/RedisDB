@@ -147,8 +147,11 @@ This module allows you to access redis cluster.
 
 =head2 $self->new(startup_nodes => \@nodes)
 
-create a new connection to cluster. Startup nodes are used to retrieve
-information about all cluster nodes and slots mappings.
+create a new connection to cluster. Startup nodes should contain array of
+hashes that contains addresses of some nodes in the cluster. Each hash should
+contain 'host' and 'port' elements. Constructor will try to connect to nodes
+from the list and from the first node to which it will be able to connect it
+will retrieve information about all cluster nodes and slots mappings.
 
 =cut
 
