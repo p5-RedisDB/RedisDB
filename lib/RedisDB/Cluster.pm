@@ -2,7 +2,7 @@ package RedisDB::Cluster;
 
 use strict;
 use warnings;
-our $VERSION = "2.48_01";
+our $VERSION = "2.49";
 $VERSION = eval $VERSION;
 
 use Carp;

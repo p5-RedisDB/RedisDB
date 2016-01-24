@@ -1,6 +1,7 @@
 Revision history for RedisDB
 
-2.48_01 Sat Jan 23 2016 Pavel Shaydo <zwon@cpan.org>
+2.49 Mon Jan 25 2016 Pavel Shaydo <zwon@cpan.org>
+    - minor documentation fixes
     - added redis URL support, see #27, patch by Norbert Buchmüller
 
 2.47 Thu Oct 29 2015 Pavel Shaydo <zwon@cpan.org>
