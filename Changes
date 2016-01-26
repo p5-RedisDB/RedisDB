@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+2.50 Tue Jan 26 2016 Pavel Shaydo <zwon@cpan.org>
+    - skip test if redis is not installed
+
 2.49 Mon Jan 25 2016 Pavel Shaydo <zwon@cpan.org>
     - minor documentation fixes
     - added redis URL support, see #27, patch by Norbert Buchmüller

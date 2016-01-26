@@ -2,7 +2,7 @@ package RedisDB::Sentinel;
 
 use strict;
 use warnings;
-our $VERSION = "2.49";
+our $VERSION = "2.50";
 $VERSION = eval $VERSION;
 
 use Carp;
