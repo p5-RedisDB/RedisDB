@@ -74,6 +74,7 @@ subtest 'Unix domain socket URLs - using query params' => sub {
 
 subtest 'Test::RedisDB' => sub {
     my $server = Test::RedisDB->new;
+    plan( skip_all => "Can't start redis-server" ) unless $server;
     my $redis  = $server->redisdb_client;
     my $id     = time . ".$$";
     $redis->set( "foo", $id );
