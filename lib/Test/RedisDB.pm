@@ -1,7 +1,7 @@
 package Test::RedisDB;
 use strict;
 use warnings;
-our $VERSION = "2.50";
+our $VERSION = "2.51";
 $VERSION = eval $VERSION;
 
 =head1 NAME

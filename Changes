@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+2.51 Thu Apr  7 2016 Pavel Shaydo <zwon@cpan.org>
+    - add node_for_slot and node_for_key methods, see #28
+
 2.50 Tue Jan 26 2016 Pavel Shaydo <zwon@cpan.org>
     - skip test if redis is not installed
 
