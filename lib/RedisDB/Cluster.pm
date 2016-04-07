@@ -349,6 +349,52 @@ sub random_connection {
     return $connection;
 }
 
+=head2 $self->node_for_slot($slot, %params)
+
+return L<RedisDB> object connected to cluster node that is master node for the
+given slot. I<%params> are passed to RedisDB constructor as is. This method is
+using information about mappings between slots and nodes that is cached by
+RedisDB::Cluster object, if there were changes in cluster configuration since
+the last time that information has been obtained, then the method will return
+RedisDB object connected to a wrong server, you can detect that situation by
+checking results returned by server, it should return MOVED or ASK error if you
+accessing the wrong server or slot is being migrated. Each time you call this
+method a new RedisDB object is returned and consequently a new connection is
+being established, so it is not something very fast.
+
+=cut
+
+sub node_for_slot {
+    my ( $self, $slot, %params ) = @_;
+
+    if ( $self->{_refresh_slots} ) {
+        $self->_initialize_slots;
+    }
+    $DB::single = 1;
+    my $node_key = $self->{_slots}[$slot]
+      or confess "Don't know master node for slot $slot";
+    my ( $host, $port ) = split /:([^:]+)$/, $node_key;
+    return RedisDB->new(
+        %params,
+        host => $host,
+        port => $port
+    );
+}
+
+=head2 $self->node_for_key($key, %params)
+
+same as I<node_for_slot> but accepts key instead of slot number as the first
+argument. Internally just calculates the slot number and then invokes
+node_for_slot method.
+
+=cut
+
+sub node_for_key {
+    my ($self, $key, %params) = @_;
+
+    return $self->node_for_slot(key_slot($key), %params);
+}
+
 =head1 CLUSTER MANAGEMENT METHODS
 
 The following methods can be used for cluster management -- to add or remove a
