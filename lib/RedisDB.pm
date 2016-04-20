@@ -343,15 +343,21 @@ sub _connect {
     if ( $self->{timeout} ) {
         my $timeout;
 
-        # NetBSD 6 uses 64-bit time_t on all architectures
-        my $netbsd6;
+        # NetBSD 6 and OpenBSD 5.5 use 64-bit time_t on all architectures
+        my $timet64;
         if ( $Config{osname} eq 'netbsd' ) {
             $Config{osvers} =~ /^([0-9]+)/;
             if ( $1 and $1 >= 6 ) {
-                $netbsd6 = 1;
+                $timet64 = 1;
             }
         }
-        if ( $netbsd6 and $Config{longsize} == 4 ) {
+        elsif ( $Config{osname} eq 'openbsd' ) {
+            $Config{osvers} =~ /^([0-9]+)\.([0-9]+)/;
+            if ( $1 and ( $1 > 5 or ( $1 == 5 and $2 >= 5 ) ) ) {
+                $timet64 = 1;
+            }
+        }
+        if ( $timet64 and $Config{longsize} == 4 ) {
             if ( defined $Config{use64bitint} ) {
                 $timeout = pack( 'QL', $self->{timeout}, 0 );
             }
