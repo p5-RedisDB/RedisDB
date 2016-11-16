@@ -48,6 +48,7 @@ WriteMakefile(
             'Pavel Shaydo <zwon@cpan.org>',
             'HIROSE Masaaki <hirose31@gmail.com>',
             'Norbert Buchmüller <mendel@cpan.org>',
+            'Steve Ratcliffe <sr@itinken.com>',
             'Uwe Voelker <uwe.voelker@xing.com>',
             "Andrew O'Brien",
             'Troy Ablan',
