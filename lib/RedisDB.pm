@@ -373,7 +373,8 @@ sub _connect {
             }
         }
         else {
-            $timeout = pack( 'L!L!', $self->{timeout}, 0 );
+            $timeout = pack( 'L!L!', $self->{timeout},
+				($self->{timeout} * 1000000) % 1000000 );
         }
         try {
             defined $self->{_socket}->sockopt( SO_RCVTIMEO, $timeout )
