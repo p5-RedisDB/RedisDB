@@ -341,6 +341,8 @@ sub _connect {
     }
 
     if ( $self->{timeout} ) {
+        my $tv_sec = int $self->{timeout};
+        my $tv_usec = ($self->{timeout} * 1e6) % 1e6;
         my $timeout;
 
         # NetBSD 6 and OpenBSD 5.5 use 64-bit time_t on all architectures
@@ -359,22 +361,21 @@ sub _connect {
         }
         if ( $timet64 and $Config{longsize} == 4 ) {
             if ( defined $Config{use64bitint} ) {
-                $timeout = pack( 'QL', $self->{timeout}, 0 );
+                $timeout = pack( 'QL', $tv_sec, $tv_usec );
             }
             else {
                 $timeout = pack(
                     'LLL',
                     (
                         $Config{byteorder} eq '1234'
-                        ? ( $self->{timeout}, 0, 0 )
-                        : ( 0, $self->{timeout}, 0 )
+                        ? ( $tv_sec, 0, $tv_usec )
+                        : ( 0, $tv_sec, $tv_usec )
                     )
                 );
             }
         }
         else {
-            $timeout = pack( 'L!L!', $self->{timeout},
-				($self->{timeout} * 1000000) % 1000000 );
+            $timeout = pack( 'L!L!', $tv_sec, $tv_usec);
         }
         try {
             defined $self->{_socket}->sockopt( SO_RCVTIMEO, $timeout )
