@@ -1,5 +1,10 @@
 Revision history for RedisDB
 
+2.54 Tue Nov 28 2017 Pavel Shaydo <zwon@cpan.org>
+    - Fix handling of disconnects with raise_error switched off, see
+    #31. Thanks to Michael Stevens for reporting the problem and
+    finding the cause.
+
 2.53 Wed Nov 16 2016 Pavel Shaydo <zwon@cpan.org>
     - Subsecond resolutions for network timeouts, see #30
 
