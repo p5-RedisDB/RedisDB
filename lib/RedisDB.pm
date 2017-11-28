@@ -445,9 +445,11 @@ sub _recv_data_nb {
             last if $! == EAGAIN or $! == EWOULDBLOCK;
             next if $! == EINTR;
 
-            # on any other error close connection
-            $self->_on_disconnect( 1,
-                RedisDB::Error::DISCONNECTED->new("Error reading from server: $!") );
+            # on any other error close the connection
+            my $error =
+              RedisDB::Error::DISCONNECTED->new("Error reading from server: $!");
+            $self->_on_disconnect( 1, $error );
+            return $error;
         }
         elsif ( $buf ne '' ) {
 
