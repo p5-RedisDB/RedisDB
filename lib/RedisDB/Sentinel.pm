@@ -2,7 +2,7 @@ package RedisDB::Sentinel;
 
 use strict;
 use warnings;
-our $VERSION = "2.54";
+our $VERSION = "2.55";
 $VERSION = eval $VERSION;
 
 use Carp;
@@ -113,7 +113,7 @@ Pavel Shaydo, C<< <zwon at cpan.org> >>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2011-2016 Pavel Shaydo.
+Copyright 2011-2019 Pavel Shaydo.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
