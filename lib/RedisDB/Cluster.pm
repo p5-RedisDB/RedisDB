@@ -2,7 +2,7 @@ package RedisDB::Cluster;
 
 use strict;
 use warnings;
-our $VERSION = "2.54";
+our $VERSION = "2.55";
 $VERSION = eval $VERSION;
 
 use Carp;
@@ -158,10 +158,12 @@ will retrieve information about all cluster nodes and slots mappings.
 sub new {
     my ( $class, %params ) = @_;
 
+    my $startup_nodes = delete $params{startup_nodes};
     my $self = {
         _slots       => [],
         _connections => {},
-        _nodes       => $params{startup_nodes},
+        _nodes       => $startup_nodes,
+        _params      => \%params;
     };
     $self->{no_slots_initialization} = 1 if $params{no_slots_initialization};
 
@@ -370,7 +372,6 @@ sub node_for_slot {
     if ( $self->{_refresh_slots} ) {
         $self->_initialize_slots;
     }
-    $DB::single = 1;
     my $node_key = $self->{_slots}[$slot]
       or confess "Don't know master node for slot $slot";
     my ( $host, $port ) = split /:([^:]+)$/, $node_key;
@@ -613,6 +614,7 @@ sub _connect_to_node {
             host        => $node->{host},
             port        => $node->{port},
             raise_error => 0,
+            %{$self->{_param},
         );
         $self->{_connections}{$host_key} = $redis->{_socket} ? $redis : undef;
     }
