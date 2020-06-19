@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+2.55 Mon Nov 11 2019 Pavel Shaydo <zwon@cpan.org>
+    - Fix parsing of cluster nodes in redis v4
+
 2.54 Tue Nov 28 2017 Pavel Shaydo <zwon@cpan.org>
     - Fix handling of disconnects with raise_error switched off, see
     #31. Thanks to Michael Stevens for reporting the problem and
