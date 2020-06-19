@@ -153,17 +153,32 @@ contain 'host' and 'port' elements. Constructor will try to connect to nodes
 from the list and from the first node to which it will be able to connect it
 will retrieve information about all cluster nodes and slots mappings.
 
+=over 4
+
+=item password
+
+Password, if redis server requires authentication.
+
+=item database
+
+DB number to use. Specified database will be selected immediately after
+connecting to the server. Database changes when you sending I<select> command
+to the server. You can get current database using I<selected_database> method.
+Default value is 0.
+
+=back
+
 =cut
 
 sub new {
     my ( $class, %params ) = @_;
 
-    my $startup_nodes = delete $params{startup_nodes};
     my $self = {
         _slots       => [],
         _connections => {},
-        _nodes       => $startup_nodes,
-        _params      => \%params,
+        _nodes       => $params{startup_nodes},
+        _password    => $params{password},
+        _database    => $params{database} || 0,
     };
     $self->{no_slots_initialization} = 1 if $params{no_slots_initialization};
 
@@ -614,7 +629,8 @@ sub _connect_to_node {
             host        => $node->{host},
             port        => $node->{port},
             raise_error => 0,
-            %{$self->{_params}},
+            password    => $self->{_password},
+            database    => $self->{_database},
         );
         $self->{_connections}{$host_key} = $redis->{_socket} ? $redis : undef;
     }
