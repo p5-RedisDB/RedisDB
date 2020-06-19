@@ -614,7 +614,7 @@ sub _connect_to_node {
             host        => $node->{host},
             port        => $node->{port},
             raise_error => 0,
-            %{$self->{_param},
+            %{$self->{_param}},
         );
         $self->{_connections}{$host_key} = $redis->{_socket} ? $redis : undef;
     }
