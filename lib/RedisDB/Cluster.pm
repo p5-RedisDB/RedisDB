@@ -163,7 +163,7 @@ sub new {
         _slots       => [],
         _connections => {},
         _nodes       => $startup_nodes,
-        _params      => \%params;
+        _params      => \%params,
     };
     $self->{no_slots_initialization} = 1 if $params{no_slots_initialization};
 
