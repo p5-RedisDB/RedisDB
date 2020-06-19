@@ -188,7 +188,7 @@ sub _initialize_slots {
         next unless $redis;
 
         my $nodes = $redis->cluster_nodes;
-        next if ref $nodes =~ /^RedisDB::Error/;
+        next if ref ($nodes) =~ /^RedisDB::Error/;
         $new_nodes = $nodes;
         for (@$nodes) {
             $new_nodes{"$_->{host}:$_->{port}"}++;
