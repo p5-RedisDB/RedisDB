@@ -178,7 +178,6 @@ sub new {
         _connections => {},
         _nodes       => $params{startup_nodes},
         _password    => $params{password},
-        _database    => $params{database} || 0,
     };
     $self->{no_slots_initialization} = 1 if $params{no_slots_initialization};
 
@@ -630,7 +629,6 @@ sub _connect_to_node {
             port        => $node->{port},
             raise_error => 0,
             password    => $self->{_password},
-            database    => $self->{_database},
         );
         $self->{_connections}{$host_key} = $redis->{_socket} ? $redis : undef;
     }
