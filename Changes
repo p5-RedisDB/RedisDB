@@ -1,5 +1,8 @@
 Revision history for RedisDB
 
+2.56 Sat Jan 16 2021 Pavel Shaydo <zwon@cpan.org>
+    - Add forwarding params to redis cluster by Pavel Andryushin. See #36.
+
 2.55 Mon Nov 11 2019 Pavel Shaydo <zwon@cpan.org>
     - Fix parsing of cluster nodes in redis v4
 
