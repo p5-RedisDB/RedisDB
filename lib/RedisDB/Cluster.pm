@@ -2,7 +2,8 @@ package RedisDB::Cluster;
 
 use strict;
 use warnings;
-our $VERSION = "2.55";
+
+our $VERSION = "2.56";
 $VERSION = eval $VERSION;
 
 use Carp;
@@ -153,6 +154,14 @@ contain 'host' and 'port' elements. Constructor will try to connect to nodes
 from the list and from the first node to which it will be able to connect it
 will retrieve information about all cluster nodes and slots mappings.
 
+=over 4
+
+=item password
+
+Password, if redis server requires authentication.
+
+=back
+
 =cut
 
 sub new {
@@ -162,6 +171,7 @@ sub new {
         _slots       => [],
         _connections => {},
         _nodes       => $params{startup_nodes},
+        _password    => $params{password},
     };
     $self->{no_slots_initialization} = 1 if $params{no_slots_initialization};
 
@@ -186,7 +196,7 @@ sub _initialize_slots {
         next unless $redis;
 
         my $nodes = $redis->cluster_nodes;
-        next if ref $nodes =~ /^RedisDB::Error/;
+        next if ref ($nodes) =~ /^RedisDB::Error/;
         $new_nodes = $nodes;
         for (@$nodes) {
             $new_nodes{"$_->{host}:$_->{port}"}++;
@@ -370,7 +380,6 @@ sub node_for_slot {
     if ( $self->{_refresh_slots} ) {
         $self->_initialize_slots;
     }
-    $DB::single = 1;
     my $node_key = $self->{_slots}[$slot]
       or confess "Don't know master node for slot $slot";
     my ( $host, $port ) = split /:([^:]+)$/, $node_key;
@@ -613,6 +622,7 @@ sub _connect_to_node {
             host        => $node->{host},
             port        => $node->{port},
             raise_error => 0,
+            password    => $self->{_password},
         );
         $self->{_connections}{$host_key} = $redis->{_socket} ? $redis : undef;
     }
