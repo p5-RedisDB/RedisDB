@@ -18,7 +18,7 @@ if ( $redis->version >= 2 ) {
     is $redis->get("Database"), 1, "Selected database 1";
     $redis->{password} = 'wrong';
     delete $redis->{_socket};
-    throws_ok { $redis->ping } qr/invalid password/i, "dies on reconnect if password is wrong";
+    throws_ok { $redis->ping } qr/invalid (?:username-)?password/i, "dies on reconnect if password is wrong";
 }
 else {
     diag "Can't finish test, requires redis-server version 2.0.0 and above";
