@@ -1,5 +1,9 @@
 Revision history for RedisDB
 
+2.57 Tue Jan 19 2021 Pavel Shaydo <zwon@cpan.org>
+    - Fix test failing due to the changed error message. See #37. Patch
+    by H.Merijn Brand.
+
 2.56 Sat Jan 16 2021 Pavel Shaydo <zwon@cpan.org>
     - Add forwarding params to redis cluster by Pavel Andryushin. See #36.
 
