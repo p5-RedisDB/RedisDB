@@ -146,13 +146,15 @@ This module allows you to access redis cluster.
 
 =cut
 
-=head2 $self->new(startup_nodes => \@nodes)
+=head2 $self->new(startup_nodes => \@nodes[, initializer_nodes => \@initializer_nodes])
 
 create a new connection to cluster. Startup nodes should contain array of
 hashes that contains addresses of some nodes in the cluster. Each hash should
 contain 'host' and 'port' elements. Constructor will try to connect to nodes
 from the list and from the first node to which it will be able to connect it
 will retrieve information about all cluster nodes and slots mappings.
+
+If I<\@initializer_nodes> is specified, TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 =over 4
 
@@ -168,10 +170,11 @@ sub new {
     my ( $class, %params ) = @_;
 
     my $self = {
-        _slots       => [],
-        _connections => {},
-        _nodes       => $params{startup_nodes},
-        _password    => $params{password},
+        _slots             => [],
+        _connections       => {},
+        _nodes             => $params{startup_nodes},
+        _initializer_nodes => $params{initializer_nodes},
+        _password          => $params{password},
     };
     $self->{no_slots_initialization} = 1 if $params{no_slots_initialization};
 
@@ -191,7 +194,7 @@ sub _initialize_slots {
 
     my %new_nodes;
     my $new_nodes;
-    for my $node ( @{ $self->{_nodes} } ) {
+    for my $node ( @{ $self->{_initializer_nodes} || $self->{_nodes} } ) {
         my $redis = _connect_to_node( $self, $node );
         next unless $redis;
 
