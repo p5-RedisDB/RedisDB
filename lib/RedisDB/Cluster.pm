@@ -172,6 +172,7 @@ sub new {
         _connections => {},
         _nodes       => $params{startup_nodes},
         _password    => $params{password},
+        _timeout     => $params{timeout},
     };
     $self->{no_slots_initialization} = 1 if $params{no_slots_initialization};
 
@@ -386,7 +387,8 @@ sub node_for_slot {
     return RedisDB->new(
         %params,
         host => $host,
-        port => $port
+        port => $port,
+        timeout => $self->{_timeout}
     );
 }
 
@@ -623,6 +625,7 @@ sub _connect_to_node {
             port        => $node->{port},
             raise_error => 0,
             password    => $self->{_password},
+            timeout     => $self->{_timeout},
         );
         $self->{_connections}{$host_key} = $redis->{_socket} ? $redis : undef;
     }
