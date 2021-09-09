@@ -146,15 +146,20 @@ This module allows you to access redis cluster.
 
 =cut
 
-=head2 $self->new(startup_nodes => \@nodes)
+=head2 $self->new(%options)
 
-create a new connection to cluster. Startup nodes should contain array of
-hashes that contains addresses of some nodes in the cluster. Each hash should
-contain 'host' and 'port' elements. Constructor will try to connect to nodes
-from the list and from the first node to which it will be able to connect it
-will retrieve information about all cluster nodes and slots mappings.
+creates a new connection to cluster based on information from startup_nodes
+parameter.
 
 =over 4
+
+=item startup_nodes
+
+Required. Startup nodes should contain array of hashes that contains addresses
+of some nodes in the cluster. Each hash should contain 'host' and 'port'
+elements.  Constructor will try to connect to nodes from the list and from the
+first node to which it will be able to connect it will retrieve information
+about all cluster nodes and slots mappings.
 
 =item password
 
@@ -168,10 +173,11 @@ sub new {
     my ( $class, %params ) = @_;
 
     my $self = {
-        _slots       => [],
-        _connections => {},
-        _nodes       => $params{startup_nodes},
-        _password    => $params{password},
+        _slots         => [],
+        _connections   => {},
+        _startup_nodes => $params{startup_nodes},
+        _nodes         => [],
+        _password      => $params{password},
     };
     $self->{no_slots_initialization} = 1 if $params{no_slots_initialization};
 
@@ -184,19 +190,22 @@ sub new {
 sub _initialize_slots {
     my $self = shift;
 
-    return if $self->{no_slots_initialization};
-    unless ( $self->{_nodes} and @{ $self->{_nodes} } ) {
-        confess "list of cluster nodes is empty";
+    if ( $self->{no_slots_initialization} ) {
+        $self->{_nodes} = $self->{_startup_nodes};
+        return;
+    }
+    unless ( $self->{_startup_nodes} and @{ $self->{_startup_nodes} } ) {
+        confess "list of startup nodes is empty";
     }
 
     my %new_nodes;
     my $new_nodes;
-    for my $node ( @{ $self->{_nodes} } ) {
+    for my $node ( @{ $self->{_startup_nodes} } ) {
         my $redis = _connect_to_node( $self, $node );
         next unless $redis;
 
         my $nodes = $redis->cluster_nodes;
-        next if ref ($nodes) =~ /^RedisDB::Error/;
+        next if ref($nodes) =~ /^RedisDB::Error/;
         $new_nodes = $nodes;
         for (@$nodes) {
             $new_nodes{"$_->{host}:$_->{port}"}++;
@@ -319,7 +328,7 @@ sub execute {
                 $self->_initialize_slots;
 
                 # if it's still the same host, then just return the error
-                return $res if $self->{_slots}[$slot] eq $node_key;
+                return $res                        if $self->{_slots}[$slot] eq $node_key;
                 warn "got a new host for the slot" if $DEBUG;
             }
             else {
@@ -335,9 +344,9 @@ sub execute {
         "Couldn't send command after 10 attempts");
 }
 
-for my $command (keys %key_pos) {
+for my $command ( keys %key_pos ) {
     no strict 'refs';
-    *{ __PACKAGE__ . "::$command" } = sub { execute(shift, $command, @_) };
+    *{ __PACKAGE__ . "::$command" } = sub { execute( shift, $command, @_ ) };
 }
 
 =head2 $self->random_connection
@@ -399,9 +408,9 @@ node_for_slot method.
 =cut
 
 sub node_for_key {
-    my ($self, $key, %params) = @_;
+    my ( $self, $key, %params ) = @_;
 
-    return $self->node_for_slot(key_slot($key), %params);
+    return $self->node_for_slot( key_slot($key), %params );
 }
 
 =head1 CLUSTER MANAGEMENT METHODS
@@ -566,9 +575,9 @@ sub remove_node {
                 $self->migrate_slot( $slot, $master );
             }
             for ( 1 .. $slaves_per_master ) {
-                my $slave = shift @slaves or last;
+                my $slave = shift @slaves                   or last;
                 my $redis = $self->_connect_to_node($slave) or next;
-                my $res = $redis->cluster( 'replicate', $master->{node_id} );
+                my $res   = $redis->cluster( 'replicate', $master->{node_id} );
                 warn "Failed to reconfigure slave $slave->{host}:$slave->{port}"
                   . " to replicate from $master->{node_id}: $res"
                   if ref $res =~ /^RedisDB::Error/;
@@ -583,7 +592,7 @@ sub remove_node {
         next if $_->{node_id} eq $node->{node_id};
         push @nodes, $_;
         my $redis = $self->_connect_to_node($_) or next;
-        my $res = $redis->cluster( 'forget', $node->{node_id} );
+        my $res   = $redis->cluster( 'forget', $node->{node_id} );
         warn "$_->{host}:$_->{port} could not forget the node: $res"
           if $res =~ /^RedisDB::Error/;
     }
